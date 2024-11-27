@@ -2,6 +2,9 @@ import ast
 import random
 import string
 
+"""
+
+"""
 class LocalVariableRenamer(ast.NodeTransformer):
     def __init__(self):
         self.variable_mapping = {}
