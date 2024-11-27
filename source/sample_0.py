@@ -1,13 +1,20 @@
 def helloWorld():
-    def innerHelloWorld():
-        print('hello world')
-    print('hello world')
+    def firstInteger():
+        return 0
+    def secondInteger():
+        return 1
+    total = firstInteger() + secondInteger()
+    return total
 
-def sayGoodBye():
-    print('say...')
-    print('good bye')
+def sayGoodBye(name, time):
+    last_word = "Happy ThanksGiving!"
+    print(f'Dear {name}, ')
+    print(f'Good bye, {time}...')
+    print(last_word)
 
+local_int_1 = 2
+local_int_2 = 3
 
-print('this is a sample file')
-
-a = 2 + 3
+helloWorld()
+sayGoodBye('David', "see you next time")
+a = local_int_1 + local_int_2

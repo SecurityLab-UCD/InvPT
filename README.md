@@ -14,7 +14,7 @@ RuleId stands for one specific transformation method:
 
 ## TODO
 ### Local Variable Renaming (0)
-[ ] To change the local variable name inside the functions
+[ ] To change the local function name inside the functions
 
 [ ] To change the parameters name of the function
 

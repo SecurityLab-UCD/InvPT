@@ -1,5 +1,5 @@
 from typing import *
-from LocalVariableRenaming import LocalVariableRenamer
+from Methods.LocalVariableRenaming import LocalVariableRenamer
 import ast
 import sys
 import os

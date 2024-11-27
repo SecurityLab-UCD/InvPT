@@ -1,3 +1,3 @@
-vGNRDYsO = 'hello world!'
-npYdUAQX = 'Jack'
-print(vGNRDYsO, 'my name is', npYdUAQX)
+SSkNOuKt = 'hello world!'
+AHNcUepR = 'Jack'
+print(SSkNOuKt, 'my name is', AHNcUepR)
