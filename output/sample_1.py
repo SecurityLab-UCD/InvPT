@@ -1,3 +1,3 @@
-SSkNOuKt = 'hello world!'
-AHNcUepR = 'Jack'
-print(SSkNOuKt, 'my name is', AHNcUepR)
+hello_world = "hello world!"
+name = "Jack"
+print(hello_world, 'my name is', name)

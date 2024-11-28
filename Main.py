@@ -1,5 +1,6 @@
 from typing import *
 from Methods.LocalVariableRenaming import LocalVariableRenamer
+from Methods.FunctionDefinitionReorder import FunctionDefinitionReorder
 import ast
 import sys
 import os
@@ -9,11 +10,11 @@ transformed_method_map = {
     1: 'Function Definition Reorder',
 }
 
-def get_AST_transformer(ruleId: str):
+def get_code_transformer(ruleId: str):
     if ruleId == 0: # Local Variable Renaming
         return LocalVariableRenamer()
-    elif ruleId == 1: # Function Definition Renaming
-        return None
+    elif ruleId == 1: # Function Definition Reorder
+        return FunctionDefinitionReorder()
     else:
         raise ValueError('ruleId does not exist')
     
@@ -21,14 +22,31 @@ def apply_AST_transform_and_write(ast_transformer, source_filename, target_filen
     with open(source_filename) as file:
         lines = file.readlines()
         source = ''.join(lines)
-        module = ast.parse(source)
-
-        modified_module = ast_transformer.visit(module)
-
-        modified_code = ast.unparse(modified_module)  
         
+        original_ast_module = ast.parse(source)
+        modified_ast_module = ast_transformer.visit(original_ast_module)
+        
+        modified_code = ast.unparse(modified_ast_module)          
         with open(target_filename, 'w') as file:
             file.write(modified_code)
+
+def apply_function_def_reorder_and_write(code_transformer, source_filename, target_filename):
+    
+    """    
+    modified_code = code_transformer(source_filename)    
+    """
+    code_transformer.write(source_filename, target_filename)
+
+
+def transform_and_write(code_transformer, source_filename, target_filename, ruleId):
+    """
+    Use code transformer to generate 
+    """
+    if ruleId == 1:
+        return apply_function_def_reorder_and_write(code_transformer, source_filename, target_filename)
+    else:
+        apply_AST_transform_and_write(ast_transformer=code_transformer, source_filename=source_filename, target_filename=target_filename)
+
 
 def main(argv=None):
     import argparse
@@ -41,25 +59,25 @@ def main(argv=None):
     arg_parser.add_argument('target', help='The target directory where the transformed code are located', type=str)        
     args = arg_parser.parse_args(argv)
     
-    # Get AST Node Transformer Given the RuleID
-    ast_transformer = get_AST_transformer(args.ruleId)    
-
-    # traverse through the source directory/file
-    # for each file in the directory, transformed it, and then write the output to the target directory    
-
+  
+    # Create Output File if Does Not Exist
     if not os.path.exists(args.target):
         os.makedirs(args.target)
 
     print('-------- Selected Transforming Method: ', transformed_method_map[args.ruleId], ' -------- \n')
+
+    # Get Code Transformer Given the RuleID
+    code_transformer = get_code_transformer(args.ruleId)  
+    
     if os.path.isdir(args.root):
         for dirpath, dirnames, filenames in os.walk(args.root):
             for filename in filenames:                
                 source_filename = os.path.join(dirpath, filename)
                 target_filename = os.path.join(args.target, filename)
                 print(source_filename, target_filename)
-                apply_AST_transform_and_write(ast_transformer=ast_transformer, source_filename=source_filename, target_filename=target_filename)
-    else:
-        apply_AST_transform_and_write(ast_transformer=ast_transformer, source_filename=args.root, target_filename=args.target)
+                transform_and_write(code_transformer=code_transformer, source_filename=source_filename, target_filename=target_filename, ruleId=args.ruleId)
+    else:        
+        transform_and_write(ast_transformer=code_transformer, source_filename=args.root, target_filename=args.target, ruleId=args.ruleId)
 
     print('\nFinished Transformed!\n\n')
 
