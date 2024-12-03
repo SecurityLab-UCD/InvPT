@@ -11,6 +11,7 @@ from model import ContraBERTTrainer
 from dataloader import contra_data_collator
 
 from common import tokenizer, config, DEVICE, set_seed
+import os
 
 
 def tokenize(example):
@@ -40,14 +41,18 @@ def tokenize(example):
 
 def main(
     dataset_path: str = "data/codesearchnet.jsonl",
-    run_name: str = "codebert",
     batch_size: int = 64,
     num_train_epochs: int = 3,
     num_proc: int = 80,
     seed: int = 0,
+    wandb_project: str | None = "PIA",
+    run_name: str = "ContraBERT",
 ):
 
     set_seed(seed)
+
+    if wandb_project is not None:
+        os.environ["WANDB_PROJECT"] = wandb_project
 
     model = RobertaForMaskedLM(config)
     model.to(DEVICE)
@@ -80,6 +85,8 @@ def main(
         learning_rate=5e-5,
         weight_decay=0.01,
         remove_unused_columns=False,
+        report_to="wandb",
+        run_name=run_name,
     )
 
     trainer = ContraBERTTrainer(
