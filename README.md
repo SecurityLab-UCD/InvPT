@@ -5,6 +5,8 @@ Program-Invariant-Aware Training for Large Language Models in Code Understanding
 Run the following command:
 ```
 python3 [RuleId] [RootDir] [OutputDir]
+
+python3 Main.py 1 source output
 ```
 
 RuleId stands for one specific transformation method:

@@ -1,13 +1,14 @@
-def f4():
-    print(1)
-
-def f2():
-    print(1)
-
 def f1():
     print(1)
 
-def f5():
-    print(1)
+def f2():
+    print(2)
+
 def f3():
-    print(1)
+    print(3)
+
+def f4():
+    print(4)
+
+def f5():
+    print(5)
