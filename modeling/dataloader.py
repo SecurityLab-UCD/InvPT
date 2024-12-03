@@ -6,6 +6,7 @@ import os
 from multiprocessing import Pool
 
 from torch.utils.data import DataLoader, IterableDataset
+from transformers import DataCollatorForLanguageModeling
 
 
 @dataclass
@@ -18,32 +19,34 @@ class CodeSearchNetExample:
     docstring: str
 
 
-class CodeSearchNetDataset(IterableDataset):
-    def __init__(self, content: str):
-        self.lines = content.split("\n")
-
-    def __iter__(self):
-        for line in self.lines:
-            example = json.loads(line)
-            yield CodeSearchNetExample(
-                repo=example["repo"],
-                func_name=example["func_name"],
-                original_string=example["original_string"],
-                code=example["code"],
-                language=example["language"],
-                docstring=example["docstring"],
-            )
-
-
-def main(dataset_path: str = "data/codesearchnet.jsonl"):
-    with open(dataset_path, "r") as f:
-        dataset_content = f.read()
-
-    dataset = CodeSearchNetDataset(dataset_content)
-
-    d = iter(dataset)
-    print(next(d))
-
-
-if __name__ == "__main__":
-    fire.Fire(main)
+def contra_data_collator(mlm_collator, features):
+    # Separate features for original code and augmented code
+    code_features = [
+        {
+            "input_ids": f["code_input_ids"],
+            "attention_mask": f["code_attention_mask"],
+            "special_tokens_mask": f["code_special_tokens_mask"],
+        }
+        for f in features
+    ]
+    aug_features = [
+        {
+            "input_ids": f["aug_input_ids"],
+            "attention_mask": f["aug_attention_mask"],
+            "special_tokens_mask": f["aug_special_tokens_mask"],
+        }
+        for f in features
+    ]
+    # Apply MLM collator
+    code_batch = mlm_collator(code_features)
+    aug_batch = mlm_collator(aug_features)
+    # Combine batches
+    batch = {
+        "code_input_ids": code_batch["input_ids"],
+        "code_attention_mask": code_batch["attention_mask"],
+        "code_labels": code_batch["labels"],
+        "aug_input_ids": aug_batch["input_ids"],
+        "aug_attention_mask": aug_batch["attention_mask"],
+        "aug_labels": aug_batch["labels"],
+    }
+    return batch

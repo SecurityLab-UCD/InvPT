@@ -1,22 +1,41 @@
 # type: ignore
 
 from transformers import (
-    RobertaTokenizerFast,
-    RobertaConfig,
     RobertaForMaskedLM,
     DataCollatorForLanguageModeling,
-    Trainer,
     TrainingArguments,
 )
 from datasets import load_dataset, DatasetDict
 import fire
+from model import ContraBERTTrainer
+from dataloader import contra_data_collator
+
+from common import tokenizer, config, DEVICE, set_seed
 
 
-def tokenize(tokenizer, example):
-    texts = [
-        code + "\n" + doc for code, doc in zip(example["code"], example["docstring"])
-    ]
-    return tokenizer(texts, truncation=True, max_length=512)
+def tokenize(example):
+    code_inputs = tokenizer(
+        example["code"],
+        padding="max_length",
+        truncation=True,
+        max_length=256,
+        return_special_tokens_mask=True,
+    )
+    aug_inputs = tokenizer(
+        example["original_string"],
+        padding="max_length",
+        truncation=True,
+        max_length=256,
+        return_special_tokens_mask=True,
+    )
+    return {
+        "code_input_ids": code_inputs["input_ids"],
+        "code_attention_mask": code_inputs["attention_mask"],
+        "code_special_tokens_mask": code_inputs["special_tokens_mask"],
+        "aug_input_ids": aug_inputs["input_ids"],
+        "aug_attention_mask": aug_inputs["attention_mask"],
+        "aug_special_tokens_mask": aug_inputs["special_tokens_mask"],
+    }
 
 
 def main(
@@ -24,21 +43,28 @@ def main(
     run_name: str = "codebert",
     batch_size: int = 64,
     num_train_epochs: int = 3,
+    num_proc: int = 80,
+    seed: int = 0,
 ):
 
-    tokenizer = RobertaTokenizerFast.from_pretrained("microsoft/codebert-base")
-    config = RobertaConfig.from_pretrained("microsoft/codebert-base")
+    set_seed(seed)
+
     model = RobertaForMaskedLM(config)
+    model.to(DEVICE)
 
     dataset = load_dataset("json", data_files=dataset_path)
 
     tokenized_datasets = dataset.map(
-        lambda examples: tokenize(tokenizer, examples),
+        tokenize,
         batched=True,
         remove_columns=dataset["train"].column_names,
+        num_proc=num_proc,
     )
+    split_dataset = tokenized_datasets["train"].train_test_split(test_size=0.1)
+    train_dataset = split_dataset["train"]
+    eval_dataset = split_dataset["test"]
 
-    data_collator = DataCollatorForLanguageModeling(
+    mlm_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=0.15
     )
 
@@ -49,14 +75,20 @@ def main(
         per_device_train_batch_size=batch_size,
         save_steps=1000,
         logging_steps=1000,
-        prediction_loss_only=True,
+        eval_strategy="steps",
+        eval_steps=1000,
+        learning_rate=5e-5,
+        weight_decay=0.01,
+        remove_unused_columns=False,
     )
 
-    trainer = Trainer(
+    trainer = ContraBERTTrainer(
         model=model,
         args=training_args,
-        data_collator=data_collator,
-        train_dataset=tokenized_datasets["train"],
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        data_collator=lambda features: contra_data_collator(mlm_collator, features),
+        alpha=0.7,
     )
 
     trainer.train()
