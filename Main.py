@@ -2,6 +2,7 @@ from typing import *
 from Methods.LocalVariableRenaming import LocalVariableRenamer
 from Methods.FunctionDefinitionReorder import FunctionDefinitionReorder
 from Methods.ReverseIfElse import ReverseIfElser
+from Methods.StatementsOrderRearrangement import StatementOrderRearrangement
 import ast
 import sys
 import os
@@ -9,7 +10,8 @@ import os
 transformed_method_map = {
     0: 'Local Variable Renaming',
     1: 'Function Definition Reorder',
-    2: 'Reverse If Else Statement'
+    2: 'Reverse If Else Statement',
+    3: 'Statements Order Rearrangement'
 }
 
 def get_code_transformer(ruleId: str):
@@ -19,6 +21,8 @@ def get_code_transformer(ruleId: str):
         return FunctionDefinitionReorder()
     elif ruleId == 2:
         return ReverseIfElser()
+    elif ruleId == 3:
+        return StatementOrderRearrangement()
     else:
         raise ValueError('ruleId does not exist')
     
