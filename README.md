@@ -30,6 +30,7 @@ pip install -r requirements.txt
 
 ```bash
 python modeling/train_roberta.py \
+    --dataset_path="data/codesearchnet_java.jsonl" \
     --batch_size=32 \
     --num_train_epochs=30 \
     --run_name="ContraBERT_java"
