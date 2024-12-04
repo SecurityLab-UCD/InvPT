@@ -65,3 +65,34 @@ class ContraBERTTrainer(Trainer):
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
         return (total_loss, outputs) if return_outputs else total_loss
+
+    def prediction_step(
+        self, model, inputs, prediction_loss_only, ignore_keys=None
+    ):
+        """
+        Override the default prediction_step to handle custom inputs during evaluation.
+        """
+        # Move inputs to device
+        device = self.args.device
+        code_input_ids = inputs['code_input_ids'].to(device)
+        code_attention_mask = inputs['code_attention_mask'].to(device)
+        code_labels = inputs['code_labels'].to(device)
+
+        # Prepare inputs for the model
+        # Since evaluation usually focuses on the MLM task, we can use code inputs
+        inputs_for_model = {
+            'input_ids': code_input_ids,
+            'attention_mask': code_attention_mask,
+            'labels': code_labels,
+        }
+
+        with torch.no_grad():
+            outputs = model(**inputs_for_model)
+
+            if prediction_loss_only:
+                loss = outputs.loss
+                return (loss, None, None)
+            else:
+                loss = outputs.loss
+                logits = outputs.logits
+                return (loss, logits, code_labels)
