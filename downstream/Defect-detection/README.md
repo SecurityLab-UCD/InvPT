@@ -123,6 +123,12 @@ python run.py \
     --seed 123456 2>&1 | tee test.log
 ```
 
+### All Togerher
+
+```sh
+./run.sh <pretrained_model_path>
+```
+
 ### Evaluation
 
 ```shell
