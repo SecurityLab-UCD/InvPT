@@ -1,6 +1,7 @@
 model_path=$1
+output_dir=$2
 python ./code/run.py \
-    --output_dir=./saved_models \
+    --output_dir=$output_dir \
     --model_type=roberta \
     --tokenizer_name=microsoft/codebert-base \
     --model_name_or_path=$model_path \
