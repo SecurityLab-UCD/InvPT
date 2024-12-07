@@ -54,7 +54,8 @@ def main(
     if wandb_project is not None:
         os.environ["WANDB_PROJECT"] = wandb_project
 
-    model = RobertaForMaskedLM(config)
+    # model = RobertaForMaskedLM(config)
+    model = RobertaForMaskedLM.from_pretrained("microsoft/codebert-base")
     model.to(DEVICE)
 
     dataset = load_dataset("json", data_files=dataset_path)
