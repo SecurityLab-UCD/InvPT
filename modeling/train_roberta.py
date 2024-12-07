@@ -47,6 +47,7 @@ def main(
     seed: int = 0,
     wandb_project: str | None = "PIA",
     run_name: str = "ContraBERT",
+    continue_from_released: bool = False,
 ):
 
     set_seed(seed)
@@ -54,7 +55,11 @@ def main(
     if wandb_project is not None:
         os.environ["WANDB_PROJECT"] = wandb_project
 
-    # model = RobertaForMaskedLM(config)
+    model = (
+        RobertaForMaskedLM.from_pretrained("microsoft/codebert-base")
+        if continue_from_released
+        else RebertaForMaskedLM(config)  # start pre-training from scratch
+    )
     model = RobertaForMaskedLM.from_pretrained("microsoft/codebert-base")
     model.to(DEVICE)
 

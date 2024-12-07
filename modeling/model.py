@@ -31,32 +31,42 @@ class ContraBERTTrainer(Trainer):
         aug_labels = inputs["aug_labels"].to(DEVICE)
 
         # Concatenate inputs for MLM
-        input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
-        attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
-        labels = torch.cat([code_labels, aug_labels], dim=0)
+        # input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
+        # attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
+        # labels = torch.cat([code_labels, aug_labels], dim=0)
 
+        # get code embeddings
         # Forward pass for MLM
-        outputs = model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
+        code_outputs = model(
+            input_ids=code_input_ids,
+            attention_mask=code_attention_mask,
+            labels=code_labels,
             output_hidden_states=True,
             return_dict=True,
         )
 
         # Compute MLM loss
-        mlm_loss = outputs.loss
+        mlm_loss = code_outputs.loss
 
         # Get embeddings (CLS token)
-        hidden_states = outputs.hidden_states[
-            -1
-        ]  # [2*batch_size, seq_len, hidden_size]
-        cls_embeddings = hidden_states[:, 0, :]  # [2*batch_size, hidden_size]
+        # [2*batch_size, seq_len, hidden_size]
+        code_hidden_states = code_outputs.hidden_states[-1]
+        code_embeddings = code_hidden_states[:, 0, :]  # [2*batch_size, hidden_size]
 
         # Split embeddings
-        batch_size = code_input_ids.size(0)
-        code_embeddings = cls_embeddings[:batch_size]
-        aug_embeddings = cls_embeddings[batch_size:]
+        # batch_size = code_input_ids.size(0)
+        # code_embeddings = cls_embeddings[:batch_size]
+        # aug_embeddings = cls_embeddings[batch_size:]
+
+        aug_outputs = model(
+            input_ids=aug_input_ids,
+            attention_mask=aug_attention_mask,
+            labels=aug_labels,
+            output_hidden_states=True,
+            return_dict=True,
+        )
+        aug_hidden_states = aug_outputs.hidden_states[-1]
+        aug_embeddings = aug_hidden_states[:, 0, :]
 
         # Compute contrastive loss between code and its augmentation
         contrastive_loss = info_nce_loss(code_embeddings, aug_embeddings)
@@ -64,26 +74,24 @@ class ContraBERTTrainer(Trainer):
         # Total loss with weighting (adjust alpha as needed)
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, outputs) if return_outputs else total_loss
+        return (total_loss, code_outputs) if return_outputs else total_loss
 
-    def prediction_step(
-        self, model, inputs, prediction_loss_only, ignore_keys=None
-    ):
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
         Override the default prediction_step to handle custom inputs during evaluation.
         """
         # Move inputs to device
         device = self.args.device
-        code_input_ids = inputs['code_input_ids'].to(device)
-        code_attention_mask = inputs['code_attention_mask'].to(device)
-        code_labels = inputs['code_labels'].to(device)
+        code_input_ids = inputs["code_input_ids"].to(device)
+        code_attention_mask = inputs["code_attention_mask"].to(device)
+        code_labels = inputs["code_labels"].to(device)
 
         # Prepare inputs for the model
         # Since evaluation usually focuses on the MLM task, we can use code inputs
         inputs_for_model = {
-            'input_ids': code_input_ids,
-            'attention_mask': code_attention_mask,
-            'labels': code_labels,
+            "input_ids": code_input_ids,
+            "attention_mask": code_attention_mask,
+            "labels": code_labels,
         }
 
         with torch.no_grad():
