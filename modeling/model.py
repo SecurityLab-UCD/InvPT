@@ -14,10 +14,44 @@ def info_nce_loss(query, key, temperature=0.07):
     return loss
 
 
+def barlow_twins_loss(query, key, lambda_param=0.005):
+    # Normalize representations along batch dimension
+    query = (query - query.mean(dim=0)) / query.std(dim=0)
+    key = (key - key.mean(dim=0)) / key.std(dim=0)
+
+    N = query.size(0)
+
+    # Cross-correlation matrix
+    c = torch.mm(query.T, key) / N
+
+    # Loss calculation
+    on_diag = torch.diagonal(c).add_(-1).pow_(2).sum()
+    off_diag = off_diagonal(c).pow_(2).sum()
+    loss = on_diag + lambda_param * off_diag
+    return loss
+
+
+def off_diagonal(x):
+    # Returns the off-diagonal elements of a square matrix
+    n, _ = x.shape
+    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
+
+
 class ContraBERTTrainer(Trainer):
-    def __init__(self, alpha=1.0, device="cuda", *args, **kwargs):
+    def __init__(
+        self,
+        alpha=1.0,
+        lambda_param=0.005,
+        temperature=0.07,
+        contra_type="info_nce",
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
+        self.lambda_param = lambda_param
+        self.temperature = temperature
+        self.contra_type = contra_type
 
     def compute_loss(
         self, model, inputs, return_outputs=False, num_items_in_batch=None
@@ -69,7 +103,16 @@ class ContraBERTTrainer(Trainer):
         aug_embeddings = aug_hidden_states[:, 0, :]
 
         # Compute contrastive loss between code and its augmentation
-        contrastive_loss = info_nce_loss(code_embeddings, aug_embeddings)
+        if self.contra_type == "info_nce":
+            contrastive_loss = info_nce_loss(
+                code_embeddings, aug_embeddings, self.temperature
+            )
+        elif self.contra_type == "barlow_twins":
+            contrastive_loss = barlow_twins_loss(
+                code_embeddings, aug_embeddings, self.lambda_param
+            )
+        else:
+            raise ValueError("Invalid contrastive loss type")
 
         # Total loss with weighting (adjust alpha as needed)
         total_loss = mlm_loss + self.alpha * contrastive_loss

@@ -48,6 +48,7 @@ def main(
     wandb_project: str | None = "PIA",
     run_name: str = "ContraBERT",
     continue_from_released: bool = False,
+    contra_type: str = "info_nce",
 ):
 
     set_seed(seed)
@@ -58,9 +59,8 @@ def main(
     model = (
         RobertaForMaskedLM.from_pretrained("microsoft/codebert-base")
         if continue_from_released
-        else RebertaForMaskedLM(config)  # start pre-training from scratch
+        else RobertaForMaskedLM(config)  # start pre-training from scratch
     )
-    model = RobertaForMaskedLM.from_pretrained("microsoft/codebert-base")
     model.to(DEVICE)
 
     dataset = load_dataset("json", data_files=dataset_path)
@@ -102,6 +102,7 @@ def main(
         eval_dataset=eval_dataset,
         data_collator=lambda features: contra_data_collator(mlm_collator, features),
         alpha=0.7,
+        contra_type=contra_type,
     )
 
     trainer.train()
