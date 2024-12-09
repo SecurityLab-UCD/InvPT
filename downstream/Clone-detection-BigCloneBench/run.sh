@@ -13,8 +13,8 @@ python ./code/run.py \
     --test_data_file=./dataset/test.txt \
     --epoch 2 \
     --block_size 400 \
-    --train_batch_size 128 \
-    --eval_batch_size 128 \
+    --train_batch_size 256 \
+    --eval_batch_size 256 \
     --learning_rate 5e-5 \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
