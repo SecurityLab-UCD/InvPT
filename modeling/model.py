@@ -65,42 +65,31 @@ class ContraBERTTrainer(Trainer):
         aug_labels = inputs["aug_labels"].to(DEVICE)
 
         # Concatenate inputs for MLM
-        # input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
-        # attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
-        # labels = torch.cat([code_labels, aug_labels], dim=0)
+        input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
+        attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
+        labels = torch.cat([code_labels, aug_labels], dim=0)
 
-        # get code embeddings
         # Forward pass for MLM
-        code_outputs = model(
-            input_ids=code_input_ids,
-            attention_mask=code_attention_mask,
-            labels=code_labels,
+        outputs = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            labels=labels,
             output_hidden_states=True,
             return_dict=True,
         )
 
         # Compute MLM loss
-        mlm_loss = code_outputs.loss
+        mlm_loss = outputs.loss
 
         # Get embeddings (CLS token)
         # [2*batch_size, seq_len, hidden_size]
-        code_hidden_states = code_outputs.hidden_states[-1]
-        code_embeddings = code_hidden_states[:, 0, :]  # [2*batch_size, hidden_size]
+        hidden_states = outputs.hidden_states[-1]
+        cls_embeddings = hidden_states[:, 0, :]  # [2*batch_size, hidden_size]
 
         # Split embeddings
-        # batch_size = code_input_ids.size(0)
-        # code_embeddings = cls_embeddings[:batch_size]
-        # aug_embeddings = cls_embeddings[batch_size:]
-
-        aug_outputs = model(
-            input_ids=aug_input_ids,
-            attention_mask=aug_attention_mask,
-            labels=aug_labels,
-            output_hidden_states=True,
-            return_dict=True,
-        )
-        aug_hidden_states = aug_outputs.hidden_states[-1]
-        aug_embeddings = aug_hidden_states[:, 0, :]
+        batch_size = code_input_ids.size(0)
+        code_embeddings = cls_embeddings[:batch_size]
+        aug_embeddings = cls_embeddings[batch_size:]
 
         # Compute contrastive loss between code and its augmentation
         if self.contra_type == "info_nce":
@@ -117,7 +106,7 @@ class ContraBERTTrainer(Trainer):
         # Total loss with weighting (adjust alpha as needed)
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, code_outputs) if return_outputs else total_loss
+        return (total_loss, outputs) if return_outputs else total_loss
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
