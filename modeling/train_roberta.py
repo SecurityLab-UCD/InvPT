@@ -49,6 +49,7 @@ def main(
     run_name: str = "ContraBERT",
     continue_from_released: bool = False,
     contra_type: str = "info_nce",
+    resume_from: str | None = None,
 ):
 
     set_seed(seed)
@@ -56,8 +57,9 @@ def main(
     if wandb_project is not None:
         os.environ["WANDB_PROJECT"] = wandb_project
 
+    model_path = "microsoft/codebert-base" if resume_from is None else resume_from
     model = (
-        RobertaForMaskedLM.from_pretrained("microsoft/codebert-base")
+        RobertaForMaskedLM.from_pretrained(model_path)
         if continue_from_released
         else RobertaForMaskedLM(config)  # start pre-training from scratch
     )
@@ -105,7 +107,7 @@ def main(
         contra_type=contra_type,
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=(resume_from is not None))
     trainer.save_model(f"saved_models/{run_name}/final")
 
 
