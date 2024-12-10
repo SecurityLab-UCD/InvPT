@@ -166,3 +166,5 @@ saved_models/
 wandb/
 *.json
 *.jsonl
+*.tar.gz
+**/ProgramData/*
