@@ -1,5 +1,7 @@
 model_path=$1
 output_dir=$2
+mkdir -p $output_dir
+touch $output_dir/train.log
 python ./code/run.py \
     --output_dir=$output_dir \
     --model_type=roberta \
