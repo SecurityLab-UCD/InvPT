@@ -11,6 +11,6 @@ tokenizers==0.20
 datasets==3.1.0
 accelerate>=0.26.0
 wandb==0.18.7
-gdown
-tensorboard
-tensorboardX
+gdown==5.2.0
+tensorboardX==2.6.2.2
+scikit-learn==1.6.0
