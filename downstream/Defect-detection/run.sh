@@ -21,3 +21,5 @@ python ./code/run.py \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
     --seed 123456  2>&1 | tee $output_dir/train.log
+
+python evaluator/evaluator.py -a dataset/test.jsonl -p $output_dir/predictions.txt > $output_dir/test.log

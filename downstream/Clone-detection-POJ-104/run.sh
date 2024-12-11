@@ -30,4 +30,4 @@ python evaluator/extract_answers.py \
 
 python evaluator/evaluator.py \
     -a $output_dir/answer.jsonl \
-    -p $output_dir/predictions.jsonl
+    -p $output_dir/predictions.jsonl > $output_dir/test.log
