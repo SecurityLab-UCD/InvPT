@@ -1,8 +1,5 @@
 from typing import *
-from Methods.LocalVariableRenaming import LocalVariableRenamer
-from Methods.FunctionDefinitionReorder import FunctionDefinitionReorder
-from Methods.ReverseIfElse import ReverseIfElser
-from Methods.StatementsOrderRearrangement import StatementOrderRearrangement
+from Methods import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement
 import ast
 import sys
 import os
@@ -45,6 +42,8 @@ def apply_function_def_reorder_and_write(code_transformer, source_filename, targ
     """
     code_transformer.write(source_filename, target_filename)
 
+def apply_statements_order_rearrangement_and_write(code_transformer, source_filename, target_filename):
+    code_transformer.write(source_filename, target_filename)
 
 def transform_and_write(code_transformer, source_filename, target_filename, ruleId):
     """
@@ -52,6 +51,8 @@ def transform_and_write(code_transformer, source_filename, target_filename, rule
     """
     if ruleId == 1:
         return apply_function_def_reorder_and_write(code_transformer, source_filename, target_filename)
+    elif ruleId == 3:
+        return apply_statements_order_rearrangement_and_write(code_transformer, source_filename, target_filename)
     else:
         apply_AST_transform_and_write(ast_transformer=code_transformer, source_filename=source_filename, target_filename=target_filename)
 
@@ -88,9 +89,6 @@ def main(argv=None):
         transform_and_write(ast_transformer=code_transformer, source_filename=args.root, target_filename=args.target, ruleId=args.ruleId)
 
     print('\nFinished Transformed!\n\n')
-
-
-
 
 if __name__ == '__main__':
     main()
