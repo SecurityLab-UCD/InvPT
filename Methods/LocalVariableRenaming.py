@@ -11,12 +11,10 @@ class LocalVariableRenamer(ast.NodeTransformer):
         return ''.join(random.choices(string.ascii_letters, k=8))
     
     def visit_Assign(self, node):
-        # a = c + b
         self.generic_visit(node)
         return node
 
     def visit_AugAssign(self, node):
-        # a += b
         self.generic_visit(node)
         return node
 

@@ -1,4 +1,3 @@
-a, b = (3, 5)
 inner_flag = True
 if a > 2:
     print('ture')
@@ -21,3 +20,4 @@ else:
         print('inner true')
     else:
         print('inner false')
+a, b = (3, 5)
