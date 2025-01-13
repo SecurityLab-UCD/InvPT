@@ -1,5 +1,5 @@
 from typing import *
-from methods import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, OpAssignment2EqualAssignment
+from methods import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, OpAssignment2EqualAssignment, WhileToForTransformer, ForToWhileTransformer
 import ast
 import sys
 import os
@@ -25,6 +25,10 @@ def get_code_transformer(ruleId: str):
         return StatementOrderRearrangement()
     elif ruleId == 4:
         return OpAssignment2EqualAssignment()
+    elif ruleId == 5:
+        return WhileToForTransformer()
+    elif ruleId == 6:
+        return ForToWhileTransformer()
     else:
         raise ValueError('ruleId does not exist')
     

@@ -19,8 +19,8 @@ RuleId stands for one specific transformation method:
 - 6 For to While
 
 ## TODO
-[ ] Tests
-[ ] For2While: implementation of iterable-for
-[ ] For2While: what if `step` is a reference
-[ ] While2For: what if the while loop has one else statement
-[ ] FunctionDefinitionReorder: methods investigation 
+- [ ] Tests
+- [ ] For2While: implementation of iterable-for
+- [ ] For2While: what if `step` is a reference
+- [ ] While2For: what if the while loop has one else statement
+- [ ] FunctionDefinitionReorder: methods investigation 
