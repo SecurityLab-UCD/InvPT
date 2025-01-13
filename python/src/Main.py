@@ -91,7 +91,7 @@ def main(argv=None):
                 print(source_filename, target_filename)
                 transform_and_write(code_transformer=code_transformer, source_filename=source_filename, target_filename=target_filename, ruleId=args.ruleId)
     else:        
-        transform_and_write(ast_transformer=code_transformer, source_filename=args.root, target_filename=args.target, ruleId=args.ruleId)
+        transform_and_write(code_transformer=code_transformer, source_filename=args.root, target_filename=args.target, ruleId=args.ruleId)
 
     print('\nFinished Transformed!\n\n')
 
