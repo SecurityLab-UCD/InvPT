@@ -42,38 +42,3 @@ def transform_for_loops_to_while(source_code: str) -> str:
     new_tree = transformer.visit(tree)
     ast.fix_missing_locations(new_tree)
     return ast.unparse(new_tree)
-
-# --------------------------------------------------------------------------
-# Example usage
-if __name__ == "__main__":
-    code_ranges = r'''
-x = 1
-y = 100
-while x < y:
-    x *= 2
-    y -= 5
-    print("x:", x, ", y:", y)
-    '''    
-
-#     garbage_code = r'''
-# x = 1
-# y = 100
-# while x < y:
-#     x *= 2
-#     y -= 5
-#     print("x:", x, ", y:", y)
-# for _ in range(10000):
-#     if not (x < y):
-#         break
-#     x *= 2
-#     y -= 5
-#     print('hellow world')
-# '''
-
-    new_code = transform_for_loops_to_while(code_ranges)
-    print("Original Code:")
-    print(code_ranges)
-    print("Transformed Code:")
-    print(new_code)
-
-    # print(ast.dump(ast.parse(garbage_code), indent=4))

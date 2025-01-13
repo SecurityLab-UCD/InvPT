@@ -18,31 +18,3 @@ class ReverseIfElser(ast.NodeTransformer):
         )
 
         return ast.fix_missing_locations(new_if)
-
-def reverse_if_else(source_code):
-    tree = ast.parse(source_code)    
-    transformer = ReverseIfElser()
-    transformed_tree = transformer.visit(tree) 
-    return ast.unparse(transformed_tree)
-
-# Example Usage
-source_code = """
-if a > 5:
-    print("a is greater than 5")
-else:
-    print("a is 5 or less")
-
-
-if (a < 5):
-    print("then code")
-elif (a < 10):
-    print("elif code")
-else:  
-    print ( 'else code') 
-"""
-
-transformed_code = reverse_if_else(source_code)
-print("Original Code:")
-print(source_code)
-print("\nTransformed Code:")
-print(transformed_code)
