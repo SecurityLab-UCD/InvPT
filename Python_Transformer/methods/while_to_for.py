@@ -32,13 +32,13 @@ class WhileToForTransformer(ast.NodeTransformer):
         )        
         
 
-def transform_for_loops_to_while(source_code: str) -> str:
-    """
-    Parse the given source_code, transform all for loops to while loops,
-    and return the modified code as a string.
-    """
-    tree = ast.parse(source_code)
-    transformer = WhileToForTransformer()
-    new_tree = transformer.visit(tree)
-    ast.fix_missing_locations(new_tree)
-    return ast.unparse(new_tree)
+# def transform_for_loops_to_while(source_code: str) -> str:
+#     """
+#     Parse the given source_code, transform all for loops to while loops,
+#     and return the modified code as a string.
+#     """
+#     tree = ast.parse(source_code)
+#     transformer = WhileToForTransformer()
+#     new_tree = transformer.visit(tree)
+#     ast.fix_missing_locations(new_tree)
+#     return ast.unparse(new_tree)
