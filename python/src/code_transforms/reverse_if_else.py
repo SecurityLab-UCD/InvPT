@@ -2,7 +2,7 @@ import ast
 
 class ReverseIfElser(ast.NodeTransformer):
 
-    def visit_If(self, node):
+    def visit_If(self, node: ast.If):
         self.generic_visit(node)
         
         # Step 1: Negating the condition.

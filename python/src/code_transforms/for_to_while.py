@@ -3,8 +3,8 @@ import ast
 class ForToWhileTransformer(ast.NodeTransformer):
     """
     Transforms all 'for' loops to 'while' loops.
-    Case 1: for i in range(start, stop, step): becomes a numeric while loop.
-    Case 2: for elem in iterable: becomes an iterator-based while loop.
+        Case 1: for i in range(start, stop, step): becomes a numeric while loop.
+        Case 2: for elem in iterable: becomes an iterator-based while loop.
     """
     def __init__(self):
         # NOTE: negative = -1, second_negative = negative
@@ -18,8 +18,7 @@ class ForToWhileTransformer(ast.NodeTransformer):
         if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name) and node.iter.func.id == 'range':            
             return self._transform_range_for(node)
         # Case 2: looping over an iterable
-        else:
-            # We have: for var in <iterable>
+        else:            
             return self._transform_iterable_for(node)
 
     def _transform_range_for(self, node: ast.For) -> ast.AST:

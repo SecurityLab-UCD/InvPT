@@ -3,7 +3,11 @@ import random
 import string
 
 class OpAssignment2EqualAssignment(ast.NodeTransformer):
-    def visit_AugAssign(self, node):              
+    """
+    For example, it transforms all x += 1 to x = x + 1
+    """
+    
+    def visit_AugAssign(self, node: ast.AugAssign):              
         new_node = ast.Assign(
             targets=[node.target],
             value=ast.BinOp(

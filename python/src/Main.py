@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict
 from code_transforms import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, WhileToForTransformer, ForToWhileTransformer, OpAssignment2EqualAssignment
 import ast
 import sys
@@ -23,10 +24,11 @@ code_transform_map = {
     6: ForToWhileTransformer,
 }
 
-
-
     
-def apply_AST_transform_and_write(ast_transformer, source_filename, target_filename):
+def apply_AST_transform_and_write(ast_transformer, source_filename: str, target_filename: str) -> None:
+    """
+    Apply the ast.NodeTransformer class on the source file and writes the invariant code to the target file
+    """
     with open(source_filename) as file:
         lines = file.readlines()
         source = ''.join(lines)
@@ -38,25 +40,21 @@ def apply_AST_transform_and_write(ast_transformer, source_filename, target_filen
         with open(target_filename, 'w') as file:
             file.write(modified_code)
 
-def apply_function_def_reorder_and_write(code_transformer, source_filename, target_filename):
-    
-    """    
-    modified_code = code_transformer(source_filename)    
-    """
+def apply_function_def_reorder_and_write(code_transformer, source_filename: str, target_filename: str) -> None:
     code_transformer.write(source_filename, target_filename)
 
-def apply_statements_order_rearrangement_and_write(code_transformer, source_filename, target_filename):
+def apply_statements_order_rearrangement_and_write(code_transformer, source_filename: str, target_filename: str) -> None:
     code_transformer.write(source_filename, target_filename)
 
 
-def transform_and_write(code_transformer, source_filename, target_filename, ruleId):
+def transform_and_write(code_transformer, source_filename: str, target_filename: str, ruleId: int) -> None:
     """
-    Use code transformer to generate 
+    Generates an invariant file by transforming the source code with one code transform method based on ruleId
     """
     if ruleId == 1:
-        return apply_function_def_reorder_and_write(code_transformer, source_filename, target_filename)
+        apply_function_def_reorder_and_write(code_transformer, source_filename, target_filename)
     elif ruleId == 3:
-        return apply_statements_order_rearrangement_and_write(code_transformer, source_filename, target_filename)
+        apply_statements_order_rearrangement_and_write(code_transformer, source_filename, target_filename)
     else:
         apply_AST_transform_and_write(ast_transformer=code_transformer, source_filename=source_filename, target_filename=target_filename)
 
