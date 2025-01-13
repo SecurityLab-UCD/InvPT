@@ -1,5 +1,5 @@
 from typing import *
-from Methods import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement
+from methods import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, OpAssignment2EqualAssignment
 import ast
 import sys
 import os
@@ -8,7 +8,8 @@ transformed_method_map = {
     0: 'Local Variable Renaming',
     1: 'Function Definition Reorder',
     2: 'Reverse If Else Statement',
-    3: 'Statements Order Rearrangement'
+    3: 'Statements Order Rearrangement',
+    4: 'Operation Assignment to EqualAssignment'
 }
 
 def get_code_transformer(ruleId: str):
@@ -20,6 +21,8 @@ def get_code_transformer(ruleId: str):
         return ReverseIfElser()
     elif ruleId == 3:
         return StatementOrderRearrangement()
+    elif ruleId == 4:
+        return OpAssignment2EqualAssignment()
     else:
         raise ValueError('ruleId does not exist')
     
@@ -44,6 +47,7 @@ def apply_function_def_reorder_and_write(code_transformer, source_filename, targ
 
 def apply_statements_order_rearrangement_and_write(code_transformer, source_filename, target_filename):
     code_transformer.write(source_filename, target_filename)
+
 
 def transform_and_write(code_transformer, source_filename, target_filename, ruleId):
     """
