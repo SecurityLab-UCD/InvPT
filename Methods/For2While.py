@@ -72,15 +72,6 @@ class ForToWhileTransformer(ast.NodeTransformer):
             op=ast.Add(), 
             value=step
         )
-        # increment = ast.AugAssign(
-        #     target=ast.Name(id=node.target.id, ctx=ast.Store()),
-        #     op=ast.Add() if(
-        #         isinstance(step, ast.Constant)
-        #         and isinstance(step.value, (int, float))
-        #         and step.value >= 0
-        #     ) else ast.Sub(), 
-        #     value=ast.Constant(value=abs(step.value) if (isinstance(step, ast.Constant) and isinstance(step.value, (int, float))) else 1)  # if step is numeric literal
-        # )
 
         # We want to append increment to the loop body
         new_body = node.body + [increment]
