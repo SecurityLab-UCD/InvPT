@@ -1,11 +1,10 @@
-from typing import *
 from enum import Enum
 from code_transforms import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, WhileToForTransformer, ForToWhileTransformer, OpAssignment2EqualAssignment
 import ast
 import sys
 import os
 
-class CodeTransformsMethods(Enum):
+class CodeTransformMethods(Enum):
     LOCAL_VARIABLE_RENAMING = 0
     FUNCTION_DEFINITION_REORDER = 1
     REVERSE_IF_ELSE_STATEMENT = 2
@@ -14,23 +13,18 @@ class CodeTransformsMethods(Enum):
     WHILE_TO_FOR = 5
     FOR_TO_WHILE = 6    
 
-def get_code_transformer(ruleId: str):
-    if ruleId == 0: # Local Variable Renaming
-        return LocalVariableRenamer()
-    elif ruleId == 1: # Function Definition Reorder
-        return FunctionDefinitionReorder()
-    elif ruleId == 2:
-        return ReverseIfElser()
-    elif ruleId == 3:
-        return StatementOrderRearrangement()
-    elif ruleId == 4:
-        return OpAssignment2EqualAssignment()
-    elif ruleId == 5:
-        return WhileToForTransformer()
-    elif ruleId == 6:
-        return ForToWhileTransformer()
-    else:
-        raise ValueError('ruleId does not exist')
+code_transform_map = {
+    0: LocalVariableRenamer,
+    1: FunctionDefinitionReorder,
+    2: ReverseIfElser,
+    3: StatementOrderRearrangement,
+    4: OpAssignment2EqualAssignment,
+    5: WhileToForTransformer,
+    6: ForToWhileTransformer,
+}
+
+
+
     
 def apply_AST_transform_and_write(ast_transformer, source_filename, target_filename):
     with open(source_filename) as file:
@@ -83,10 +77,13 @@ def main(argv=None):
     if not os.path.exists(args.target):
         os.makedirs(args.target)
 
-    print('-------- Selected Transforming Method: ',CodeTransformsMethods(args.ruleId).name, ' -------- \n')
+    print('-------- Selected Transforming Method: ', CodeTransformMethods(args.ruleId).name, ' -------- \n')
 
     # Get Code Transformer Given the RuleID
-    code_transformer = get_code_transformer(args.ruleId)  
+    try: 
+        code_transformer = code_transform_map[args.ruleId]()  
+    except KeyError:
+        raise ValueError('ruleId does not exist!')
     
     if os.path.isdir(args.root):
         for dirpath, dirnames, filenames in os.walk(args.root):
