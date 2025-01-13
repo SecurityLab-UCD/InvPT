@@ -1,5 +1,5 @@
 from typing import *
-from Python_Transformer.methods import op_assignment_to_equal_assignment
+from python.methods import op_assignment_to_equal_assignment
 from methods import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, WhileToForTransformer, ForToWhileTransformer
 import ast
 import sys
