@@ -1,18 +1,18 @@
 from typing import *
+from enum import Enum
 from code_transforms import LocalVariableRenamer, FunctionDefinitionReorder, ReverseIfElser, StatementOrderRearrangement, WhileToForTransformer, ForToWhileTransformer, OpAssignment2EqualAssignment
 import ast
 import sys
 import os
 
-transformed_method_map = {
-    0: 'Local Variable Renaming',
-    1: 'Function Definition Reorder',
-    2: 'Reverse If Else Statement',
-    3: 'Statements Order Rearrangement',
-    4: 'Operation Assignment to EqualAssignment',
-    5: 'While to For',
-    6: 'For to While',
-}
+class CodeTransformsMethods(Enum):
+    LOCAL_VARIABLE_RENAMING = 0
+    FUNCTION_DEFINITION_REORDER = 1
+    REVERSE_IF_ELSE_STATEMENT = 2
+    STATEMENTS_ORDER_REARRANGEMENT = 3
+    OPERATION_ASSIGNMENT_TO_EQUAL_ASSIGNMENT = 4
+    WHILE_TO_FOR = 5
+    FOR_TO_WHILE = 6    
 
 def get_code_transformer(ruleId: str):
     if ruleId == 0: # Local Variable Renaming
@@ -83,7 +83,7 @@ def main(argv=None):
     if not os.path.exists(args.target):
         os.makedirs(args.target)
 
-    print('-------- Selected Transforming Method: ', transformed_method_map[args.ruleId], ' -------- \n')
+    print('-------- Selected Transforming Method: ',CodeTransformsMethods(args.ruleId).name, ' -------- \n')
 
     # Get Code Transformer Given the RuleID
     code_transformer = get_code_transformer(args.ruleId)  

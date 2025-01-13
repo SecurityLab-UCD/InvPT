@@ -6,7 +6,7 @@ Run the following command:
 ```
 python3 [RuleId] [RootDir] [OutputDir]
 
-python3 Main.py 1 source output
+python3 Main.py 1 tests/source tests/output
 ```
 
 RuleId stands for one specific transformation method:
