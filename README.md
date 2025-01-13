@@ -12,13 +12,15 @@ python3 Main.py 1 source output
 RuleId stands for one specific transformation method:
 - 0 Local Varible Renaming
 - 1 Function Definition Reordering
-
+- 2 Reverse If Else Statement
+- 3 Statements Order Rearrangement
+- 4 Operation Assignment to EqualAssignment
+- 5 While to For
+- 6 For to While
 
 ## TODO
-### Local Variable Renaming (0)
-[ ] To change the local function name inside the functions
-
-[ ] To change the parameters name of the function
-
-### Function Definition Reordering (1)
-[ ] To force the function order change
+[ ] Tests
+[ ] For2While: implementation of iterable-for
+[ ] For2While: what if `step` is a reference
+[ ] While2For: what if the while loop has one else statement
+[ ] FunctionDefinitionReorder: methods investigation 

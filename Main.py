@@ -9,7 +9,9 @@ transformed_method_map = {
     1: 'Function Definition Reorder',
     2: 'Reverse If Else Statement',
     3: 'Statements Order Rearrangement',
-    4: 'Operation Assignment to EqualAssignment'
+    4: 'Operation Assignment to EqualAssignment',
+    5: 'While to For',
+    6: 'For to While',
 }
 
 def get_code_transformer(ruleId: str):
