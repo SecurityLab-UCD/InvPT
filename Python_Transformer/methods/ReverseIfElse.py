@@ -1,6 +1,6 @@
 import ast
 
-class ReverseIfElseTransformer(ast.NodeTransformer):
+class ReverseIfElser(ast.NodeTransformer):
 
     def visit_If(self, node):
         self.generic_visit(node)
@@ -21,7 +21,7 @@ class ReverseIfElseTransformer(ast.NodeTransformer):
 
 def reverse_if_else(source_code):
     tree = ast.parse(source_code)    
-    transformer = ReverseIfElseTransformer()
+    transformer = ReverseIfElser()
     transformed_tree = transformer.visit(tree) 
     return ast.unparse(transformed_tree)
 
