@@ -1,20 +1,15 @@
 import ast
 
 class ReverseIfElseTransformer(ast.NodeTransformer):
-    
+
     def visit_If(self, node):
-        """        
-        Step 1. Negating the condition.
-        Step 2. Swapping the `then` and `else` blocks.
-        """
-        self.generic_visit(node)  # Visit child nodes if needed
-
-        # Negate the condition
+        self.generic_visit(node)
+        
+        # Step 1: Negating the condition.
         negated_condition = ast.UnaryOp(op=ast.Not(), operand=node.test)
-
-        # Swap the `then` and `else` branches
-        new_then = node.orelse or []  # `else` block becomes the `then` block
-        new_else = node.body          # Original `then` block becomes the `else` block
+        # Step 2: Swap the `then` and `else` branches
+        new_then = node.orelse or []
+        new_else = node.body 
         
         new_if = ast.If(
             test=negated_condition,
@@ -22,7 +17,6 @@ class ReverseIfElseTransformer(ast.NodeTransformer):
             orelse=new_else
         )
 
-        # Ensure proper locations in the AST
         return ast.fix_missing_locations(new_if)
 
 def reverse_if_else(source_code):
