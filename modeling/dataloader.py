@@ -3,20 +3,29 @@ from enum import Enum
 import fire
 import json
 import os
-from multiprocessing import Pool
 
 from torch.utils.data import DataLoader, IterableDataset
 from transformers import DataCollatorForLanguageModeling
+
+
+class AugType(str, Enum):
+    LOCALVARRENAMING = "LocalVarRenaming"
+    FOR2WHILE = "For2While"
+    WHILE2FOR = "While2For"
+    PP2ADDASSIGNMENT = "PP2AddAssignment"
+    ADDASSIGNEMNT2EQUALASSIGNMENT = "AddAssignemnt2EqualAssignment"
+    REVERSEIFELSE = "ReverseIfElse"
 
 
 @dataclass
 class CodeSearchNetExample:
     repo: str
     func_name: str
-    original_string: str
-    code: str
     language: str
+    code: str
     docstring: str
+    transformed: str  # This is added after code transformation
+    aug_type: AugType
 
 
 def contra_data_collator(mlm_collator, features):
