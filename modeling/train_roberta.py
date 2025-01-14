@@ -23,7 +23,7 @@ def tokenize(example):
         return_special_tokens_mask=True,
     )
     aug_inputs = tokenizer(
-        example["original_string"],
+        example["transformed"],
         padding="max_length",
         truncation=True,
         max_length=256,
