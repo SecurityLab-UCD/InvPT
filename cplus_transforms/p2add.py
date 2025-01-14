@@ -1,7 +1,19 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
-import random
 import sys
+import random
+
+def generate_hidden_name(i, length = -1):
+    generator = random.Random()
+    generator.seed(i + 2025)
+    if length == -1:
+        length = generator.randint(10, 25)
+    name_code = ((11 * i) + 2025) % 32**length
+    random_name = ""
+    for i in range(length):
+        random_name += chr(name_code % 31)
+        name_code //= 32
+    return random_name
 
 def extract_source_code(node):
     """Extract the source code for the node."""
@@ -15,35 +27,49 @@ def extract_source_code(node):
 
 def generalize_function(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
-    i = 0
     change_nodes = []
     to_visit = deque()
-    to_visit.appendleft(root_node)
+    to_visit.appendleft([root_node, None])
     while len(to_visit) > 0:
-        curr_visit = to_visit.pop()
+        [curr_visit, parent] = to_visit.pop()
         for child in curr_visit.get_children():
-            to_visit.appendleft(child)
+            to_visit.appendleft([child, curr_visit])
         if source_file not in str(curr_visit.location):
             continue
-        if "++" in extract_source_code(curr_visit):
-            change_nodes.append(curr_visit)
+        source_code = extract_source_code(curr_visit)
+        length = len(source_code)
+        if curr_visit.kind == CursorKind.UNARY_OPERATOR:
+            if "++" in source_code.strip()[:2]:
+                 change_nodes.append(curr_visit)
+            if "++" in source_code.strip()[length-2:] and not (parent.kind in [CursorKind.BINARY_OPERATOR, CursorKind.UNARY_OPERATOR, CursorKind.PAREN_EXPR]):
+                 change_nodes.append(curr_visit)
 
-    # Edit all the function names
+    replace_dictionary = {}
+
+    i = 0
+    # Replace with names that are same length and present
     for node in change_nodes:
-        print(f"Function {node.spelling} will be renamed")
         line_number = node.location.line
         column_number = node.location.column
-        function_name = extract_source_code(node)
+        structure_name = extract_source_code(node).strip()
         
-        edited = function_name.replace("++", "+=1")
+        edited = generate_hidden_name(i, len(structure_name))
+        replace_dictionary[edited] = "(" + structure_name.strip("+").strip() + "+=1)"
+        print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
+        i += 1
 
-        # Update the source line to replace the function name
+        # Update the source line to put the placeholder name
         line = source_code_lines[line_number - 1]
-        modified_line = line[:column_number - 1] + edited + line[column_number + len(function_name) - 1:]
+        modified_line = line[:column_number - 1] + edited + line[column_number + len(structure_name) - 1:]
         source_code_lines[line_number - 1] = modified_line
 
         # Store modification details (optional logging or rollback)
-        modifications.append((line_number, line, modified_line))
+        modifications.append((line_number, structure_name))
+
+    # Replace placeholder names with actual names
+    for i in range(len(source_code_lines)):
+        for key in replace_dictionary.keys():
+            source_code_lines[i] = source_code_lines[i].replace(key, replace_dictionary[key])
 
 def main(source_file, output_file):
     """Parse the source, modify it, and write updated source to a file."""
@@ -68,8 +94,8 @@ def main(source_file, output_file):
         f.writelines(source_code_lines)
 
     print("\nModifications Applied:")
-    for line_num, old_line, new_line in modifications:
-        print(f"Line {line_num}: {old_line.strip()} -> {new_line.strip()}")
+    for line_num, old_line in modifications:
+        print(f"Line {line_num}: {old_line.strip()}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
