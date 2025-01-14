@@ -3,6 +3,25 @@ from collections import deque
 import sys
 import random
 
+EXPRESSION_TYPES = [
+    CursorKind.UNEXPOSED_EXPR,
+    CursorKind.BINARY_OPERATOR,
+    CursorKind.UNARY_OPERATOR,
+    CursorKind.CONDITIONAL_OPERATOR,
+    CursorKind.CSTYLE_CAST_EXPR,
+    CursorKind.COMPOUND_LITERAL_EXPR,
+    CursorKind.INIT_LIST_EXPR,
+    CursorKind.ADDR_LABEL_EXPR,
+    CursorKind.OBJC_STRING_LITERAL,
+    CursorKind.OBJC_ENCODE_EXPR,
+    CursorKind.OBJC_SELECTOR_EXPR,
+    CursorKind.OBJC_PROTOCOL_EXPR,
+    CursorKind.OBJC_BRIDGE_CAST_EXPR,
+    CursorKind.PACK_EXPANSION_EXPR,
+    CursorKind.SIZE_OF_PACK_EXPR,
+    CursorKind.PAREN_EXPR
+]
+
 def generate_hidden_name(i, length = -1):
     generator = random.Random()
     generator.seed(i + 2025)
@@ -25,7 +44,7 @@ def extract_source_code(node):
     code = ''.join(lines[start_line-1:end_line])
     return code[start_col-1:end_col-1]
 
-def generalize_function(root_node, source_file, source_code_lines, modifications):
+def replace_short_add(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
     change_nodes = []
     to_visit = deque()
@@ -41,7 +60,7 @@ def generalize_function(root_node, source_file, source_code_lines, modifications
         if curr_visit.kind == CursorKind.UNARY_OPERATOR:
             if "++" in source_code.strip()[:2]:
                  change_nodes.append(curr_visit)
-            if "++" in source_code.strip()[length-2:] and not (parent.kind in [CursorKind.BINARY_OPERATOR, CursorKind.UNARY_OPERATOR, CursorKind.PAREN_EXPR]):
+            if "++" in source_code.strip()[length-2:] and not (parent.kind in EXPRESSION_TYPES):
                  change_nodes.append(curr_visit)
 
     replace_dictionary = {}
@@ -54,9 +73,9 @@ def generalize_function(root_node, source_file, source_code_lines, modifications
         structure_name = extract_source_code(node).strip()
         
         edited = generate_hidden_name(i, len(structure_name))
+        i += 1
         replace_dictionary[edited] = "(" + structure_name.strip("+").strip() + "+=1)"
         print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
-        i += 1
 
         # Update the source line to put the placeholder name
         line = source_code_lines[line_number - 1]
@@ -87,7 +106,7 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    generalize_function(tu.cursor, source_file, source_code_lines, modifications)
+    replace_short_add(tu.cursor, source_file, source_code_lines, modifications)
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
