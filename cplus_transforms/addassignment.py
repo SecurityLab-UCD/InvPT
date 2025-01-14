@@ -3,6 +3,18 @@ from collections import deque
 import random
 import sys
 
+def generate_hidden_name(i, length = -1):
+    generator = random.Random()
+    generator.seed(i + 2025)
+    if length == -1:
+        length = generator.randint(10, 25)
+    name_code = ((11 * i) + 2025) % 32**length
+    random_name = ""
+    for i in range(length):
+        random_name += chr(name_code % 32)
+        name_code //= 32
+    return random_name
+
 def extract_source_code(node):
     """Extract the source code for the node."""
     extent = node.extent
@@ -28,26 +40,35 @@ def generalize_function(root_node, source_file, source_code_lines, modifications
         if "+=" in extract_source_code(curr_visit):
             change_nodes.append(curr_visit)
 
-    # Edit all the function names
+    replace_dictionary = {}
+
+    i = 0
+    # Replace with names that are same length and present
     for node in change_nodes:
-        print(f"Function {node.spelling} will be renamed")
         line_number = node.location.line
         column_number = node.location.column
-        statement_name = extract_source_code(node)
+        structure_name = extract_source_code(node).strip()
+        
+        edited = generate_hidden_name(i, len(structure_name))
+        i += 1
+        index = structure_name.index("+=")
+        variable_name = structure_name[:index].strip()
+        number = structure_name[index+2:].strip()
+        replace_dictionary[edited] = f"({variable_name}=({variable_name})+({number}))"
+        print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
 
-        # edited = function_name.replace("++", "+=1")
-        index = statement_name.index("+=")
-        variable_name = statement_name[:index].strip()
-        number = statement_name[index+2:].strip()
-        edited = f"{variable_name}={variable_name}+{number}"
-
-        # Update the source line to replace the function name
+        # Update the source line to put the placeholder name
         line = source_code_lines[line_number - 1]
-        modified_line = line[:column_number - 1] + edited + line[column_number + len(statement_name) - 1:]
+        modified_line = line[:column_number - 1] + edited + line[column_number + len(structure_name) - 1:]
         source_code_lines[line_number - 1] = modified_line
 
         # Store modification details (optional logging or rollback)
-        modifications.append((line_number, line, modified_line))
+        modifications.append((line_number, structure_name))
+
+    # Replace placeholder names with actual names
+    for i in range(len(source_code_lines)):
+        for key in replace_dictionary.keys():
+            source_code_lines[i] = source_code_lines[i].replace(key, replace_dictionary[key])
 
 def main(source_file, output_file):
     """Parse the source, modify it, and write updated source to a file."""
