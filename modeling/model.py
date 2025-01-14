@@ -2,6 +2,12 @@ import torch
 import torch.nn.functional as F
 from transformers import Trainer
 from common import DEVICE
+from enum import Enum
+
+
+class ContraType(str, Enum):
+    INFO_NCE = "info_nce"
+    BARLOW_TWINS = "barlow_twins"
 
 
 def info_nce_loss(query, key, temperature=0.07):
@@ -92,11 +98,11 @@ class ContraBERTTrainer(Trainer):
         aug_embeddings = cls_embeddings[batch_size:]
 
         # Compute contrastive loss between code and its augmentation
-        if self.contra_type == "info_nce":
+        if self.contra_type == ContraType.INFO_NCE:
             contrastive_loss = info_nce_loss(
                 code_embeddings, aug_embeddings, self.temperature
             )
-        elif self.contra_type == "barlow_twins":
+        elif self.contra_type == ContraType.BARLOW_TWINS:
             contrastive_loss = barlow_twins_loss(
                 code_embeddings, aug_embeddings, self.lambda_param
             )
