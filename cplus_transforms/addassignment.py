@@ -93,8 +93,8 @@ def main(source_file, output_file):
         f.writelines(source_code_lines)
 
     print("\nModifications Applied:")
-    for line_num, old_line, new_line in modifications:
-        print(f"Line {line_num}: {old_line.strip()} -> {new_line.strip()}")
+    for line_num, old_line in modifications:
+        print(f"Line {line_num}: {old_line.strip()}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
