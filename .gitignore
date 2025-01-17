@@ -163,6 +163,7 @@ cython_debug/
 
 data/
 saved_models/
+saved_models
 wandb/
 *.json
 *.jsonl

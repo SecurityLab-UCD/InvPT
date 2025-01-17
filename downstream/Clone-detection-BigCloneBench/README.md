@@ -1,5 +1,11 @@
 # CodeXGLUE -- Clone Detection (BCB)
 
+## Getting the dataset
+```bash
+cd dataset
+wget https://raw.githubusercontent.com/microsoft/CodeXGLUE/refs/heads/main/Code-Code/Clone-detection-BigCloneBench/dataset/data.jsonl
+```
+
 ## Task Definition
 
 Given two codes as the input, the task is to do binary classification (0/1), where 1 stands for semantic equivalence and 0 for others. Models are evaluated by F1 score.
@@ -129,15 +135,15 @@ python ../evaluator/evaluator.py -a ../dataset/test.txt -p saved_models/predicti
 
 The results on the test set are shown as below:
 
-| Method     | Precision |  Recall   |    F1     |
-| ---------- | :-------: | :-------: | :-------: |
-| [Deckard](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?referer=https://scholar.google.com/&httpsredir=1&article=2010&context=sis_research)    |   0.93    |   0.02    |   0.03    |
-| [RtvNN](https://tufanomichele.com/publications/C5.pdf)      |   0.95    |   0.01    |   0.01    |
-| [CDLH](https://www.ijcai.org/Proceedings/2017/0423.pdf)       |   0.92    |   0.74    |   0.82    |
-| [ASTNN](https://ieeexplore.ieee.org/abstract/document/8812062)      |   0.92    |   0.94    |   0.93    |
-| [FA-AST-GMN](https://arxiv.org/pdf/2002.08653.pdf) |   **0.96**    |   0.94    |   0.95    |
-| [TBBCD](http://taoxie.cs.illinois.edu/publications/icpc19-clone.pdf)      |   0.94    |   **0.96**    |   **0.95**    |
-| [CodeBERT](https://arxiv.org/pdf/2002.08155.pdf)   | 0.947 | 0.934 | 0.941 |
+| Method                                                                                                                                           | Precision |  Recall  |    F1    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | :-------: | :------: | :------: |
+| [Deckard](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?referer=https://scholar.google.com/&httpsredir=1&article=2010&context=sis_research) |   0.93    |   0.02   |   0.03   |
+| [RtvNN](https://tufanomichele.com/publications/C5.pdf)                                                                                           |   0.95    |   0.01   |   0.01   |
+| [CDLH](https://www.ijcai.org/Proceedings/2017/0423.pdf)                                                                                          |   0.92    |   0.74   |   0.82   |
+| [ASTNN](https://ieeexplore.ieee.org/abstract/document/8812062)                                                                                   |   0.92    |   0.94   |   0.93   |
+| [FA-AST-GMN](https://arxiv.org/pdf/2002.08653.pdf)                                                                                               | **0.96**  |   0.94   |   0.95   |
+| [TBBCD](http://taoxie.cs.illinois.edu/publications/icpc19-clone.pdf)                                                                             |   0.94    | **0.96** | **0.95** |
+| [CodeBERT](https://arxiv.org/pdf/2002.08155.pdf)                                                                                                 |   0.947   |  0.934   |  0.941   |
 
 
 ## Reference

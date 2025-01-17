@@ -23,7 +23,7 @@ def tokenize(example):
         return_special_tokens_mask=True,
     )
     aug_inputs = tokenizer(
-        example["original_string"],
+        example["transformed"],
         padding="max_length",
         truncation=True,
         max_length=256,
@@ -86,8 +86,8 @@ def main(
         overwrite_output_dir=True,
         num_train_epochs=num_train_epochs,
         per_device_train_batch_size=batch_size,
-        save_steps=1000,
-        logging_steps=1000,
+        save_steps=5000,
+        logging_steps=5000,
         eval_strategy="steps",
         eval_steps=1000,
         learning_rate=5e-5,
