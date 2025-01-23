@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Dict
 from dataclasses import dataclass
-from code_transforms import (
+from src import (
     LocalVariableRenamer,
     FunctionDefinitionReorder,
     ReverseIfElser,
@@ -11,6 +11,7 @@ from code_transforms import (
     OpAssignment2EqualAssignment,
     AugType,
 )
+from modeling.dataloader import CodeSearchNetExample
 import ast
 import sys
 import os
@@ -29,17 +30,6 @@ code_transform_map = {
     5: WhileToForTransformer,
     6: ForToWhileTransformer,
 }
-
-
-@dataclass
-class CodeSearchNetExample:
-    repo: str
-    func_name: str
-    language: str
-    code: str
-    docstring: str
-    transformed: str  # This is added after code transformation
-    aug_type: AugType
 
 
 def convert_python2_to_python3(source_code: str, filename: str = "random.py") -> str:

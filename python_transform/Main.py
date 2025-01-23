@@ -1,6 +1,5 @@
 from enum import Enum
-from typing import Dict
-from code_transforms import (
+from src import (
     LocalVariableRenamer,
     FunctionDefinitionReorder,
     ReverseIfElser,
