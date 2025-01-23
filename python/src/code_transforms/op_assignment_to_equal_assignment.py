@@ -1,3 +1,4 @@
+from code_transforms.aug_type import AugType
 import ast
 import random
 import string
@@ -6,6 +7,9 @@ class OpAssignment2EqualAssignment(ast.NodeTransformer):
     """
     For example, it transforms all x += 1 to x = x + 1
     """
+    def __init__(self):
+        self.augtype: AugType = AugType.ADDASSIGNEMNT2EQUALASSIGNMENT
+        self.method: str = self.augtype.value
     
     def visit_AugAssign(self, node: ast.AugAssign):              
         new_node = ast.Assign(

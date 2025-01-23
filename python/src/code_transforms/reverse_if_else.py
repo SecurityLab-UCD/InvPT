@@ -1,6 +1,11 @@
+from code_transforms.aug_type import AugType
 import ast
 
 class ReverseIfElser(ast.NodeTransformer):
+    def __init__(self):
+        # map original variable name to a new random name
+        self.augtype: AugType = AugType.REVERSEIFELSE
+        self.method: str = self.augtype.value
 
     def visit_If(self, node: ast.If):
         self.generic_visit(node)
