@@ -14,3 +14,6 @@ wandb==0.18.7
 gdown==5.2.0
 tensorboardX==2.6.2.2
 scikit-learn==1.6.0
+2to3==1.0
+autopep8==2.3.2
+jsonlines==4.0.0
