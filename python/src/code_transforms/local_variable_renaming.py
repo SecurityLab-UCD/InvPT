@@ -4,20 +4,22 @@ import ast
 import random
 import string
 
+
 class LocalVariableRenamer(ast.NodeTransformer):
     """
     Replace each variable name to a random name.
     A random name is 8 random ascii letters
     """
+
     def __init__(self):
         # map original variable name to a new random name
         self.augtype: AugType = AugType.LOCALVARRENAMING
         self.method: str = self.augtype.value
-        self.variable_mapping : Dict[str:str] = {}
+        self.variable_mapping: Dict[str:str] = {}
 
-    def generate_random_name(self):        
-        return ''.join(random.choices(string.ascii_letters, k=8))
-    
+    def generate_random_name(self):
+        return "".join(random.choices(string.ascii_letters, k=8))
+
     def visit_Assign(self, node: ast.Assign):
         self.generic_visit(node)
         return node
@@ -26,15 +28,15 @@ class LocalVariableRenamer(ast.NodeTransformer):
         self.generic_visit(node)
         return node
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):        
+    def visit_FunctionDef(self, node: ast.FunctionDef):
         self.variable_mapping = {}
-        
+
         # randomnize the function arguments
         for arg in node.args.args:
             new_name = self.generate_random_name()
             self.variable_mapping[arg.arg] = new_name
             arg.arg = new_name
-        
+
         # do the same logic inside the function
         return self.generic_visit(node)
 

@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class AugType(str, Enum):
     LOCALVARRENAMING = "LocalVarRenaming"
     FOR2WHILE = "For2While"

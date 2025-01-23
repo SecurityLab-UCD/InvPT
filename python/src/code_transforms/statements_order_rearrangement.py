@@ -1,7 +1,9 @@
 import ast
+
 # import astor
 import random
 import copy
+
 
 class StatementOrderRearrangement:
 
@@ -14,7 +16,7 @@ class StatementOrderRearrangement:
         - Control flow dependencies
         """
         dependency_graph = {}
-        
+
         class DependencyVisitor(ast.NodeVisitor):
             def __init__(self):
                 self.variable_reads = set()
@@ -37,15 +39,15 @@ class StatementOrderRearrangement:
                 self.generic_visit(node)
 
             def visit_Return(self, node):
-                self.control_flow_nodes.add('return')
+                self.control_flow_nodes.add("return")
                 self.generic_visit(node)
 
             def visit_Break(self, node):
-                self.control_flow_nodes.add('break')
+                self.control_flow_nodes.add("break")
                 self.generic_visit(node)
 
             def visit_Continue(self, node):
-                self.control_flow_nodes.add('continue')
+                self.control_flow_nodes.add("continue")
                 self.generic_visit(node)
 
         # Analyze dependencies for each statement
@@ -54,10 +56,10 @@ class StatementOrderRearrangement:
                 visitor = DependencyVisitor()
                 visitor.visit(node)
                 dependency_graph[node] = {
-                    'reads': visitor.variable_reads,
-                    'writes': visitor.variable_writes,
-                    'calls': visitor.function_calls,
-                    'control_flow': visitor.control_flow_nodes
+                    "reads": visitor.variable_reads,
+                    "writes": visitor.variable_writes,
+                    "calls": visitor.function_calls,
+                    "control_flow": visitor.control_flow_nodes,
                 }
 
         return dependency_graph
@@ -74,41 +76,36 @@ class StatementOrderRearrangement:
         deps2 = dependency_graph[node2]
 
         # Check for write-read dependencies
-        write_conflicts = (
-            deps1['writes'].intersection(deps2['reads']) or 
-            deps2['writes'].intersection(deps1['reads'])
-        )
+        write_conflicts = deps1["writes"].intersection(deps2["reads"]) or deps2[
+            "writes"
+        ].intersection(deps1["reads"])
 
         # Check for write-write dependencies
-        write_write_conflicts = deps1['writes'].intersection(deps2['writes'])
+        write_write_conflicts = deps1["writes"].intersection(deps2["writes"])
 
         # Check for control flow constraints
-        control_flow_conflicts = (
-            deps1['control_flow'] or 
-            deps2['control_flow']
-        )
+        control_flow_conflicts = deps1["control_flow"] or deps2["control_flow"]
 
         # Check for function call side effects
-        function_call_conflicts = bool(deps1['calls'] or deps2['calls'])
+        function_call_conflicts = bool(deps1["calls"] or deps2["calls"])
 
         return not (
-            write_conflicts or 
-            write_write_conflicts or 
-            control_flow_conflicts or 
-            function_call_conflicts
+            write_conflicts
+            or write_write_conflicts
+            or control_flow_conflicts
+            or function_call_conflicts
         )
 
     def write(self, source_filename, target_filename):
         with open(source_filename) as file:
             lines = file.readlines()
-            source = ''.join(lines)
+            source = "".join(lines)
             module = ast.parse(source)
 
             transformed_code = self.transform_code(module)
 
-            with open(target_filename, 'w') as file:
+            with open(target_filename, "w") as file:
                 file.write(transformed_code)
-            
 
     def transform_code(self, original_ast, max_transformations=5):
         """
@@ -116,14 +113,13 @@ class StatementOrderRearrangement:
         """
         # Deep copy to avoid modifying original AST
         transformed_ast = copy.deepcopy(original_ast)
-        
+
         # Analyze dependencies
         dependency_graph = self.analyze_dependencies()
 
         # Collect all statement nodes
         statements = [
-            node for node in ast.walk(transformed_ast) 
-            if isinstance(node, ast.stmt)
+            node for node in ast.walk(transformed_ast) if isinstance(node, ast.stmt)
         ]
 
         # Perform transformations
@@ -143,8 +139,11 @@ class StatementOrderRearrangement:
                 # Swap the statements
                 node1_index = statements.index(node1)
                 node2_index = statements.index(node2)
-                statements[node1_index], statements[node2_index] = statements[node2_index], statements[node1_index]
-                
+                statements[node1_index], statements[node2_index] = (
+                    statements[node2_index],
+                    statements[node1_index],
+                )
+
                 transformations_count += 1
 
         # Reconstruct the transformed AST
