@@ -161,3 +161,11 @@ dmypy.json
 #.idea/
 
 /src/dataset/*
+data/
+saved_models/
+saved_models
+wandb/
+*.json
+*.jsonl
+*.tar.gz
+**/ProgramData/*
