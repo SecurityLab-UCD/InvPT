@@ -2,6 +2,8 @@
 
 from transformers import (
     RobertaForMaskedLM,
+    RobertaTokenizerFast,
+    RobertaConfig,
     DataCollatorForLanguageModeling,
     TrainingArguments,
 )
@@ -10,11 +12,13 @@ import fire
 from model import ContraBERTTrainer
 from dataloader import contra_data_collator
 
-from common import tokenizer, config, DEVICE, set_seed
+from common import DEVICE, set_seed
 import os
+import argparse
+from torch.cuda import device_count
 
 
-def tokenize(example):
+def tokenize(tokenizer, example):
     code_inputs = tokenizer(
         example["code"],
         padding="max_length",
@@ -41,15 +45,15 @@ def tokenize(example):
 
 def main(
     dataset_path: str = "data/codesearchnet.jsonl",
+    model_name: str = "microsoft/codebert-base",
     batch_size: int = 64,
     num_train_epochs: int = 3,
     num_proc: int = 80,
     seed: int = 0,
     wandb_project: str | None = "PIA",
     run_name: str = "ContraBERT",
-    continue_from_released: bool = False,
+    continue_from_pretrained: bool = False,
     contra_type: str = "info_nce",
-    resume_from: str | None = None,
 ):
 
     set_seed(seed)
@@ -57,10 +61,12 @@ def main(
     if wandb_project is not None:
         os.environ["WANDB_PROJECT"] = wandb_project
 
-    model_path = "microsoft/codebert-base" if resume_from is None else resume_from
+    tokenizer = RobertaTokenizerFast.from_pretrained(model_name)
+    config = RobertaConfig.from_pretrained(model_name)
+
     model = (
-        RobertaForMaskedLM.from_pretrained(model_path)
-        if continue_from_released
+        RobertaForMaskedLM.from_pretrained(model_name)
+        if continue_from_pretrained
         else RobertaForMaskedLM(config)  # start pre-training from scratch
     )
     model.to(DEVICE)
@@ -68,7 +74,7 @@ def main(
     dataset = load_dataset("json", data_files=dataset_path)
 
     tokenized_datasets = dataset.map(
-        tokenize,
+        lambda example: tokenize(tokenizer, example),
         batched=True,
         remove_columns=dataset["train"].column_names,
         num_proc=num_proc,
@@ -85,7 +91,7 @@ def main(
         output_dir=f"./saved_models/{run_name}",
         overwrite_output_dir=True,
         num_train_epochs=num_train_epochs,
-        per_device_train_batch_size=batch_size,
+        per_device_train_batch_size=batch_size // device_count(),
         save_steps=5000,
         logging_steps=5000,
         eval_strategy="steps",
@@ -104,12 +110,35 @@ def main(
         eval_dataset=eval_dataset,
         data_collator=lambda features: contra_data_collator(mlm_collator, features),
         alpha=0.7,
-        contra_type=contra_type,
     )
 
-    trainer.train(resume_from_checkpoint=(resume_from is not None))
+    trainer.train()
     trainer.save_model(f"saved_models/{run_name}/final")
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_path", type=str, default="data/codesearchnet.jsonl")
+    parser.add_argument("--model_name", type=str, default="microsoft/codebert-base")
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--num_train_epochs", type=int, default=3)
+    parser.add_argument("--num_proc", type=int, default=80)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--wandb_project", type=str, default="PIA")
+    parser.add_argument("--run_name", type=str, default="ContraBERT")
+    parser.add_argument("--continue_from_pretrained", type=bool, default=False)
+    parser.add_argument("--contra_type", type=str, default="info_nce")
+
+    args = parser.parse_args()
+    main(
+        dataset_path=args.dataset_path,
+        model_name=args.model_name,
+        batch_size=args.batch_size,
+        num_train_epochs=args.num_train_epochs,
+        num_proc=args.num_proc,
+        seed=args.seed,
+        wandb_project=args.wandb_project,
+        run_name=args.run_name,
+        continue_from_pretrained=args.continue_from_pretrained,
+        contra_type=args.contra_type,
+    )

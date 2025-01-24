@@ -44,20 +44,10 @@ def off_diagonal(x):
 
 
 class ContraBERTTrainer(Trainer):
-    def __init__(
-        self,
-        alpha=1.0,
-        lambda_param=0.005,
-        temperature=0.07,
-        contra_type="info_nce",
-        *args,
-        **kwargs
-    ):
+    def __init__(self, alpha=1.0, temperature=0.07, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
-        self.lambda_param = lambda_param
         self.temperature = temperature
-        self.contra_type = contra_type
 
     def compute_loss(
         self, model, inputs, return_outputs=False, num_items_in_batch=None
@@ -70,49 +60,44 @@ class ContraBERTTrainer(Trainer):
         aug_attention_mask = inputs["aug_attention_mask"].to(DEVICE)
         aug_labels = inputs["aug_labels"].to(DEVICE)
 
-        # Concatenate inputs for MLM
-        input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
-        attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
-        labels = torch.cat([code_labels, aug_labels], dim=0)
-
         # Forward pass for MLM
-        outputs = model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
+        # use bi-encoder training, encode code and augmentation separately using self.model
+        code_outputs = model(
+            input_ids=code_input_ids,
+            attention_mask=code_attention_mask,
+            labels=code_labels,
             output_hidden_states=True,
             return_dict=True,
         )
+        code_hidden_states = code_outputs.hidden_states[-1]
+        code_embeddings = code_hidden_states[:, 0, :]
 
-        # Compute MLM loss
-        mlm_loss = outputs.loss
+        aug_outputs = model(
+            input_ids=aug_input_ids,
+            attention_mask=aug_attention_mask,
+            labels=aug_labels,
+            output_hidden_states=True,
+            return_dict=True,
+        )
+        aug_hidden_states = aug_outputs.hidden_states[-1]
+        aug_embeddings = aug_hidden_states[:, 0, :]
 
-        # Get embeddings (CLS token)
-        # [2*batch_size, seq_len, hidden_size]
-        hidden_states = outputs.hidden_states[-1]
-        cls_embeddings = hidden_states[:, 0, :]  # [2*batch_size, hidden_size]
-
-        # Split embeddings
-        batch_size = code_input_ids.size(0)
-        code_embeddings = cls_embeddings[:batch_size]
-        aug_embeddings = cls_embeddings[batch_size:]
+        # compute MLM loss for code and augmentation separately
+        code_mlm_loss = code_outputs.loss
+        aug_mlm_loss = aug_outputs.loss
+        mlm_loss = code_mlm_loss + aug_mlm_loss
 
         # Compute contrastive loss between code and its augmentation
-        if self.contra_type == ContraType.INFO_NCE:
-            contrastive_loss = info_nce_loss(
-                code_embeddings, aug_embeddings, self.temperature
-            )
-        elif self.contra_type == ContraType.BARLOW_TWINS:
-            contrastive_loss = barlow_twins_loss(
-                code_embeddings, aug_embeddings, self.lambda_param
-            )
-        else:
-            raise ValueError("Invalid contrastive loss type")
+        contrastive_loss = info_nce_loss(
+            code_embeddings,
+            aug_embeddings,
+            self.temperature,
+        )
 
         # Total loss with weighting (adjust alpha as needed)
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, outputs) if return_outputs else total_loss
+        return (total_loss, code_outputs) if return_outputs else total_loss
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
