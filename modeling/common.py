@@ -3,8 +3,6 @@ import torch
 import random
 import numpy as np
 
-tokenizer = RobertaTokenizerFast.from_pretrained("microsoft/codebert-base")
-config = RobertaConfig.from_pretrained("microsoft/codebert-base")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
