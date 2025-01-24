@@ -13,7 +13,7 @@ class AugType(str, Enum):
     FOR2WHILE = "For2While"
     WHILE2FOR = "While2For"
     PP2ADDASSIGNMENT = "PP2AddAssignment"
-    ADDASSIGNEMNT2EQUALASSIGNMENT = "AddAssignemnt2EqualAssignment"
+    ADDASSIGNMENT2EQUALASSIGNMENT = "AddAssignment2EqualAssignment"
     REVERSEIFELSE = "ReverseIfElse"
 
 
