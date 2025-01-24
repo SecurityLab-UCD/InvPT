@@ -110,7 +110,6 @@ def main(
         eval_dataset=eval_dataset,
         data_collator=lambda features: contra_data_collator(mlm_collator, features),
         alpha=0.7,
-        contra_type=contra_type,
     )
 
     trainer.train()
