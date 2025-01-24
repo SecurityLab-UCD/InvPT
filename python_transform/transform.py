@@ -1,5 +1,6 @@
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 import os
 from dataclasses import asdict
 from src import (

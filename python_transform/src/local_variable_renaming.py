@@ -1,4 +1,3 @@
-from typing import Dict
 from src.aug_type import AugType
 import ast
 import random
@@ -15,7 +14,7 @@ class LocalVariableRenamer(ast.NodeTransformer):
         # map original variable name to a new random name
         self.augtype: AugType = AugType.LOCALVARRENAMING
         self.method: str = self.augtype.value
-        self.variable_mapping: Dict[str:str] = {}
+        self.variable_mapping: dict[str:str] = {}
 
     def generate_random_name(self):
         return "".join(random.choices(string.ascii_letters, k=8))
