@@ -1,178 +1,172 @@
-from enum import Enum
-from typing import Dict
-from dataclasses import dataclass
+from dataclasses import asdict
 from src import (
     LocalVariableRenamer,
-    FunctionDefinitionReorder,
     ReverseIfElser,
-    StatementOrderRearrangement,
-    WhileToForTransformer,
-    ForToWhileTransformer,
     OpAssignment2EqualAssignment,
-    AugType,
 )
-from modeling.dataloader import CodeSearchNetExample
+from modeling.dataloader import CodeSearchNetExample, AugType
 import ast
-import sys
 import os
 import json
-import jsonlines
-import autopep8
 import subprocess
 import os
+from returns.maybe import Maybe, Nothing, Some
+from returns.pointfree import bind
+import tempfile
+import argparse
+from typing import Type
+from multiprocessing import Pool, cpu_count
+from functools import partial
 
-code_transform_map = {
-    0: LocalVariableRenamer,
-    1: FunctionDefinitionReorder,
-    2: ReverseIfElser,
-    3: StatementOrderRearrangement,
-    4: OpAssignment2EqualAssignment,
-    5: WhileToForTransformer,
-    6: ForToWhileTransformer,
+
+TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
+    AugType.LOCALVARRENAMING: LocalVariableRenamer,
+    AugType.REVERSEIFELSE: ReverseIfElser,
+    AugType.ADDASSIGNMENT2EQUALASSIGNMENT: OpAssignment2EqualAssignment,
 }
 
 
-def convert_python2_to_python3(source_code: str, filename: str = "random.py") -> str:
+def convert_python2_to_python3(source_code: str) -> Maybe[str]:
+    """convert python 2.x syntax to python 3.x syntax
+
+    Args:
+        source_code (str): the source code in python 2.x syntax
+
+    Returns:
+        Maybe[str]: the source code in python 3.x syntax
+    """
     # lib2to3 is no longer in python 3.11; however, we can still use the 2to3 command line!
-    with open(filename, "w") as file:
-        file.write(source_code)
+
+    temp = tempfile.TemporaryFile()
+    temp.write(source_code.encode())
     try:
         subprocess.run(
-            ["2to3", filename, "-w"],
+            ["2to3", temp.name, "-w"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        # Read the modified content from the file
-        with open(filename, "r") as file:
-            modified_code = file.read()
-        return modified_code
     except subprocess.CalledProcessError as e:
         # TODO: see if there's any other way to solve this issues...
-        raise RuntimeError(f"Error during 2to3 conversion: {e.stderr.decode()}") from e
-    finally:
-        # remove the helper file
-        if os.path.exists(filename):
-            os.remove(filename)
+        return Nothing
+
+    # Read the modified content from the file
+    modified_code = temp.read().decode()
+    temp.close()
+    return Some(modified_code)
 
 
-def apply_AST_transform_and_write(source: str, ast_transformer) -> str:
+def transform(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
     """
     Apply the ast.NodeTransformer class on the source code and return the transformed code
+
     """
     # parse the source code into AST
     # print('source code: ', source)
 
+    source = origional_example.code
+    transform_type = origional_example.aug_type
+
+    ast_transformer = TRANSFORMATION_MAP[transform_type]()
+
+    original_ast_module: Maybe[ast.Module]
     try:
         # If Python 3.x syntax, then no error will be raised
-        original_ast_module = ast.parse(source)
+        original_ast_module = Some(ast.parse(source))
     except SyntaxError:
         # Ohterwise, convert to pyhon 3.x syntax from python 2.x
-        fixed_source = convert_python2_to_python3(source)
-        original_ast_module = ast.parse(fixed_source)
-    # rewrite on the AST
-    modified_ast_module = ast_transformer.visit(original_ast_module)
-    # turn the AST back to code
-    modified_code = ast.unparse(modified_ast_module)
+        original_ast_module = convert_python2_to_python3(source).map(ast.parse)
 
-    return modified_code
+    def add_transformed_code(transformed_code: str):
+        origional_example.transformed = transformed_code
+        return origional_example
 
-
-def transform_and_write(
-    code_transformer, source_file: str, target_directory: str
-) -> None:
-    """
-    Process each line of the jsonl file,
-    """
-    # Extract the base name of the source file and append '_transformed'
-    source_basename = os.path.basename(source_file)  # Get the file name with extension
-    target_filename = os.path.join(
-        target_directory,
-        source_basename.replace(
-            ".jsonl", f"_transformed_{code_transformer.method}.jsonl"
-        ),
+    # ToDo: check if `source` is really modified. If not, return Nothing
+    return (
+        original_ast_module.map(ast_transformer.visit)
+        .map(ast.unparse)
+        .map(add_transformed_code)
     )
 
-    with jsonlines.open(source_file) as reader, jsonlines.open(
-        target_filename, mode="w"
-    ) as writer:
-        i = 0
-        for obj in reader:
 
-            try:
-                transformed_code = apply_AST_transform_and_write(
-                    obj["code"], code_transformer
-                )
-            except RuntimeError:
-                # if the code itself has syntax error, then skip it
-                continue
-            except SyntaxError:
-                # if the code itself has syntax error, then skip it
-                continue
-
-            output_obj: CodeSearchNetExample = CodeSearchNetExample(
-                repo=obj["repo"],
-                func_name=obj["func_name"],
-                language=obj["language"],
-                code=obj["code"],
-                docstring=obj["docstring"],
-                transformed=transformed_code,
-                aug_type=code_transformer.augtype,
-            )
-
-            # add this jsonline to target_filename
-            writer.write(output_obj.__dict__)
-            i += 1
-
-    print(f"{i} out of 30000 functions are successfully transformed...")
-
-
-def main(argv=None):
-    import argparse
-
-    arg_parser = argparse.ArgumentParser()
-    # Parsing Arguments
-    arg_parser.add_argument("ruleId", help="The id of transformation method", type=int)
-    arg_parser.add_argument("root", help="The path to jsonl file", type=str)
-    arg_parser.add_argument(
-        "target",
-        help="The target directory where the transformed code are located",
-        type=str,
-    )
-    args = arg_parser.parse_args(argv)
-
-    # Get Code Transformer Given the RuleID
+def load_csn_example(augtype: AugType, json_line: str) -> Maybe[CodeSearchNetExample]:
+    data = json.loads(json_line)
     try:
-        code_transformer = code_transform_map[args.ruleId]()
-    except KeyError:
-        raise ValueError("ruleId does not exist!")
-
-    # Create Output Directory if Does Not Exist
-    if not os.path.exists(args.target):
-        os.makedirs(args.target)
-
-    print(
-        "-------- Selected Transforming Method: ",
-        code_transformer.method,
-        " -------- \n",
-    )
-
-    # usage: python3.11 transform.py 0 python_jsonl/python_train_0.jsonl output/
-    if os.path.isdir(args.root):
-        raise ValueError("Input should be a file not a directory")
-    elif not args.root.endswith(".jsonl"):
-        raise ValueError("Input file should be a .jsonl file")
-    else:
-        # we now only working on "LocalVariableRenaming, ReverseIfElse, and OpAssignment2EqualAssignment"
-        transform_and_write(
-            code_transformer=code_transformer,
-            source_file=args.root,
-            target_directory=args.target,
+        csn_example = CodeSearchNetExample(
+            repo=data["repo"],
+            func_name=data["func_name"],
+            language=data["language"],
+            code=data["code"],
+            docstring=data["docstring"],
+            transformed="",
+            aug_type=augtype,
         )
+    except KeyError:
+        return Nothing
+
+    return Some(csn_example)
+
+
+def main(
+    augtype: AugType,
+    input_file_path: str,
+    output_file_path: str,
+    num_cpus: int,
+):
+    print(f"-------- Selected Transforming Method: {augtype} -------- ")
+
+    assert os.path.exists(input_file_path) and os.path.isfile(
+        input_file_path
+    ), "Invalid input file path"
+
+    # read in the jsonl file
+    with open(input_file_path, "r") as f:
+        lines = f.read().splitlines()
+
+    with Pool(num_cpus) as pool:
+        csn_examples = pool.map(partial(load_csn_example, augtype), lines)
+        transformed_data = pool.map(bind(transform), csn_examples)
+
+    with open(output_file_path, "w") as f:
+        for transformed_csn in transformed_data:
+            match transformed_csn:
+                case Some(csn):
+                    f.write(json.dumps(asdict(csn)) + "\n")
+                case Nothing:
+                    pass
 
     print("\nFinished Transformed!\n\n")
 
 
-# python3.11 transform.py 2  dataset/python_train_1.jsonl  output/
 if __name__ == "__main__":
-    main()
+    arg_parser = argparse.ArgumentParser()
+    # Parsing Arguments
+    arg_parser.add_argument(
+        "-t",
+        "--augtype",
+        help="The id of transformation method",
+        type=str,
+        choices=[k.value for k in TRANSFORMATION_MAP.keys()],
+    )
+    arg_parser.add_argument(
+        "-i",
+        "--input_path",
+        help="Path to jsonl file for transformation",
+        type=str,
+    )
+    arg_parser.add_argument(
+        "-o",
+        "--output_path",
+        help="The target directory where the transformed code are located",
+        type=str,
+    )
+    arg_parser.add_argument(
+        "-n",
+        "--num_cpus",
+        help="The number of CPU cores to use for parallel processing",
+        type=int,
+        default=cpu_count(),
+    )
+
+    args = arg_parser.parse_args()
+    main(AugType(args.augtype), args.input_path, args.output_path, args.num_cpus)
