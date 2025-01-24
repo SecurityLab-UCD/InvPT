@@ -1,21 +1,23 @@
+import sys
+sys.path.append('..')
+import os
 from dataclasses import asdict
 from src import (
     LocalVariableRenamer,
     ReverseIfElser,
     OpAssignment2EqualAssignment,
 )
-from modeling.dataloader import CodeSearchNetExample, AugType
+from modeling.types import CodeSearchNetExample, AugType
 import ast
-import os
 import json
 import subprocess
-import os
 from returns.maybe import Maybe, Nothing, Some
 from returns.pointfree import bind
 import tempfile
 import argparse
 from typing import Type
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
+from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
 
 
@@ -48,6 +50,8 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
         )
     except subprocess.CalledProcessError as e:
         # TODO: see if there's any other way to solve this issues...
+        return Nothing
+    except TypeError as e:
         return Nothing
 
     # Read the modified content from the file
@@ -157,7 +161,7 @@ if __name__ == "__main__":
     arg_parser.add_argument(
         "-o",
         "--output_path",
-        help="The target directory where the transformed code are located",
+        help="The target jsonl file where the transformed code are located",
         type=str,
     )
     arg_parser.add_argument(
