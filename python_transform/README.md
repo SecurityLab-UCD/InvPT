@@ -17,12 +17,14 @@ Supported rules' name are listed below:
 - AddAssignment2EqualAssignment
 - ReverseIfElse
 
-
 ## Instruction
 Run the following command to generate a new Jsonl file:
 ```
-python transform.py [RuleName] [Root File] [Output File]
-
-python transform.py LocalVarRenaming dataset/python_train_1.jsonl output/python_train_1_transformed.jsonl
+python transform.py -t [RuleName] -i [Input File] -o [Output File] -n [Number of CPUs (optional, defaults to all available CPUs)]
 ```
 
+Examples: The command below applies the LocalVarRenaming rule to the input file dataset/python_train_1.jsonl and saves the transformed output to output/python_train_1_transformed.jsonl:
+
+```
+python transform.py  -t LocalVarRenaming -i dataset/python_train_1.jsonl -o output/python_train_1_transformed.jsonl
+```
