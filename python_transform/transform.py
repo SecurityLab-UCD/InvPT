@@ -8,7 +8,7 @@ from src import (
     ReverseIfElser,
     OpAssignment2EqualAssignment,
 )
-from modeling.types import CodeSearchNetExample, AugType
+from modeling.dataloader import CodeSearchNetExample, AugType
 import ast
 import json
 import subprocess

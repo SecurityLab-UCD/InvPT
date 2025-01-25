@@ -1,4 +1,7 @@
-from src.aug_type import AugType
+import sys
+
+sys.path.append("../..")
+from modeling.dataloader import AugType
 import ast
 
 
