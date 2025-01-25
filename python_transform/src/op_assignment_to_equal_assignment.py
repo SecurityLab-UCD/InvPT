@@ -13,7 +13,7 @@ class OpAssignment2EqualAssignment(ast.NodeTransformer):
     """
 
     def __init__(self):
-        self.augtype: AugType = AugType.ADDASSIGNEMNT2EQUALASSIGNMENT
+        self.augtype: AugType = AugType.ADDASSIGNMENT2EQUALASSIGNMENT
         self.method: str = self.augtype.value
 
     def visit_AugAssign(self, node: ast.AugAssign):
