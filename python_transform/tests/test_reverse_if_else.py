@@ -6,6 +6,7 @@ from tests.base_tranform_test import baseCodeTransformTest
 import unittest
 import ast
 
+
 class TestReverseIfElse(baseCodeTransformTest):
 
     # TESTS
@@ -40,9 +41,10 @@ print(even_numbers)
 print(greet("es"))
         """
 
-        self.assert_code_equal(self.get_transformed_code(source_code, ReverseIfElser), expected_code)
+        self.assert_code_equal(
+            self.get_transformed_code(source_code, ReverseIfElser), expected_code
+        )
 
-    
     def test_reverse_if_else_with_single_if_branch(self):
         source_code = """
 name = "Alice"
@@ -68,7 +70,9 @@ if not is_raining:
 else:
     print("Remember to take an umbrella!")
 """
-        self.assert_code_equal(self.get_transformed_code(source_code, ReverseIfElser), expected_code)
+        self.assert_code_equal(
+            self.get_transformed_code(source_code, ReverseIfElser), expected_code
+        )
 
     def test_reverse_if_else_with_single_if_Ands_branch(self):
         source_code = """
@@ -85,8 +89,10 @@ if not (true_flag and not false_flag):
 else:
     print("true flags")
 """
-        self.assert_code_equal(self.get_transformed_code(source_code, ReverseIfElser), expected_code)
-    
+        self.assert_code_equal(
+            self.get_transformed_code(source_code, ReverseIfElser), expected_code
+        )
+
     def test_reverse_if_else_with_else_branch(self):
         source_code = """
 if x > 5:
@@ -100,8 +106,9 @@ if not (x > 5):
 else:
     print("Greater")
 """
-        self.assert_code_equal(self.get_transformed_code(source_code, ReverseIfElser), expected_code)
-
+        self.assert_code_equal(
+            self.get_transformed_code(source_code, ReverseIfElser), expected_code
+        )
 
     def test_reverse_if_else_with_nested_if_else_branch(self):
         source_code = """
@@ -128,8 +135,10 @@ if not x < 3:
 else:
     print('smaller than 3')    
 """
-        self.assert_code_equal(self.get_transformed_code(source_code, ReverseIfElser), expected_code)
+        self.assert_code_equal(
+            self.get_transformed_code(source_code, ReverseIfElser), expected_code
+        )
 
 
-if __name__ == 'main':
+if __name__ == "main":
     unittest.main()

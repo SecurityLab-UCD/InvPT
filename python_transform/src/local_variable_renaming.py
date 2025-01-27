@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append("../..")
-from modeling.dataloader import AugType
 import ast
 import random
 import string
@@ -15,8 +11,6 @@ class LocalVariableRenamer(ast.NodeTransformer):
 
     def __init__(self):
         # map original variable name to a new random name
-        self.augtype: AugType = AugType.LOCALVARRENAMING
-        self.method: str = self.augtype.value
         self.variable_mapping: dict[str, str] = {}
 
     def generate_random_name(self):
