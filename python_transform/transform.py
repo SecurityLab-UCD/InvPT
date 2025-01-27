@@ -50,9 +50,10 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
             stderr=subprocess.PIPE,
         )
     except subprocess.CalledProcessError as e:
-        # TODO: see if there's any other way to solve this issues...
         return Nothing
     except TypeError as e:
+        # while trying to convert the code from py2 to py3, it will throw an error if the code ifself has syntax error
+        # in this case, we skip this transformation
         return Nothing
 
     # Read the modified content from the file
