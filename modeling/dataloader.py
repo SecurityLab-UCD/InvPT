@@ -1,11 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum
-import fire
-import json
-import os
-
-from torch.utils.data import DataLoader, IterableDataset
-from transformers import DataCollatorForLanguageModeling
 
 
 class AugType(str, Enum):
@@ -13,7 +7,7 @@ class AugType(str, Enum):
     FOR2WHILE = "For2While"
     WHILE2FOR = "While2For"
     PP2ADDASSIGNMENT = "PP2AddAssignment"
-    ADDASSIGNEMNT2EQUALASSIGNMENT = "AddAssignemnt2EqualAssignment"
+    ADDASSIGNMENT2EQUALASSIGNMENT = "AddAssignment2EqualAssignment"
     REVERSEIFELSE = "ReverseIfElse"
 
 
