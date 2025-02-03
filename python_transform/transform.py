@@ -55,6 +55,8 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
         # while trying to convert the code from py2 to py3, it will throw an error if the code ifself has syntax error
         # in this case, we skip this transformation
         return Nothing
+    except RecursionError as e:
+        return Nothing
 
     # Read the modified content from the file
     modified_code = temp.read().decode()
@@ -82,17 +84,23 @@ def transform(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExa
     except SyntaxError:
         # Ohterwise, convert to pyhon 3.x syntax from python 2.x
         original_ast_module = convert_python2_to_python3(source).map(ast.parse)
+    except RecursionError as e:
+        return Nothing
 
     def add_transformed_code(transformed_code: str):
         origional_example.transformed = transformed_code
         return origional_example
 
     # ToDo: check if `source` is really modified. If not, return Nothing
-    return (
+
+    try:
+        return (
         original_ast_module.map(ast_transformer.visit)
         .map(ast.unparse)
         .map(add_transformed_code)
     )
+    except RecursionError as e:
+        return Nothing
 
 
 def load_csn_example(augtype: AugType, json_line: str) -> Maybe[CodeSearchNetExample]:
@@ -136,9 +144,9 @@ def main(
     with open(output_file_path, "w") as f:
         for transformed_csn in transformed_data:
             match transformed_csn:
-                case Some(csn):
+                case Some(csn):                    
                     f.write(json.dumps(asdict(csn)) + "\n")
-                case Nothing:
+                case Nothing:                    
                     pass
 
     print("\nFinished Transformed!\n\n")
