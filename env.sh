@@ -1,0 +1,2 @@
+export PIA_HOME=`pwd`
+export PYTHONPATH=$PYTHONPATH:PIA_HOME

@@ -30,15 +30,17 @@ TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
     AugType.ADDASSIGNMENT2EQUALASSIGNMENT: OpAssignment2EqualAssignment,
 }
 
+
 def convert_source_to_ast_module(source_code: str) -> Maybe[ast.Module]:
     original_ast_module: Maybe[ast.Module]
-    try:        
+    try:
         original_ast_module = Some(ast.parse(source_code))
-    except SyntaxError: 
+    except SyntaxError:
         original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
     except RecursionError as e:
         return Nothing
     return original_ast_module
+
 
 def convert_python2_to_python3(source_code: str) -> Maybe[str]:
     """convert python 2.x syntax to python 3.x syntax
@@ -79,6 +81,7 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
 def transform(origional_example):
     raise NotImplementedError("Unsupported type!")
 
+
 @transform.register
 def _(source_code: str) -> Maybe[Tuple[str, str, str]]:
     """
@@ -89,22 +92,29 @@ def _(source_code: str) -> Maybe[Tuple[str, str, str]]:
     ast_reverseIfElse = ReverseIfElser()
     ast_opAss2EqualAss = OpAssignment2EqualAssignment()
 
-    def apply_transformation(transformer: ast.NodeTransformer) -> Maybe[str]:        
-        original_ast_module: Maybe[ast.Module] = convert_source_to_ast_module(source_code)
-        if original_ast_module == Nothing: return Nothing
+    def apply_transformation(transformer: ast.NodeTransformer) -> Maybe[str]:
+        original_ast_module: Maybe[ast.Module] = convert_source_to_ast_module(
+            source_code
+        )
+        if original_ast_module == Nothing:
+            return Nothing
         try:
             return original_ast_module.map(transformer.visit).map(ast.unparse)
         except RecursionError:
             return Nothing
 
     # Apply all transformations
-    transformed_results: List[Maybe[str]] = [apply_transformation(TRANSFORMATION_MAP[k]()) for k in TRANSFORMATION_MAP.keys()]
-    
+    transformed_results: List[Maybe[str]] = [
+        apply_transformation(TRANSFORMATION_MAP[k]()) for k in TRANSFORMATION_MAP.keys()
+    ]
+
     # If all transformations fail, return Nothing
-    if all(result == Nothing for result in transformed_results): return Nothing
+    if all(result == Nothing for result in transformed_results):
+        return Nothing
 
     # If some of results are None (when an error is raised while parsing AST tree), mark it as None
     return Some(tuple(result.value_or(None) for result in transformed_results))
+
 
 @transform.register
 def _(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
@@ -112,7 +122,7 @@ def _(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
     Apply the ast.NodeTransformer class on the source code and return the transformed code
 
     """
-    # parse the source code into AST 
+    # parse the source code into AST
 
     source = origional_example.code
     transform_type = origional_example.aug_type
@@ -136,10 +146,10 @@ def _(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
     # ToDo: check if `source` is really modified. If not, return Nothing
     try:
         return (
-        original_ast_module.map(ast_transformer.visit)
-        .map(ast.unparse)
-        .map(add_transformed_code)
-    )
+            original_ast_module.map(ast_transformer.visit)
+            .map(ast.unparse)
+            .map(add_transformed_code)
+        )
     except RecursionError as e:
         return Nothing
 
@@ -172,7 +182,7 @@ def main(
 
     assert os.path.exists(input_file_path) and os.path.isfile(
         input_file_path
-    ), "Invalid input file path"    
+    ), "Invalid input file path"
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:
@@ -185,9 +195,9 @@ def main(
     with open(output_file_path, "w") as f:
         for transformed_csn in transformed_data:
             match transformed_csn:
-                case Some(csn):                    
+                case Some(csn):
                     f.write(json.dumps(asdict(csn)) + "\n")
-                case Nothing:                    
+                case Nothing:
                     pass
 
     print("\nFinished Transformed!\n\n")
@@ -221,7 +231,7 @@ if __name__ == "__main__":
         help="The number of CPU cores to use for parallel processing",
         type=int,
         default=cpu_count(),
-    )    
+    )
 
     args = arg_parser.parse_args()
     main(AugType(args.augtype), args.input_path, args.output_path, args.num_cpus)
