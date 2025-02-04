@@ -24,6 +24,7 @@ cd dataset
 rm -rf augmented_data.jsonl augtest.txt
 cd augmentation
 rm -rf artifacts/*
+mkdir -p artifacts/original artifacts/augmented
 
 # Augment dataset
 
