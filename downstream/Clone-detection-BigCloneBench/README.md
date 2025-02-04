@@ -41,6 +41,10 @@ python3 merge.py \
     --augmented_path artifacts/augmented_only.jsonl \
     --original_path ../original_data.jsonl \
     --output_path ../augmented_data.jsonl
+python3 aug_test.py \
+    --augmented_jsonl ../augmented_data.jsonl \
+    --test_txt ../test.txt \
+    --output_txt ../augtest.txt
 cd ..
 ```
 
