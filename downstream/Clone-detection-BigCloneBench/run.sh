@@ -12,7 +12,7 @@ python ./code/run.py \
     --do_test \
     --train_data_file=./dataset/train.txt \
     --eval_data_file=./dataset/valid.txt \
-    --test_data_file=./dataset/test.txt \
+    --test_data_file=./dataset/augtest.txt \
     --epoch 2 \
     --block_size 400 \
     --train_batch_size 32 \
@@ -22,4 +22,4 @@ python ./code/run.py \
     --evaluate_during_training \
     --seed 123456  2>&1 | tee $output_dir/train.log
 
-python evaluator/evaluator.py -a dataset/test.txt -p $output_dir/predictions.txt > $output_dir/test.log
+python evaluator/evaluator.py -a dataset/augtest.txt -p $output_dir/predictions.txt > $output_dir/test.log
