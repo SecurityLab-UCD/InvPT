@@ -3,7 +3,7 @@
 ## Install required packages
 
 ```sh
-conda create -n bcb python=3.10.12
+conda create -n bcb python=3.11
 conda activate bcb
 pip install -r requirements.txt
 ```
@@ -32,6 +32,11 @@ python3 preprocess.py \
     --id_colname idx \
     --no-drop_duplicates
 ./augment.sh 0 1 2 3 6 7
+python3 postprocess.py \
+    artifacts/metadata.jsonl \
+    artifacts/augmented_data.jsonl \
+    artifacts/augmented \
+    --id_colname idx
 cd ..
 ```
 
