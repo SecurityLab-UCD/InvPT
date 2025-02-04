@@ -10,45 +10,13 @@ pip install -r requirements.txt
 
 ## Getting the data
 
-### Download unaugmented dataset
+Run [](get_data.sh). This will provide the following:
 
-```bash
-cd dataset
-wget https://raw.githubusercontent.com/microsoft/CodeXGLUE/refs/heads/main/Code-Code/Clone-detection-BigCloneBench/dataset/data.jsonl
-mv data.jsonl original_data.jsonl
-cd ..
-```
-
-### Augment the dataset
-
-```bash
-cd dataset/augmentation
-rm -rf artifacts/*
-python3 preprocess.py \
-    --data_jsonl ../original_data.jsonl \
-    --extracted_java_path artifacts/original \
-    --metadata_jsonl_path artifacts/metadata.jsonl \
-    --java_colname func \
-    --id_colname idx \
-    --no-drop_duplicates
-./augment.sh 0 1 2 3 6 7
-python3 postprocess.py \
-    artifacts/metadata.jsonl \
-    artifacts/augmented_only.jsonl \
-    artifacts/augmented \
-    --id_colname idx
-python3 merge.py \
-    --augmented_path artifacts/augmented_only.jsonl \
-    --original_path ../original_data.jsonl \
-    --output_path ../augmented_data.jsonl
-python3 aug_test.py \
-    --augmented_jsonl ../augmented_data.jsonl \
-    --test_txt ../test.txt \
-    --output_txt ../augtest.txt
-cd ..
-```
-
-### Augment
+* [](dataset/original_data.jsonl) - Original BCB dataset
+* [](dataset/augmented_data.jsonl) - Augmented BCB dataset
+* [](dataset/data.jsonl) - Same as [](dataset/augmented_data.jsonl), hard-coded
+  path by [](code/run.py) used by the model.
+* [](dataset/augtest.txt) - Augmented BCB test split
 
 ## Task Definition
 
