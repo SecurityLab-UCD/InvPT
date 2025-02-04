@@ -1,10 +1,41 @@
-# CodeXGLUE -- Clone Detection (BCB)
+# CodeXGLUE clone detection with augmentation
 
-## Getting the dataset
+## Install required packages
+
+```sh
+conda create -n bcb python=3.10.12
+conda activate bcb
+pip install -r requirements.txt
+```
+
+## Getting the data
+
+### Download unaugmented dataset
+
 ```bash
 cd dataset
 wget https://raw.githubusercontent.com/microsoft/CodeXGLUE/refs/heads/main/Code-Code/Clone-detection-BigCloneBench/dataset/data.jsonl
+mv data.jsonl original_data.jsonl
+cd ..
 ```
+
+### Augment the dataset
+
+```bash
+cd dataset/augmentation
+rm -rf artifacts/*
+python3 preprocess.py \
+    --data_jsonl ../original_data.jsonl \
+    --extracted_java_path artifacts/original \
+    --metadata_jsonl_path artifacts/metadata.jsonl \
+    --java_colname func \
+    --id_colname idx \
+    --no-drop_duplicates
+./augment.sh 0 1 2 3 6 7
+cd ..
+```
+
+### Augment
 
 ## Task Definition
 
