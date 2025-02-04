@@ -80,7 +80,7 @@ def transform(origional_example):
     raise NotImplementedError("Unsupported type!")
 
 @transform.register
-def _(py_file_path: str) -> Maybe[Tuple[str, str, str]]:
+def _(source_code: str) -> Maybe[Tuple[str, str, str]]:
     """
     Apply three ast.NodeTransformers on the source code, and return three transformed codes.
     Returns `Nothing` if all transformations fail, otherwise returns a tuple of three.
@@ -88,10 +88,6 @@ def _(py_file_path: str) -> Maybe[Tuple[str, str, str]]:
     ast_localVariableRenamer = LocalVariableRenamer()
     ast_reverseIfElse = ReverseIfElser()
     ast_opAss2EqualAss = OpAssignment2EqualAssignment()
-
-    with open(py_file_path) as f:
-        lines = f.readlines()
-        source_code = ''.join(lines)
 
     def apply_transformation(transformer: ast.NodeTransformer) -> Maybe[str]:        
         original_ast_module: Maybe[ast.Module] = convert_source_to_ast_module(source_code)
