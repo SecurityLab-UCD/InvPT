@@ -139,6 +139,8 @@ class TextDataset(Dataset):
             for line in f:
                 line=line.strip()
                 url1,url2,label=line.split('\t')
+                url1=int(url1)
+                url2=int(url2)
                 if url1 not in url_to_code or url2 not in url_to_code:
                     continue
                 if label=='0':
@@ -342,7 +344,7 @@ def evaluate(args, model, tokenizer, prefix="",pool=None,eval_when_training=Fals
     model.eval()
     logits=[]  
     y_trues=[]
-    for batch in eval_dataloader:
+    for batch in tqdm(eval_dataloader):
         inputs = batch[0].to(args.device)        
         labels=batch[1].to(args.device) 
         with torch.no_grad():
@@ -411,7 +413,7 @@ def test(args, model, tokenizer, prefix="",pool=None,best_threshold=0):
     model.eval()
     logits=[]  
     y_trues=[]
-    for batch in eval_dataloader:
+    for batch in tqdm(eval_dataloader):
         inputs = batch[0].to(args.device)        
         labels=batch[1].to(args.device) 
         with torch.no_grad():
@@ -425,9 +427,9 @@ def test(args, model, tokenizer, prefix="",pool=None,best_threshold=0):
     with open(os.path.join(args.output_dir,"predictions.txt"),'w') as f:
         for example,pred in zip(eval_dataset.examples,y_preds):
             if pred:
-                f.write(example.url1+'\t'+example.url2+'\t'+'1'+'\n')
+                f.write(str(example.url1)+'\t'+str(example.url2)+'\t'+'1'+'\n')
             else:
-                f.write(example.url1+'\t'+example.url2+'\t'+'0'+'\n')
+                f.write(str(example.url1)+'\t'+str(example.url2)+'\t'+'0'+'\n')
                                                 
 def main():
     parser = argparse.ArgumentParser()
@@ -637,4 +639,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
