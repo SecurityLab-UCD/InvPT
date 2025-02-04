@@ -22,12 +22,17 @@ unsure
 
 ### Data Statistics
 
-Data statistics of the dataset are shown in the below table:
+Data statistics of the Python 800 dataset are shown in the below table:
 
 |       | #Examples |
 | ----- | :-------: |
-| Train |  35,922  |
-| Dev   |  17,961  |
-| Test  |  17,961  |
+| Train |  120,000  |
+| Test  |   60,000  |
+| Valid |   60,000  |
 
+Before & After adding transformed code Test Set
+|        | #Examples of Test Set |
+| -----  | :-------:             |
+| Before |   60,000              |
+| After  |  118,895              |
 ## Evaluator
