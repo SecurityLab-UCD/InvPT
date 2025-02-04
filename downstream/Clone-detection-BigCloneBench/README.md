@@ -34,9 +34,13 @@ python3 preprocess.py \
 ./augment.sh 0 1 2 3 6 7
 python3 postprocess.py \
     artifacts/metadata.jsonl \
-    artifacts/augmented_data.jsonl \
+    artifacts/augmented_only.jsonl \
     artifacts/augmented \
     --id_colname idx
+python3 merge.py \
+    --augmented_path artifacts/augmented_only.jsonl \
+    --original_path ../original_data.jsonl \
+    --output_path ../augmented_data.jsonl
 cd ..
 ```
 
