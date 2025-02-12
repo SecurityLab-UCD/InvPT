@@ -53,7 +53,7 @@ def main(
     wandb_project: str | None = "PIA",
     run_name: str = "ContraBERT",
     continue_from_pretrained: bool = False,
-    contra_type: str = "info_nce",
+    percentage: float = 1,
 ):
 
     set_seed(seed)
@@ -71,15 +71,18 @@ def main(
     )
     model.to(DEVICE)
 
-    dataset = load_dataset("json", data_files=dataset_path)
+    dataset = load_dataset("json", data_files=dataset_path)["train"]
 
-    tokenized_datasets = dataset.map(
-        lambda example: tokenize(tokenizer, example),
-        batched=True,
-        remove_columns=dataset["train"].column_names,
-        num_proc=num_proc,
+    tokenized_datasets = (
+        dataset.shuffle(seed=seed)
+        .take(int(len(dataset) * percentage))
+        .map(
+            lambda example: tokenize(tokenizer, example),
+            batched=True,
+            num_proc=num_proc,
+        )
     )
-    split_dataset = tokenized_datasets["train"].train_test_split(test_size=0.1)
+    split_dataset = tokenized_datasets.train_test_split(test_size=0.1)
     train_dataset = split_dataset["train"]
     eval_dataset = split_dataset["test"]
 
@@ -127,7 +130,7 @@ if __name__ == "__main__":
     parser.add_argument("--wandb_project", type=str, default="PIA")
     parser.add_argument("--run_name", type=str, default="ContraBERT")
     parser.add_argument("--continue_from_pretrained", type=bool, default=False)
-    parser.add_argument("--contra_type", type=str, default="info_nce")
+    parser.add_argument("--percentage", type=float, default=1)
 
     args = parser.parse_args()
     main(
@@ -140,5 +143,5 @@ if __name__ == "__main__":
         wandb_project=args.wandb_project,
         run_name=args.run_name,
         continue_from_pretrained=args.continue_from_pretrained,
-        contra_type=args.contra_type,
+        percentage=args.percentage,
     )
