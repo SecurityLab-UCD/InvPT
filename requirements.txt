@@ -19,4 +19,4 @@ autopep8==2.3.2
 jsonlines==4.0.0
 returns[compatible-mypy]>=0.23.0
 pytest>=8.0.0 
-pathos==0.3.3
+pathos>0.3
