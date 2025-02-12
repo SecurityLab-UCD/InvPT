@@ -169,3 +169,4 @@ wandb/
 *.jsonl
 *.tar.gz
 **/ProgramData/*
+**/raw/*
