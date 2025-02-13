@@ -27,7 +27,7 @@ python ./code/run.py \
 
 # test
 python evaluator/extract_answers.py \
-    -c dataset/test.jsonl \
+    -c dataset/$subset/test.jsonl \
     -o $output_dir/answer.jsonl
 
 python evaluator/evaluator.py \

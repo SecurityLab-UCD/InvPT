@@ -55,3 +55,12 @@ Split ratio is 50%, 25%, 25% for train, valid, test.
 
 These scripts are directly copied from `../Clone-detection-POJ-104`,
 please refer to the documentation there.
+
+## Running the Pipelines
+
+```shell
+CUDA_VISIBLE_DEVICES=0,1 ./run.sh <model_path_or_name> <save_path> <subset>
+
+# for example,
+CUDA_VISIBLE_DEVICES=0,1 ./run.sh microsoft/codebert-base saved_models/codebert-Java250 Java250
+```
