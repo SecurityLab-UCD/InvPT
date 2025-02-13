@@ -50,3 +50,8 @@ For each file, each line in the uncompressed file represents one function. One r
 ### Data Statistics
 
 Split ratio is 50%, 25%, 25% for train, valid, test.
+
+## Evaluation and Fine-tuning
+
+These scripts are directly copied from `../Clone-detection-POJ-104`,
+please refer to the documentation there.
