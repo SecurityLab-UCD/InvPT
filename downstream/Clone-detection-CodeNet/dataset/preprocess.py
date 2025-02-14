@@ -61,12 +61,13 @@ def main(subset: str, workdir: str = "./raw", seed: int = 0):
 
     logging.info("Loading programs")
     all_programs: list[CodeNetProgram] = []
+    index = 0
     for label, problem in enumerate(tqdm(os.listdir(dataset_dir))):
         problem_dir = os.path.join(dataset_dir, problem)
         if not os.path.isdir(problem_dir):
             continue
 
-        for index, program in enumerate(os.listdir(problem_dir)):
+        for program in os.listdir(problem_dir):
             f_path = os.path.join(problem_dir, program)
             with open(f_path, "r") as f:
                 code = f.read()
@@ -77,6 +78,7 @@ def main(subset: str, workdir: str = "./raw", seed: int = 0):
                         code=code,
                     )
                 )
+                index += 1
 
     random.seed(seed)
     train_programs, valid_programs, test_programs = split_programs(all_programs)
