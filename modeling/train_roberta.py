@@ -47,7 +47,7 @@ def main(
     dataset_path: str = "data/codesearchnet.jsonl",
     model_name: str = "microsoft/codebert-base",
     batch_size: int = 64,
-    num_train_epochs: int = 3,
+    max_steps: int = 100_000,
     num_proc: int = 80,
     seed: int = 0,
     wandb_project: str | None = "PIA",
@@ -93,17 +93,18 @@ def main(
     training_args = TrainingArguments(
         output_dir=f"./saved_models/{run_name}",
         overwrite_output_dir=True,
-        num_train_epochs=num_train_epochs,
         per_device_train_batch_size=batch_size // device_count(),
-        save_steps=5000,
+        max_steps=max_steps,
+        save_steps=10000,
         logging_steps=5000,
         eval_strategy="steps",
-        eval_steps=1000,
+        eval_steps=5000,
         learning_rate=5e-5,
         weight_decay=0.01,
         remove_unused_columns=False,
         report_to="wandb",
         run_name=run_name,
+        load_best_model_at_end=True,
     )
 
     trainer = ContraBERTTrainer(
@@ -124,24 +125,25 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="data/codesearchnet.jsonl")
     parser.add_argument("--model_name", type=str, default="microsoft/codebert-base")
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--num_train_epochs", type=int, default=3)
     parser.add_argument("--num_proc", type=int, default=80)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--wandb_project", type=str, default="PIA")
     parser.add_argument("--run_name", type=str, default="ContraBERT")
     parser.add_argument("--continue_from_pretrained", type=bool, default=False)
     parser.add_argument("--percentage", type=float, default=1)
-
+    parser.add_argument("--max_steps", type=int, default=100_000)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     args = parser.parse_args()
+
     main(
         dataset_path=args.dataset_path,
         model_name=args.model_name,
         batch_size=args.batch_size,
-        num_train_epochs=args.num_train_epochs,
         num_proc=args.num_proc,
         seed=args.seed,
         wandb_project=args.wandb_project,
         run_name=args.run_name,
         continue_from_pretrained=args.continue_from_pretrained,
         percentage=args.percentage,
+        max_steps=args.max_steps,
     )
