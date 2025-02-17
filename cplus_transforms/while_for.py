@@ -9,75 +9,86 @@ def generate_hidden_name(i, str):
     generator.seed(i + 2025)
     length = len(str)
     random_name = ""
+    name_code = ord('a')
     for i in range(length):
-        name_code = generator.randint(16, 31)
+        name_code = generator.randint(16, 31) # + 100
         random_name += chr(name_code)
     return random_name
+
+# 
+def get_character_offset(file_path, line, column):
+    """Convert line and column into absolute character offset."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    char_pos = sum(len(lines[i]) for i in range(line - 1))  # - 1 Adjust for zero-index
+    char_pos += column - 1  # Adjust for zero-based index
+    return char_pos
+
+def get_offset(node):
+    return get_character_offset(node.location.file.name, node.extent.start.line, node.extent.start.column)
+
+# Function to get start and end character positions of a node
+def get_node_char_positions(node):
+    """Returns (start_offset, end_offset) of a node."""
+    if node.location.file and node.extent.start.file:  # Ensure valid locations
+        file_path = node.location.file.name
+        print(node.extent.start)
+        start_offset = get_character_offset(file_path, node.extent.start.line, node.extent.start.column)
+        end_offset = get_character_offset(file_path, node.extent.end.line, node.extent.end.column)
+        return start_offset, end_offset
+    return [None, None]
 
 def extract_source_code(node):
     """Extract the source code for the node."""
     extent = node.extent
-    print(extent)
     with open(extent.start.file.name, 'r') as f:
-        lines = f.readlines()
-    start_line, start_col = extent.start.line, extent.start.column
-    end_line, end_col = extent.end.line, extent.end.column
-    code = ''.join(lines[start_line-1:end_line])
-    length = 0
-    for i in range(start_line-1, end_line):
-        length += len(lines[i])
-    return code[start_col-2:end_col-1+length]
+        code = f.read()
+    start_end = get_node_char_positions(node)
+    return code[start_end[0]:start_end[1]]
 
-def generate_replace_code(condition_node):
-    condition = extract_source_code(condition_node).strip().strip("}{")
-    return "(;%s;){" % (condition)
-
-def while_for(root_node, source_file, source_code_lines, modifications):
-    # Collect all nodes that have WHILE_STMT
+def for_while_reverse(root_node, source_file, source_code, start_end):
+    # Collect all nodes that have IF_STMT
     change_nodes = []
     to_visit = deque()
     to_visit.appendleft(root_node)
     while len(to_visit) > 0:
         curr_visit = to_visit.pop()
+        if curr_visit.kind == CursorKind.WHILE_STMT and source_file in str(curr_visit.location):
+            # Behavior here to get the children and stuff
+            children = list(curr_visit.get_children())
+            condition = extract_source_code(children[0])
+            body = for_while_reverse(children[1], source_file, source_code, get_node_char_positions(children[1]))
+            changed_code = "for(;%s;) {\n%s\n}" % (condition, body)
+            change_nodes.append((curr_visit, changed_code))
+            continue
         for child in curr_visit.get_children():
             to_visit.appendleft(child)
-        if curr_visit.kind == CursorKind.WHILE_STMT and source_file in str(curr_visit.location):
-            condition_node = list(curr_visit.get_children())[0]
-            changed_code = generate_replace_code(condition_node)
-            print(changed_code)
-            change_nodes.append((condition_node, changed_code))
-            continue
     
     replace_dictionary = {}
-    file_code = "".join(source_code_lines)
-    lines = []
-    length = 0
-    for line in source_code_lines:
-        lines.append(length)
-        length += len(line)
+    file_code = source_code
 
     i = 0
     # Replace with names that are same length and present
     for change_node in change_nodes:
-        line_number = change_node[0].location.line
-        column_number = change_node[0].location.column
+        offset = get_offset(change_node[0])
         source_code = extract_source_code(change_node[0])
         hidden_name = generate_hidden_name(i, source_code)
+        print(len(source_code))
         replace_dictionary[hidden_name] = change_node[1]
         i += 1
-        file_code = file_code[:lines[line_number - 1] + column_number - 2] + hidden_name + file_code[lines[line_number - 1] + len(hidden_name) + column_number - 2:]
-        print(file_code)
+        file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
+        print("File Code Here 1: ", file_code)
 
+    # Replace with actual scope of return before editing
+    file_code = file_code[start_end[0]:start_end[1]]
+    print("File Code Here 2: ", file_code)
 
     length_sorted = list(replace_dictionary.keys())
     length_sorted.sort(reverse=True,key=len)
     # Replace placeholder names with actual names
     for key in length_sorted:
         file_code = file_code.replace(key, replace_dictionary[key])
-
-    # Replace all while's with fors
-    file_code = file_code.replace("while ", "for ")
-    file_code = file_code.replace("while(", "for(")
 
     return file_code
 
@@ -97,7 +108,8 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    code = while_for(tu.cursor, source_file, source_code_lines, modifications)
+    file_code = "".join(source_code_lines)
+    code = for_while_reverse(tu.cursor, source_file, file_code, [0, len(file_code)])
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
