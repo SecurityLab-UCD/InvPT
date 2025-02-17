@@ -24,7 +24,7 @@ def get_augmented_jsons(j: Dict[str, Any]) -> list[Dict[str, Any]]:
     code, label, index = j["code"], j["label"], j["index"]
     transformed_codes = get_transformed_codes(code)
     augmented_jsons = [
-        {"code": transformed_code, "label": label, "index": index}
+        {"label": label, "index": index, "code": transformed_code}
         for transformed_code in transformed_codes
     ]
     return augmented_jsons
@@ -35,7 +35,10 @@ def add_augmented_data_in_jsonl(test_jsonl: str) -> None:
     Given a path to test.jsonl file,
     Add augmented samples by transforming each test sample with RandomLocalVarName, ReverseIfElse, and addAss2EqualAss
     """
-    initial_size: int
+
+    # The existing max index in the dataset is less than 30000
+    # To make it clear, all augmented dataset hold index larger than 30000
+    current_idx: int = 30000
     num_cpus = cpu_count()
 
     with open(test_jsonl, "r", encoding=JSON_ENCODING) as f:
@@ -49,7 +52,9 @@ def add_augmented_data_in_jsonl(test_jsonl: str) -> None:
 
     with open(test_jsonl, "a") as f:
         for augmented_json in all_augmented_json:
+            augmented_json["index"] = str(current_idx)
             f.write(json.dumps(augmented_json) + "\n")
+            current_idx += 1
 
     print(
         f"Initial test.jsonl ({test_jsonl}) size: {initial_size}; added: {len(all_augmented_json)}."
