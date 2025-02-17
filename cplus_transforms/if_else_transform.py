@@ -11,9 +11,8 @@ def generate_hidden_name(i, str):
     random_name = ""
     name_code = ord('a')
     for i in range(length):
-        # name_code = generator.randint(16, 31) # + 100
+        name_code = generator.randint(16, 31) # + 100
         random_name += chr(name_code)
-        name_code += 1
     return random_name
 
 # 
