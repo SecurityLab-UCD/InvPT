@@ -19,7 +19,7 @@ import argparse
 from typing import Type
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
-from functools import partial
+from functools import partial, singledispatch
 
 
 TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
@@ -60,6 +60,17 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
     modified_code = temp.read().decode()
     temp.close()
     return Some(modified_code)
+
+
+def convert_source_to_ast_module(source_code: str) -> Maybe[ast.Module]:
+    original_ast_module: Maybe[ast.Module]
+    try:
+        original_ast_module = Some(ast.parse(source_code))
+    except SyntaxError:
+        original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
+    except RecursionError as e:
+        return Nothing
+    return original_ast_module
 
 
 def transform(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
