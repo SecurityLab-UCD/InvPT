@@ -96,6 +96,7 @@ def main(
         per_device_train_batch_size=batch_size // device_count(),
         max_steps=max_steps,
         save_steps=10000,
+        warmup_steps=5000,
         logging_steps=5000,
         eval_strategy="steps",
         eval_steps=5000,
@@ -104,6 +105,7 @@ def main(
         remove_unused_columns=False,
         report_to="wandb",
         run_name=run_name,
+        save_total_limit=3,
         load_best_model_at_end=True,
     )
 
