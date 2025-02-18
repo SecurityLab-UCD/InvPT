@@ -84,7 +84,7 @@ def main(subset: str, workdir: str = "./raw", seed: int = 0):
     train_programs, valid_programs, test_programs = split_programs(all_programs)
 
     logging.info("Writing to JSONL")
-    os.mkdir(subset)
+    os.makedirs(subset, exist_ok=True)
     with open(f"{subset}/train.jsonl", "w") as f:
         for p in train_programs:
             f.write(json.dumps(p.__dict__) + "\n")
