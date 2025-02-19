@@ -33,6 +33,13 @@ def tokenize(tokenizer, example):
         max_length=256,
         return_special_tokens_mask=True,
     )
+    nl_inputs = tokenizer(
+        example["docstring"],
+        padding="max_length",
+        truncation=True,
+        max_length=128,
+        return_special_tokens_mask=True,
+    )
     return {
         "code_input_ids": code_inputs["input_ids"],
         "code_attention_mask": code_inputs["attention_mask"],
@@ -40,6 +47,9 @@ def tokenize(tokenizer, example):
         "aug_input_ids": aug_inputs["input_ids"],
         "aug_attention_mask": aug_inputs["attention_mask"],
         "aug_special_tokens_mask": aug_inputs["special_tokens_mask"],
+        "nl_input_ids": nl_inputs["input_ids"],
+        "nl_attention_mask": nl_inputs["attention_mask"],
+        "nl_special_tokens_mask": nl_inputs["special_tokens_mask"],
     }
 
 
@@ -54,6 +64,7 @@ def main(
     run_name: str = "ContraBERT",
     continue_from_pretrained: bool = False,
     percentage: float = 1,
+    use_nl: bool = False,
 ):
 
     set_seed(seed)
@@ -97,9 +108,9 @@ def main(
         max_steps=max_steps,
         save_steps=10000,
         warmup_steps=5000,
-        logging_steps=5000,
+        logging_steps=1000,
         eval_strategy="steps",
-        eval_steps=5000,
+        eval_steps=1000,
         learning_rate=5e-5,
         weight_decay=0.01,
         remove_unused_columns=False,
@@ -135,6 +146,8 @@ if __name__ == "__main__":
     parser.add_argument("--percentage", type=float, default=1)
     parser.add_argument("--max_steps", type=int, default=100_000)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
+    parser.add_argument("--use_nl", type=bool, default=False, action="store_true")
+
     args = parser.parse_args()
 
     main(
@@ -148,4 +161,5 @@ if __name__ == "__main__":
         continue_from_pretrained=args.continue_from_pretrained,
         percentage=args.percentage,
         max_steps=args.max_steps,
+        use_nl=args.use_nl,
     )

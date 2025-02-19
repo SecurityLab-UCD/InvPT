@@ -44,10 +44,11 @@ def off_diagonal(x):
 
 
 class ContraBERTTrainer(Trainer):
-    def __init__(self, alpha=1.0, temperature=0.07, *args, **kwargs):
+    def __init__(self, alpha=1.0, temperature=0.07, use_nl=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
         self.temperature = temperature
+        self.use_nl = use_nl
 
     def compute_loss(
         self, model, inputs, return_outputs=False, num_items_in_batch=None
@@ -96,6 +97,19 @@ class ContraBERTTrainer(Trainer):
 
         # Total loss with weighting (adjust alpha as needed)
         total_loss = mlm_loss + self.alpha * contrastive_loss
+
+        if self.use_nl:
+            nl_input_ids = inputs["nl_input_ids"].to(DEVICE)
+            nl_attention_mask = inputs["nl_attention_mask"].to(DEVICE)
+            nl_labels = inputs["nl_labels"].to(DEVICE)
+            nl_outputs = model(
+                input_ids=nl_input_ids,
+                attention_mask=nl_attention_mask,
+                labels=nl_labels,
+                output_hidden_states=True,
+                return_dict=True,
+            )
+            total_loss += nl_outputs.loss
 
         return (total_loss, code_outputs) if return_outputs else total_loss
 
