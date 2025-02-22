@@ -12,8 +12,8 @@ parser.add_argument('--input_path', required=True, help='Path to the input jsonl
 parser.add_argument('--output_path', required=True, help='Path to save the augmented jsonl')
 
 parser.add_argument('--spat_jar', default='SPAT-linux.jar', help='Path to SPAT-linux.jar')
-parser.add_argument('--spat_lib', default='/usr/lib/jvm/java-18-openjdk-amd64/lib', help='Path to SPAT-linux.jar')
-parser.add_argument('--rules', nargs='*', default=[0,1,2,3,6,7], help='SPAT rules to use')
+parser.add_argument('--spat_lib', default='/usr/lib/jvm/java-18-openjdk-amd64/lib', help='Path to Java library')
+parser.add_argument('--rules', nargs='*', type=int, default=[0,1,2,3,6,7], help='SPAT rules to use')
 
 def jsonl_to_df(path, chunksize=1000):
     with open(path, 'r') as file:
