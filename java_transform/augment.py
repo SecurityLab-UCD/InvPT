@@ -59,7 +59,7 @@ def decompose(original_df, code_dir):
     """
     max_idlen = len(str(original_df.index.argmax()))
     for _, entry in tqdm(original_df.iterrows(), desc="Decomposing data"):
-        idstr = str(entry.id).zfill(max_idlen)
+        idstr = str(entry["index"]).zfill(max_idlen)
         java_path = code_dir / f'n{idstr}.java'
         entry.code = f"class n{idstr}{{\n{entry.code}\n}}"
         with open(java_path, "w") as f:
@@ -78,22 +78,29 @@ def spat(spat_jar, df, rule_ids, lib_path, output_path):
     os.mkdir(artifact_path)
     os.mkdir(artifact_path / 'original')
 
+    new_id = int(df.index.argmax()) + 1
     decompose(df, artifact_path / 'original')
     for rule_id in rule_ids:
-        print(f'Augmenting dataset with rule {rule_id}')
-        subprocess.run([spat_jar, rule_id, artifact_path / 'original',
-                        transformed_path, lib_path])
+        print(f'Augmenting dataset with rule {rule_id}...')
+        subprocess.run(
+            ["java", "-jar", spat_jar, str(rule_id), artifact_path / 'original',
+                 transformed_path, lib_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
         print('Saving results')
         for file in tqdm(os.listdir(transformed_path)):
             code_id = int(file.lstrip('n').rstrip('.java'))
             with open(transformed_path / file) as f:
                 transformed = f.read()
-            meta = df.loc[df.index == code_id]
+            entry = df.loc[df["index"] == code_id].iloc[0].to_dict()
             entry = {
-                **meta,
-                "transformed": transformed,
-                'aug_type': id_to_name[rule_id]
+                'index': new_id,
+                'label': entry['label'],
+                'code': transformed,
+                'aug_type': id_to_name[rule_id],
+                'aug_from': entry["index"]
             }
+            new_id += 1
             with open(output_path, 'a') as f:
                 f.write(f'{json.dumps(entry)}\n')
         shutil.rmtree(transformed_path)
@@ -104,4 +111,4 @@ if __name__ == "__main__":
     original = jsonl_to_df(args.input_path)
     assert set(['label', 'index', 'code']).issubset(original.columns)
     shutil.copyfile(args.input_path, args.output_path)
-    spat(args.spat_jar, original, args.rules, args.spat_lib_path, args.output_path)
+    spat(args.spat_jar, original, args.rules, args.spat_lib, args.output_path)
