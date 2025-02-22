@@ -57,7 +57,7 @@ def decompose(original_df, code_dir):
     The java files will have names n<idex>.java, where <idex> corresponds to the
     original_df.index column.
     """
-    max_idlen = len(str(original_df.index.argmax()))
+    max_idlen = len(str(original_df["index"].max()))
     for _, entry in tqdm(original_df.iterrows(), desc="Decomposing data"):
         idstr = str(entry["index"]).zfill(max_idlen)
         java_path = code_dir / f'n{idstr}.java'
@@ -78,7 +78,8 @@ def spat(spat_jar, df, rule_ids, lib_path, output_path):
     os.mkdir(artifact_path)
     os.mkdir(artifact_path / 'original')
 
-    new_id = int(df.index.argmax()) + 1
+    new_id = int(df["index"].max()) + 1
+    print(new_id)
     decompose(df, artifact_path / 'original')
     for rule_id in rule_ids:
         print(f'Augmenting dataset with rule {rule_id}...')
@@ -92,13 +93,13 @@ def spat(spat_jar, df, rule_ids, lib_path, output_path):
             code_id = int(file.lstrip('n').rstrip('.java'))
             with open(transformed_path / file) as f:
                 transformed = f.read()
-            entry = df.loc[df["index"] == code_id].iloc[0].to_dict()
+            entry = df.loc[df['index'] == code_id].iloc[0].to_dict()
             entry = {
                 'index': new_id,
                 'label': entry['label'],
                 'code': transformed,
                 'aug_type': id_to_name[rule_id],
-                'aug_from': entry["index"]
+                'aug_from': entry['index']
             }
             new_id += 1
             with open(output_path, 'a') as f:
