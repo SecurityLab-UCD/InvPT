@@ -1,4 +1,3 @@
-from enum import StrEnum
 from pathlib import Path
 from tqdm import tqdm
 import argparse
@@ -51,29 +50,6 @@ id_to_name = [
     'PrePostFixExpressionDividing',
     'Case2IfElse',
 ]
-class AugType(StrEnum):
-    LocalVarRenaming = 'LocalVarRenaming'
-    For2While = 'For2While'
-    While2For = 'While2For'
-    ReverseIfElse = 'ReverseIfElse'
-    SingleIF2ConditionalExp = 'SingleIF2ConditionalExp'
-    ConditionalExp2SingleIF = 'ConditionalExp2SingleIF'
-    PP2AddAssignment = 'PP2AddAssignment'
-    AddAssignemnt2EqualAssignment = 'AddAssignemnt2EqualAssignment'
-    InfixExpressionDividing = 'InfixExpressionDividing'
-    IfDividing = 'IfDividing'
-    StatementsOrderRearrangement = 'StatementsOrderRearrangement'
-    LoopIfContinue2Else = 'LoopIfContinue2Else'
-    VarDeclarationMerging = 'VarDeclarationMerging'
-    VarDeclarationDividing = 'VarDeclarationDividing'
-    SwitchEqualSides = 'SwitchEqualSides'
-    SwitchStringEqual = 'SwitchStringEqual'
-    PrePostFixExpressionDividing = 'PrePostFixExpressionDividing'
-    Case2IfElse = 'Case2IfElse'
-    @classmethod
-    def from_id(cls, id):
-        return cls(id_to_name[id])
-
 
 def decompose(original_df, code_dir):
     """Decompose a dataframe into java files to be processed by SPAT.
@@ -116,7 +92,7 @@ def spat(spat_jar, df, rule_ids, lib_path, output_path):
             entry = {
                 **meta,
                 "transformed": transformed,
-                'aug_type': AugType.from_id(rule_id)
+                'aug_type': id_to_name[rule_id]
             }
             with open(output_path, 'a') as f:
                 f.write(f'{json.dumps(entry)}\n')
