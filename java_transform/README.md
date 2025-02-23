@@ -1,0 +1,63 @@
+# Java augmentations
+
+## Quick start
+
+```
+python3 augment.py \
+    --input_path ./datasets/example.jsonl \
+    --output_path ./datasets/aug_example.jsonl \
+```
+
+## Input
+
+The input is a jsonl Java dataset preprocessed into POJ104 format with the
+following columns:
+
+```
+   label  index                                               code
+0      2    600  import java.util.*;\n\nclass Main {\n  public ...
+1      2    601  import java.util.*;\n\npublic class Main {\n  ...
+2      2    602  import java.io.BufferedReader;\nimport java.io...
+```
+
+Optionally, `augment.py` also takes in the following SPAT arguments
+* `--spat_jar`: the path to the SPAT jar file
+* `--spat_lib`: the library used by SPAT to augment the dataset
+* `--rules`: the set of augmentation rules to perform
+
+The rules are the following. By default, it is set to 0,1,2,3,6,7.
+0. LocalVarRenaming*
+1. For2While*
+2. While2For*
+3. ReverseIfElse*
+4. SingleIF2ConditionalExp
+5. ConditionalExp2SingleIF
+6. PP2AddAssignment*
+7. AddAssignemnt2EqualAssignment*
+8. InfixExpressionDividing
+9. IfDividing
+10. StatementsOrderRearrangement
+11. LoopIfContinue2Else
+12. VarDeclarationMerging
+13. VarDeclarationDividing
+14. SwitchEqualSides
+15. SwitchStringEqual
+16. PrePostFixExpressionDividing
+17. Case2IfElse
+
+
+For more information on these arguments, visit
+[](https://github.com/SecurityLab-UCD/SPAT).
+
+## Output
+
+The augmented dataset contains all of the original columns
+
+* `index`: Augmented entries start after the highest existing index
+* `label`: Augmented entries have the same label as their original
+* `code`: Augmented entries have the augmented code in this column
+
+In addition, augmented entries will have the following properties
+* `aug_type`: the readable string label for the augmentation rule (such as
+  LocalVarRenaming)
+* `aug_from`: the `index` value of the original
