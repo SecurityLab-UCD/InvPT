@@ -5,7 +5,7 @@ import sys
 
 # Traverse and get all if statements
 def generate_hidden_name(str):
-    replaced_char = chr(ord(str[0]) + 256)
+    replaced_char = chr(ord(str[0]) - ord('a') + 1138)
     random_name = replaced_char + str[1:]
     return random_name
 
