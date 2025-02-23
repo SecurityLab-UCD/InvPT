@@ -4,15 +4,9 @@ import random
 import sys
 
 # Traverse and get all if statements
-def generate_hidden_name(i, str):
-    generator = random.Random()
-    generator.seed(i + 2025)
-    length = len(str)
-    random_name = ""
-    name_code = ord('a')
-    for i in range(length):
-        name_code = generator.randint(16, 31) # + 100
-        random_name += chr(name_code)
+def generate_hidden_name(str):
+    replaced_char = chr(ord(str[0]) + 256)
+    random_name = replaced_char + str[1:]
     return random_name
 
 # 
@@ -70,15 +64,13 @@ def for_while_reverse(root_node, source_file, source_code, start_end):
     replace_dictionary = {}
     file_code = source_code
 
-    i = 0
     # Replace with names that are same length and present
     for change_node in change_nodes:
         offset = get_offset(change_node[0])
         source_code = extract_source_code(change_node[0])
-        hidden_name = generate_hidden_name(i, source_code)
+        hidden_name = generate_hidden_name(source_code)
         print(len(source_code))
         replace_dictionary[hidden_name] = change_node[1]
-        i += 1
         file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
         print("File Code Here 1: ", file_code)
 
