@@ -1,72 +1,7 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
 import sys
-import random
-
-NUMBER_TYPES = [
-    "char",
-    "unsigned char",
-    "short",
-    "unsigned short",
-    "int",
-    "unsigned int",
-    "long",
-    "unsigned long",
-    "long long",
-    "unsigned long long",
-    "float",
-    "double",
-    "long double",
-    "int8_t",
-    "int16_t",
-    "int32_t",
-    "int64_t",
-    "uint8_t",
-    "uint16_t",
-    "uint32_t",
-    "uint64_t",
-]
-
-EXPRESSION_TYPES = [
-    CursorKind.UNEXPOSED_EXPR,
-    CursorKind.BINARY_OPERATOR,
-    CursorKind.UNARY_OPERATOR,
-    CursorKind.CONDITIONAL_OPERATOR,
-    CursorKind.CSTYLE_CAST_EXPR,
-    CursorKind.COMPOUND_LITERAL_EXPR,
-    CursorKind.INIT_LIST_EXPR,
-    CursorKind.ADDR_LABEL_EXPR,
-    CursorKind.OBJC_STRING_LITERAL,
-    CursorKind.OBJC_ENCODE_EXPR,
-    CursorKind.OBJC_SELECTOR_EXPR,
-    CursorKind.OBJC_PROTOCOL_EXPR,
-    CursorKind.OBJC_BRIDGE_CAST_EXPR,
-    CursorKind.PACK_EXPANSION_EXPR,
-    CursorKind.SIZE_OF_PACK_EXPR,
-    CursorKind.PAREN_EXPR
-]
-
-def generate_hidden_name(i, length = -1):
-    generator = random.Random()
-    generator.seed(i + 2025)
-    if length == -1:
-        length = generator.randint(10, 25)
-    name_code = ((11 * i) + 2025) % 32**length
-    random_name = ""
-    for i in range(length):
-        random_name += chr(name_code % 31)
-        name_code //= 32
-    return random_name
-
-def extract_source_code(node):
-    """Extract the source code for the node."""
-    extent = node.extent
-    with open(extent.start.file.name, 'r') as f:
-        lines = f.readlines()
-    start_line, start_col = extent.start.line, extent.start.column
-    end_line, end_col = extent.end.line, extent.end.column
-    code = ''.join(lines[start_line-1:end_line])
-    return code[start_col-1:end_col-1]
+from ast_util import *
 
 def replace_short_add(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
@@ -92,7 +27,7 @@ def replace_short_add(root_node, source_file, source_code_lines, modifications):
         if curr_visit.kind == CursorKind.UNARY_OPERATOR:
             if "++" in source_code.strip()[:2]:
                  change_nodes.append(curr_visit)
-            if "++" in source_code.strip()[length-2:] and not (parent.kind in EXPRESSION_TYPES):
+            if "++" in source_code.strip()[length-2:] and not (parent.kind in OUTPUT_USING_EXPRESSION_TYPES):
                  change_nodes.append(curr_visit)
 
     replace_dictionary = {}
@@ -108,7 +43,7 @@ def replace_short_add(root_node, source_file, source_code_lines, modifications):
         if variable_name not in is_valid:
             continue
 
-        edited = generate_hidden_name(i, len(structure_name))
+        edited = generate_hidden_name(structure_name)
         i += 1
         replace_dictionary[edited] = "(" + variable_name + "+=1)"
         print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")

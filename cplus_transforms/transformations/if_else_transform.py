@@ -1,51 +1,7 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
-import random
 import sys
-
-# Traverse and get all if statements
-def generate_hidden_name(i, str):
-    generator = random.Random()
-    generator.seed(i + 2025)
-    length = len(str)
-    random_name = ""
-    name_code = ord('a')
-    for i in range(length):
-        name_code = generator.randint(16, 31) # + 100
-        random_name += chr(name_code)
-    return random_name
-
-# 
-def get_character_offset(file_path, line, column):
-    """Convert line and column into absolute character offset."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    
-    char_pos = sum(len(lines[i]) for i in range(line - 1))  # - 1 Adjust for zero-index
-    char_pos += column - 1  # Adjust for zero-based index
-    return char_pos
-
-def get_offset(node):
-    return get_character_offset(node.location.file.name, node.extent.start.line, node.extent.start.column)
-
-# Function to get start and end character positions of a node
-def get_node_char_positions(node):
-    """Returns (start_offset, end_offset) of a node."""
-    if node.location.file and node.extent.start.file:  # Ensure valid locations
-        file_path = node.location.file.name
-        print(node.extent.start)
-        start_offset = get_character_offset(file_path, node.extent.start.line, node.extent.start.column)
-        end_offset = get_character_offset(file_path, node.extent.end.line, node.extent.end.column)
-        return start_offset, end_offset
-    return [None, None]
-
-def extract_source_code(node):
-    """Extract the source code for the node."""
-    extent = node.extent
-    with open(extent.start.file.name, 'r') as f:
-        code = f.read()
-    start_end = get_node_char_positions(node)
-    return code[start_end[0]:start_end[1]]
+from ast_util import *
 
 def if_else_reverse(root_node, source_file, source_code, start_end):
     # Collect all nodes that have IF_STMT
@@ -81,7 +37,7 @@ def if_else_reverse(root_node, source_file, source_code, start_end):
     for change_node in change_nodes:
         offset = get_offset(change_node[0])
         source_code = extract_source_code(change_node[0])
-        hidden_name = generate_hidden_name(i, source_code)
+        hidden_name = generate_hidden_name(source_code)
         print(len(source_code))
         replace_dictionary[hidden_name] = change_node[1]
         i += 1

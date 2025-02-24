@@ -1,43 +1,7 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
-import random
 import sys
-
-NUMBER_TYPES = [
-    "short",
-    "unsigned short",
-    "int",
-    "unsigned int",
-    "long",
-    "unsigned long",
-    "long long",
-    "unsigned long long",
-    "float",
-    "double",
-    "long double"
-]
-
-def generate_hidden_name(i, length = -1):
-    generator = random.Random()
-    generator.seed(i + 2025)
-    if length == -1:
-        length = generator.randint(10, 25)
-    name_code = ((11 * i) + 2025) % 32**length
-    random_name = ""
-    for i in range(length):
-        random_name += chr(name_code % 32)
-        name_code //= 32
-    return random_name
-
-def extract_source_code(node):
-    """Extract the source code for the node."""
-    extent = node.extent
-    with open(extent.start.file.name, 'r') as f:
-        lines = f.readlines()
-    start_line, start_col = extent.start.line, extent.start.column
-    end_line, end_col = extent.end.line, extent.end.column
-    code = ''.join(lines[start_line-1:end_line])
-    return code[start_col-1:end_col-1]
+from ast_util import *
 
 def add_assignment(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
@@ -79,7 +43,7 @@ def add_assignment(root_node, source_file, source_code_lines, modifications):
         if variable_name not in is_valid:
             continue
 
-        edited = generate_hidden_name(i, len(structure_name))
+        edited = generate_hidden_name(structure_name)
         i += 1
         replace_dictionary[edited] = f"(({variable_name})=({variable_name})+({number}))"
         print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
