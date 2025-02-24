@@ -14,7 +14,7 @@ def generate_random_name(i, length = -1):
     return random_name
 
 
-def generalize_function(root_node, source_file, source_code_lines, modifications):
+def local_rename(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
     i = 0
     function_name_changes = {}
@@ -70,7 +70,7 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    generalize_function(tu.cursor, source_file, source_code_lines, modifications)
+    local_rename(tu.cursor, source_file, source_code_lines, modifications)
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
