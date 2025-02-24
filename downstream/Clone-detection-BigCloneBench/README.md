@@ -4,6 +4,8 @@
 ```bash
 cd dataset
 wget https://raw.githubusercontent.com/microsoft/CodeXGLUE/refs/heads/main/Code-Code/Clone-detection-BigCloneBench/dataset/data.jsonl
+# data.jsonl is overridden during augmentation
+cp data.jsonl original_data.jsonl
 ```
 
 ## Task Definition
