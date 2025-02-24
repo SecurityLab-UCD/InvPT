@@ -59,5 +59,7 @@ The augmented dataset contains all of the original columns
 
 In addition, augmented entries will have the following properties
 * `aug_type`: the readable string label for the augmentation rule (such as
-  LocalVarRenaming)
+  "LocalVarRenaming") or "None" if the entry is an original
 * `aug_from`: the `index` value of the original
+* `success`: True if the augmentation is successful, False otherwise.
+    + If False, `aug_entry.code == original_entry.code`
