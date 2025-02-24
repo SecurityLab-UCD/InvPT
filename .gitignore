@@ -170,3 +170,5 @@ wandb/
 *.tar.gz
 **/ProgramData/*
 **/raw/*
+example.cpp
+cplus_transforms/example.cpp
