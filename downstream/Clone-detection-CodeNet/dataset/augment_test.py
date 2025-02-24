@@ -78,8 +78,7 @@ def add_augmented_data_in_jsonl(test_jsonl: str) -> None:
             f.write(json.dumps(augmented_json) + "\n")
             current_idx += 1
 
-    # double check if test.json is valid
-    print('num of programs: ', get_n_retrieval(test_jsonl))
+    # double check if test.json is valid    
     print(
         f"Initial test.jsonl ({test_jsonl}) size: {initial_size}; added: {len(all_augmented_json)}."
     )
