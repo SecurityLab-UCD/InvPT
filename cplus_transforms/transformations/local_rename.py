@@ -2,6 +2,7 @@ from clang.cindex import Index, CursorKind
 from collections import deque
 import random
 import sys
+from ast_util import *
 
 def generate_random_name(i, length = -1):
     generator = random.Random()
@@ -12,7 +13,6 @@ def generate_random_name(i, length = -1):
     for i in range(length):
         random_name += chr(generator.randint(0, 25) + ord('A'))
     return random_name
-
 
 def local_rename(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
@@ -30,7 +30,7 @@ def local_rename(root_node, source_file, source_code_lines, modifications):
             continue
         if curr_visit.kind == CursorKind.VAR_DECL:
             if curr_visit.spelling not in function_name_changes:
-                temp_name = generate_random_name(i, len(curr_visit.spelling))
+                temp_name = generate_hidden_name(curr_visit.spelling)
                 function_name_changes[curr_visit.spelling] = temp_name
                 function_actual_name[temp_name] = generate_random_name(i)
                 i += 1
