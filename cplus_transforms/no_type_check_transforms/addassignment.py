@@ -25,7 +25,7 @@ def extract_source_code(node):
     code = ''.join(lines[start_line-1:end_line])
     return code[start_col-1:end_col-1]
 
-def generalize_function(root_node, source_file, source_code_lines, modifications):
+def add_assignment(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
     i = 0
     change_nodes = []

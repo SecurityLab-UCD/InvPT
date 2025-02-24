@@ -39,7 +39,7 @@ def extract_source_code(node):
     code = ''.join(lines[start_line-1:end_line])
     return code[start_col-1:end_col-1]
 
-def generalize_function(root_node, source_file, source_code_lines, modifications):
+def add_assignment(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
     is_valid = set()
     i = 0
@@ -113,7 +113,7 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    generalize_function(tu.cursor, source_file, source_code_lines, modifications)
+    add_assignment(tu.cursor, source_file, source_code_lines, modifications)
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
