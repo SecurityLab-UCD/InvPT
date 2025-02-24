@@ -1,32 +1,15 @@
 from pathlib import Path
 from tqdm import tqdm
 import fire
-import argparse
 import numpy as np
 import os
 import pandas as pd
 import shutil
 import subprocess
 
-parser = argparse.ArgumentParser(
-    prog="augment.py", description="Augment a Java dataset"
-)
-parser.add_argument("--input_path", required=True, help="Path to the input jsonl")
-parser.add_argument(
-    "--output_path", required=True, help="Path to save the augmented jsonl"
-)
 
-parser.add_argument(
-    "--spat_jar", default="SPAT-linux.jar", help="Path to SPAT-linux.jar"
-)
-parser.add_argument(
-    "--spat_lib",
-    default="/usr/lib/jvm/java-18-openjdk-amd64/lib",
-    help="Path to Java library",
-)
-parser.add_argument(
-    "--rules", nargs="*", type=int, default=[0, 1, 2, 3, 6, 7], help="SPAT rules to use"
-)
+DIR_PATH = Path(__file__).resolve().parent
+print(DIR_PATH)
 
 
 def jsonl_to_df(path, chunksize=1000):
@@ -180,7 +163,7 @@ def spat(
 def main(
     input_path: str,
     output_path: str,
-    spat_jar: str = "SPAT-linux.jar",
+    spat_jar: str = str(DIR_PATH / "SPAT-linux.jar"),
     spat_lib: str = "/usr/lib/jvm/java-18-openjdk-amd64/lib",
     rules: list[int] = [0, 1, 2, 3, 6, 7],
 ):
