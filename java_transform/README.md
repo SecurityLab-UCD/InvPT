@@ -3,9 +3,7 @@
 ## Quick start
 
 ```
-python3 augment.py \
-    --input_path ./datasets/example.jsonl \
-    --output_path ./datasets/aug_example.jsonl \
+python3 augment.py ./datasets/example.jsonl ./datasets/aug_example.jsonl
 ```
 
 ## Input
