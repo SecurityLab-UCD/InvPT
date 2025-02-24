@@ -8,6 +8,7 @@ from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from itertools import chain
 from typing import Dict, Any
+import random
 import fire
 import json
 import os
@@ -30,6 +31,25 @@ def get_augmented_jsons(j: Dict[str, Any]) -> list[Dict[str, Any]]:
     return augmented_jsons
 
 
+def balance_clusters(all_augmented_json: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    clusters = {}
+    
+    for j in all_augmented_json:
+        label = j['label']
+        if label not in clusters:
+            clusters[label] = []
+        clusters[label].append(j)
+        
+    min_num = min(len(c) for c in clusters.values())
+ 
+    for label in clusters:
+        if len(clusters[label]) > min_num:
+            clusters[label] = random.sample(clusters[label], min_num)
+
+    balanced_json = list(chain.from_iterable(clusters.values()))
+    
+    return balanced_json
+
 def add_augmented_data_in_jsonl(test_jsonl: str) -> None:
     """
     Given a path to test.jsonl file,
@@ -49,6 +69,8 @@ def add_augmented_data_in_jsonl(test_jsonl: str) -> None:
         all_augmented_json = list(
             chain.from_iterable(pool.map(get_augmented_jsons, all_test_json))
         )
+    
+    all_augmented_json = balance_clusters(all_augmented_json)
 
     with open(test_jsonl, "a") as f:
         for augmented_json in all_augmented_json:
@@ -56,6 +78,8 @@ def add_augmented_data_in_jsonl(test_jsonl: str) -> None:
             f.write(json.dumps(augmented_json) + "\n")
             current_idx += 1
 
+    # double check if test.json is valid
+    print('num of programs: ', get_n_retrieval(test_jsonl))
     print(
         f"Initial test.jsonl ({test_jsonl}) size: {initial_size}; added: {len(all_augmented_json)}."
     )
