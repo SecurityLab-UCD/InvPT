@@ -1,5 +1,6 @@
 from pathlib import Path
 from tqdm import tqdm
+import fire
 import argparse
 import numpy as np
 import os
@@ -88,12 +89,15 @@ def postprocess(
 ) -> pd.DataFrame:
     """Process SPAT output
 
+    For all unspecified columns provided to `original`, each augmented entry
+    will have the same value on those columns as their original.
+
     Arguments:
-    original -- Unaugmented code. (index: int, code: str, label: Any)
+    original -- Unaugmented code (index: int, code: str).
     transforme_path -- The path to SPAT output java files
     rule_id -- the ID of the rule for transformation
 
-    Returns: Augmented dataframe (code: str, label: Any, aug_type: str, success:
+    Returns: Augmented dataframe (code: str, aug_type: str, success:
     bool, (index) aug_from: int)
     """
     augmented = pd.DataFrame(original)
@@ -121,13 +125,16 @@ def spat(
     corresponding entry in the output would contain the original code and
     success=False
 
+    For all unspecified columns provided to `original`, each augmented entry
+    will have the same value on those columns as their original.
+
     Arguments:
-    original -- Unaugmented code. (index: int, code: str, label: Any)
+    original -- Unaugmented code. (index: int, code: str)
     spat_jar -- Path to the SPAT jarfile
     rule_ids -- the IDs of the augmentation rule; see README
     lib_path -- the library used by SPAT
 
-    Returns: Dataframe (index: int, code: str, label: Any, aug_type: str,
+    Returns: Dataframe (index: int, code: str, aug_type: str,
     success: bool, aug_from: int)
     """
     artifact_path = Path("tmp")
@@ -170,12 +177,50 @@ def spat(
     return output
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    original = jsonl_to_df(args.input_path)
-    assert set(["label", "index", "code"]).issubset(original.columns)
-    shutil.copyfile(args.input_path, args.output_path)
-    df_result = spat(original, args.spat_jar, args.rules, args.spat_lib)
+def main(
+    input_path: str,
+    output_path: str,
+    spat_jar: str = "SPAT-linux.jar",
+    spat_lib: str = "/usr/lib/jvm/java-18-openjdk-amd64/lib",
+    rules: list[int] = [0, 1, 2, 3, 6, 7],
+):
+    """Augment a Java dataset with SPAT
+
+    Choose from the following rules:
+    1. LocalVarRenaming
+    2. For2While
+    3. While2For
+    4. ReverseIfElse
+    5. SingleIF2ConditionalExp
+    6. ConditionalExp2SingleIF
+    7. PP2AddAssignment
+    8. AddAssignemnt2EqualAssignment
+    9. InfixExpressionDividing
+    10. IfDividing
+    11. StatementsOrderRearrangement
+    12. LoopIfContinue2Else
+    13. VarDeclarationMerging
+    14. VarDeclarationDividing
+    15. SwitchEqualSides
+    16. SwitchStringEqual
+    17. PrePostFixExpressionDividing
+    18. Case2IfElse
+
+    Args:
+    input_path: Path to the input jsonl
+    output_path: Path to save the augmented jsonl
+    spat_jar: Path to the SPAT jar file used for augmentation
+    spat_lib: Path to the Java library used by SPAT (see SPAT documentation)
+    rules: List of SPAT rule IDs.
+    """
+    original = jsonl_to_df(input_path)
+    assert set(["index", "code"]).issubset(original.columns)
+    shutil.copyfile(input_path, output_path)
+    df_result = spat(original, Path(spat_jar), rules, Path(spat_lib))
     print(df_result)
-    with open(args.output_path, "w") as f:
+    with open(output_path, "w") as f:
         f.write(df_result.to_json(orient="records", lines=True, force_ascii=False))
+
+
+if __name__ == "__main__":
+    fire.Fire(main)
