@@ -4,15 +4,40 @@ import random
 import sys
 from ast_util import *
 
-def generate_random_name(i, length = -1):
+# def generate_random_name(i, length = -1):
+#     generator = random.Random()
+#     generator.seed(i + 2025)
+#     if length == -1:
+#         length = generator.randint(10, 25)
+#     random_name = ""
+#     for i in range(length):
+#         random_name += chr(generator.randint(0, 25) + ord('A'))
+#     return random_name
+    
+generated_names = set()
+
+def map_num_char(i):
+    i = i % 53
+    if i == 0:
+        return '_'
+    elif i <= 26:
+        return chr(i + ord('a') - 1)
+    else:
+        return chr(i + ord('A') - 27)
+
+def generate_random_name(src_name, seed = 2023):
+    global generated_names
     generator = random.Random()
-    generator.seed(i + 2025)
-    if length == -1:
-        length = generator.randint(10, 25)
+    generator.seed(seed)
+    length = generator.randint(3, 27)
     random_name = ""
-    for i in range(length):
-        random_name += chr(generator.randint(0, 25) + ord('A'))
+    while random_name in generated_names or random_name == "":
+        random_name = ""
+        for i in range(length):
+            random_name += map_num_char(generator.randint(0, 52))
+    generated_names.add(random_name)
     return random_name
+
 
 def local_rename(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
@@ -32,7 +57,7 @@ def local_rename(root_node, source_file, source_code_lines, modifications):
             if curr_visit.spelling not in function_name_changes:
                 temp_name = generate_hidden_name(curr_visit.spelling)
                 function_name_changes[curr_visit.spelling] = temp_name
-                function_actual_name[temp_name] = generate_random_name(i)
+                function_actual_name[temp_name] = generate_random_name(temp_name, i)
                 i += 1
             change_nodes.append(curr_visit)
         if curr_visit.kind == CursorKind.DECL_REF_EXPR:
@@ -54,6 +79,15 @@ def local_rename(root_node, source_file, source_code_lines, modifications):
         # Store modification details (optional logging or rollback)
         modifications.append((line_number, line, modified_line))
 
+    file_code = "".join(source_code_lines)
+    length_sorted = list(function_actual_name.keys())
+    length_sorted.sort(reverse=True,key=len)
+    # Replace placeholder names with actual names
+    for key in length_sorted:
+        file_code = file_code.replace(key, function_actual_name[key])
+
+    return file_code
+
 def main(source_file, output_file):
     """Parse the source, modify it, and write updated source to a file."""
     index = Index.create()
@@ -70,11 +104,11 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    local_rename(tu.cursor, source_file, source_code_lines, modifications)
+    file_code = local_rename(tu.cursor, source_file, source_code_lines, modifications)
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
-        f.writelines(source_code_lines)
+        f.write(file_code)
 
     print("\nModifications Applied:")
     for line_num, old_line, new_line in modifications:
