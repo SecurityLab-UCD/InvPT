@@ -22,4 +22,26 @@ python ./code/run.py \
     --evaluate_during_training \
     --seed 123456  2>&1 | tee $output_dir/train.log
 
+# Back up before testing with augmented dataset
+cp $output_dir/predictions.txt $output_dir/unaug_predictions.txt
 python evaluator/evaluator.py -a dataset/test.txt -p $output_dir/predictions.txt > $output_dir/test.log
+
+python ./code/run.py \
+    --output_dir=$output_dir \
+    --model_type=roberta \
+    --tokenizer_name=microsoft/codebert-base \
+    --model_name_or_path=$model_path \
+    --do_test \
+    --train_data_file=./dataset/train.txt \
+    --eval_data_file=./dataset/valid.txt \
+    --test_data_file=./dataset/aug_test.txt \
+    --epoch 2 \
+    --block_size 400 \
+    --train_batch_size 32 \
+    --eval_batch_size 32 \
+    --learning_rate 5e-5 \
+    --max_grad_norm 1.0 \
+    --evaluate_during_training \
+    --seed 123456  2>&1 | tee $output_dir/train.log
+
+python evaluator/evaluator.py -a dataset/aug_test.txt -p $output_dir/predictions.txt > $output_dir/test.log
