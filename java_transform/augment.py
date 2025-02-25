@@ -1,5 +1,6 @@
 from pathlib import Path
 from tqdm import tqdm
+import re
 import fire
 import numpy as np
 import os
@@ -67,6 +68,33 @@ def decompose(original_df, code_dir):
             f.write(entry.code)
 
 
+def rename_augfrom(name: str) -> str:
+    """Rename the augmentation columns to add a new augmentation.
+
+    0 is the augmentation, 1 is the previous, so on and so forth.
+    """
+    match = re.match(r"aug_from_(\d+)", name)
+    if match:
+        return "aug_from_" + str(int(match.group(1)) + 1)
+    match = re.match(r"aug_type_(\d+)", name)
+    if match:
+        return "aug_type_" + str(int(match.group(1)) + 1)
+    match = re.match(r"aug_success_(\d+)", name)
+    if match:
+        return "aug_success_" + str(int(match.group(1)) + 1)
+    if name == "index":
+        return "aug_from_0"
+    return name
+
+
+def col_key(col: str) -> tuple[float, str]:
+    """Key for sorting the columns"""
+    match = re.match(r"(aug_from|aug_success|aug_type)_(\d+)", col)
+    if match:
+        return int(match.group(2)), match.group(1)  # Sort by number first, then type
+    return -1, col  # Put non-matching columns at the start
+
+
 def postprocess(
     original: pd.DataFrame, transformed_path: Path, rule_id: int
 ) -> pd.DataFrame:
@@ -80,33 +108,34 @@ def postprocess(
     transforme_path -- The path to SPAT output java files
     rule_id -- the ID of the rule for transformation
 
-    Returns: Augmented dataframe (code: str, aug_type: str, success:
-    bool, (index) aug_from: int)
+    Returns: Augmented dataframe (code: str, aug_type_0: str, aug_success_0:
+    bool, (index) aug_from_0: int)
     """
     augmented = pd.DataFrame(original)
-    augmented["aug_type"] = pd.Series(np.full(augmented.shape[0], id_to_name[rule_id]))
-    augmented["success"] = pd.Series(np.full(augmented.shape[0], False))
-    augmented = augmented.rename({"index": "aug_from"}, axis="columns")
-    augmented = augmented.set_index("aug_from")
+    augmented = augmented.rename(rename_augfrom, axis="columns")
+    augmented["aug_type_0"] = pd.Series(np.full(augmented.shape[0], id_to_name[rule_id]))
+    augmented["aug_success_0"] = pd.Series(np.full(augmented.shape[0], False))
+    augmented = augmented.set_index("aug_from_0")
 
     for file in tqdm(os.listdir(transformed_path)):
         aug_from = int(file.lstrip("n").rstrip(".java"))
         with open(transformed_path / file) as f:
             transformed = f.read()
         augmented.loc[aug_from, "code"] = transformed
-        augmented.loc[aug_from, "success"] = True
+        augmented.loc[aug_from, "aug_success_0"] = True
     return augmented
 
 
 def spat(
-    original: pd.DataFrame, spat_jar: Path, rule_ids: list[int], lib_path: Path
+    original: pd.DataFrame, spat_jar: Path, rule_ids: list[int], lib_path: Path,
+    include_original: bool,
 ) -> pd.DataFrame:
     """Run SPAT on `original`, returning a DataFrame containing
     augmented entries.
 
     If an entry of `original` cannot be augmented by a given rule, its
     corresponding entry in the output would contain the original code and
-    success=False
+    aug_success_0=False
 
     For all unspecified columns provided to `original`, each augmented entry
     will have the same value on those columns as their original.
@@ -117,8 +146,8 @@ def spat(
     rule_ids -- the IDs of the augmentation rule; see README
     lib_path -- the library used by SPAT
 
-    Returns: Dataframe (index: int, code: str, aug_type: str,
-    success: bool, aug_from: int)
+    Returns: Dataframe (index: int, code: str, aug_type_0: str,
+    aug_success_0: bool, aug_from_0: int)
     """
     artifact_path = Path("tmp")
     transformed_path = artifact_path / Path("transformed")
@@ -147,15 +176,18 @@ def spat(
         shutil.rmtree(transformed_path)
     shutil.rmtree(artifact_path)
 
-    original["aug_type"] = pd.Series(np.full(original.shape[0], "None"))
-    original["success"] = pd.Series(np.full(original.shape[0], True))
-    original["aug_from"] = original["index"]
     index = original["index"].max() + 1
     for i in range(0, len(dfs)):
         dfs[i]["index"] = range(index, index + len(dfs[i]))
         dfs[i] = dfs[i].reset_index()
         index += len(dfs[i])
-    output = pd.concat([original, *dfs], ignore_index=True)
+    if include_original:
+        original = original.rename(rename_augfrom, axis="columns")
+        original["aug_type_0"] = pd.Series(np.full(original.shape[0], "None"))
+        original["aug_success_0"] = pd.Series(np.full(original.shape[0], True))
+        original["index"] = original["aug_from_0"]
+        dfs.append(original)
+    output = pd.concat(dfs, ignore_index=True)
 
     return output
 
@@ -166,6 +198,7 @@ def main(
     spat_jar: str = str(DIR_PATH / "SPAT-linux.jar"),
     spat_lib: str = "/usr/lib/jvm/java-18-openjdk-amd64/lib",
     rules: list[int] = [0, 1, 2, 3, 6, 7],
+    include_original: bool = True,
 ):
     """Augment a Java dataset with SPAT
 
@@ -199,7 +232,8 @@ def main(
     original = jsonl_to_df(input_path)
     assert set(["index", "code"]).issubset(original.columns)
     shutil.copyfile(input_path, output_path)
-    df_result = spat(original, Path(spat_jar), rules, Path(spat_lib))
+    df_result = spat(original, Path(spat_jar), rules, Path(spat_lib), include_original)
+    df_result = df_result[sorted(df_result.columns, key=col_key)]
     print(df_result)
     with open(output_path, "w") as f:
         f.write(df_result.to_json(orient="records", lines=True, force_ascii=False))

@@ -56,8 +56,18 @@ The augmented dataset contains all of the original columns
 * `code`: Augmented entries have the augmented code in this column
 
 In addition, augmented entries will have the following properties
-* `aug_type`: the readable string label for the augmentation rule (such as
+* `aug_type_<iter>`: the readable string label for the augmentation rule (such as
   "LocalVarRenaming") or "None" if the entry is an original
-* `aug_from`: the `index` value of the original
-* `success`: True if the augmentation is successful, False otherwise.
+* `aug_from_<iter>`: the `index` value of the original
+* `aug_success_<iter>`: True if the augmentation is successful, False otherwise.
     + If False, `aug_entry.code == original_entry.code`
+
+## Chained augmentations
+
+`augment.py` supports augmentation over multiple iterations. Each iteration is
+marked by the `<iter>` key on the three augmentation columns shown above.
+
+Iteration 0 refers to the most recent augmentation. When a dataset that has
+already been augmented is provided as input, all existing augmentation columns
+have their iteration incremented and the new augmentation becomes
+`aug_<statistic>_0`.
