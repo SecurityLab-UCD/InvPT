@@ -199,6 +199,7 @@ def main(
     spat_lib: str = "/usr/lib/jvm/java-18-openjdk-amd64/lib",
     rules: list[int] = [0, 1, 2, 3, 6, 7],
     include_original: bool = True,
+    accumulate: bool = False,
 ):
     """Augment a Java dataset with SPAT
 
@@ -228,15 +229,22 @@ def main(
     spat_jar: Path to the SPAT jar file used for augmentation
     spat_lib: Path to the Java library used by SPAT (see SPAT documentation)
     rules: List of SPAT rule IDs.
+    include_original: If True, the augmented dataset contains the original
+    accumulate: If True, the rules are applied accumulatively instead of
+        mapping (i.e. [t1(t2(x)]) instead of [t1(x), t2(x)])
     """
-    original = jsonl_to_df(input_path)
-    assert set(["index", "code"]).issubset(original.columns)
+    df = jsonl_to_df(input_path)
+    assert set(["index", "code"]).issubset(df.columns)
     shutil.copyfile(input_path, output_path)
-    df_result = spat(original, Path(spat_jar), rules, Path(spat_lib), include_original)
-    df_result = df_result[sorted(df_result.columns, key=col_key)]
-    print(df_result)
+    if accumulate:
+        for rule in rules:
+            df = spat(df, Path(spat_jar), [rule], Path(spat_lib), include_original)
+    else:
+        df = spat(df, Path(spat_jar), rules, Path(spat_lib), include_original)
+    df = df[sorted(df.columns, key=col_key)]
+    print(df)
     with open(output_path, "w") as f:
-        f.write(df_result.to_json(orient="records", lines=True, force_ascii=False))
+        f.write(df.to_json(orient="records", lines=True, force_ascii=False))
 
 
 if __name__ == "__main__":
