@@ -71,3 +71,5 @@ Iteration 0 refers to the most recent augmentation. When a dataset that has
 already been augmented is provided as input, all existing augmentation columns
 have their iteration incremented and the new augmentation becomes
 `aug_<statistic>_0`.
+
+Use the `--accumulate` flag as a shortcut for chaining augmentations.
