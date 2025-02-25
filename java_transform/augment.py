@@ -113,7 +113,9 @@ def postprocess(
     """
     augmented = pd.DataFrame(original)
     augmented = augmented.rename(rename_augfrom, axis="columns")
-    augmented["aug_type_0"] = pd.Series(np.full(augmented.shape[0], id_to_name[rule_id]))
+    augmented["aug_type_0"] = pd.Series(
+        np.full(augmented.shape[0], id_to_name[rule_id])
+    )
     augmented["aug_success_0"] = pd.Series(np.full(augmented.shape[0], False))
     augmented = augmented.set_index("aug_from_0")
 
@@ -127,7 +129,10 @@ def postprocess(
 
 
 def spat(
-    original: pd.DataFrame, spat_jar: Path, rule_ids: list[int], lib_path: Path,
+    original: pd.DataFrame,
+    spat_jar: Path,
+    rule_ids: list[int],
+    lib_path: Path,
     include_original: bool,
 ) -> pd.DataFrame:
     """Run SPAT on `original`, returning a DataFrame containing
