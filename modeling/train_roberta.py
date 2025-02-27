@@ -37,7 +37,7 @@ def tokenize(tokenizer, example):
         example["docstring"],
         padding="max_length",
         truncation=True,
-        max_length=128,
+        max_length=256,
         return_special_tokens_mask=True,
     )
     return {
@@ -58,6 +58,7 @@ def main(
     model_name: str = "microsoft/codebert-base",
     batch_size: int = 64,
     max_steps: int = 100_000,
+    gradient_accumulation_steps: int = 8,
     num_proc: int = 80,
     seed: int = 0,
     wandb_project: str | None = "PIA",
@@ -105,6 +106,7 @@ def main(
         output_dir=f"./saved_models/{run_name}",
         overwrite_output_dir=True,
         per_device_train_batch_size=batch_size // device_count(),
+        gradient_accumulation_steps=gradient_accumulation_steps,
         max_steps=max_steps,
         save_steps=10000,
         warmup_steps=5000,
@@ -122,6 +124,7 @@ def main(
 
     trainer = ContraBERTTrainer(
         model=model,
+        use_nl=use_nl,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
@@ -142,11 +145,13 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--wandb_project", type=str, default="PIA")
     parser.add_argument("--run_name", type=str, default="ContraBERT")
-    parser.add_argument("--continue_from_pretrained", type=bool, default=False)
+    parser.add_argument(
+        "--continue_from_pretrained", default=False, action="store_true"
+    )
     parser.add_argument("--percentage", type=float, default=1)
     parser.add_argument("--max_steps", type=int, default=100_000)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
-    parser.add_argument("--use_nl", type=bool, default=False, action="store_true")
+    parser.add_argument("--use_nl", default=False, action="store_true")
 
     args = parser.parse_args()
 
@@ -161,5 +166,6 @@ if __name__ == "__main__":
         continue_from_pretrained=args.continue_from_pretrained,
         percentage=args.percentage,
         max_steps=args.max_steps,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
         use_nl=args.use_nl,
     )
