@@ -1,5 +1,7 @@
 import fire
+import pdb
 import pandas as pd
+import numpy as np
 import subprocess
 import os
 import logging
@@ -9,11 +11,48 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# Pre-augmentation downloaded dataset
+ORIGINAL_PATH = Path("./original_data.jsonl")
+# Path used by BCB benchmark
 DATA_PATH = Path("./data.jsonl")
+# Data formatted in POJ104
+FMTDATA_PATH = Path("./fmtdata.jsonl")
 TMP_PATH = Path("./tmp.jsonl")
+# Augmented dataset
 AUGDATA_PATH = Path("./data.jsonl")
+# Pre-augmentation test.txt
 TEST_PATH = Path("./test.txt")
+# Augmented test.txt
 AUGTEST_PATH = Path("./aug_test.txt")
+
+# From geeksforgeeks.org
+class UnionFind:
+    def __init__(self):
+        self.Parent = {}
+        self.Size = {}
+    def find(self, i):
+        root = self.Parent.get(i)
+        if root is None:
+            self.Parent[i] = i
+            self.Size[i] = 1
+            root = i
+        if self.Parent[root] != root:
+            self.Parent[i] = self.find(root)
+            return self.Parent[i]
+        return root
+    def union(self, i, j):
+        irep = self.find(i)
+        jrep = self.find(j)
+        if irep == jrep:
+            return
+        isize = self.Size[irep]
+        jsize = self.Size[jrep]
+        if isize < jsize:
+            self.Parent[irep] = jrep
+            self.Size[jrep] += self.Size[irep]
+        else:
+            self.Parent[jrep] = irep
+            self.Size[irep] += self.Size[jrep]
 
 
 def jsonl_to_df(path, chunksize=1000):
@@ -35,12 +74,34 @@ def jsonl_to_df(path, chunksize=1000):
 
 def main():
     """Augments BCB dataset"""
-    logger.info(f"Preprocessing {DATA_PATH} for augmentation...")
-    df = jsonl_to_df(DATA_PATH)
+    logger.info(f"Preprocessing {ORIGINAL_PATH} for augmentation...")
+    df = jsonl_to_df(ORIGINAL_PATH)
     df = df.rename({"func": "code", "idx": "index"}, axis="columns")
-    with open(TMP_PATH, "w") as f:
-        f.write(df.to_json(orient="records", lines=True, force_ascii=False))
+    print(df)
+    df["label"] = pd.Series(df["index"])
+    df = df.set_index("index")
+    print(df)
+    with open(TEST_PATH, "r") as file:
+        num_tests = sum(1 for _ in file)
+    union_find = UnionFind()
+    with open(TEST_PATH, 'r') as in_file:
+        for line in tqdm(in_file, total=num_tests, desc="Labeling dataset"):
+            line = line.split()
+            is_similar = line[2]
+            if is_similar != "1":
+                continue
+            idx1 = line[0]
+            idx2 = line[1]
+            pdb.set_trace()
+            union_find.union(idx1, idx2)
+    for idx, parent in union_find.Parent.items():
+        df.loc[idx, 'label'] = parent
+    print(df)
+    pdb.set_trace()
 
+    with open(TMP_PATH, "w") as f:
+        f.write(df.reset_index().to_json(orient="records", lines=True, force_ascii=False))
+    return df
     logger.info(f"Augmenting {DATA_PATH}...")
     subprocess.run(
         [
@@ -54,8 +115,6 @@ def main():
     logger.info(f"Augmenting {TEST_PATH}...")
     df = jsonl_to_df(AUGDATA_PATH)
     df = df.set_index('aug_from')
-    with open(TEST_PATH, "r") as file:
-        num_tests = sum(1 for _ in file)
     with open(AUGTEST_PATH, 'w') as out_file, open(TEST_PATH, 'r') as in_file:
         for line in tqdm(in_file, total=num_tests):
             line = line.split()
