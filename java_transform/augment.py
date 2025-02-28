@@ -1,4 +1,5 @@
 from pathlib import Path
+from numbers import Number
 from tqdm import tqdm
 import re
 import fire
@@ -59,9 +60,9 @@ def decompose(original_df, code_dir):
     The java files will have names n<idex>.java, where <idex> corresponds to the
     original_df.index column.
     """
-    max_idlen = len(str(original_df["index"].max()))
-    for _, entry in tqdm(original_df.iterrows(), desc="Decomposing data"):
-        idstr = str(entry["index"]).zfill(max_idlen)
+    max_idlen = len(str(original_df.index.max()))
+    for idx, entry in tqdm(original_df.iterrows(), desc="Decomposing data"):
+        idstr = str(idx).zfill(max_idlen)
         java_path = code_dir / f"n{idstr}.java"
         entry.code = f"class n{idstr}{{\n{entry.code}\n}}"
         with open(java_path, "w") as f:
@@ -69,9 +70,9 @@ def decompose(original_df, code_dir):
 
 
 def rename_augfrom(name: str) -> str:
-    """Rename the augmentation columns to add a new augmentation.
+    """Rename the old augmentation columns
 
-    0 is the augmentation, 1 is the previous, so on and so forth.
+    0 is the current augmentation, 1 is the previous, so on and so forth.
     """
     match = re.match(r"aug_from_(\d+)", name)
     if match:
@@ -82,8 +83,6 @@ def rename_augfrom(name: str) -> str:
     match = re.match(r"aug_success_(\d+)", name)
     if match:
         return "aug_success_" + str(int(match.group(1)) + 1)
-    if name == "index":
-        return "aug_from_0"
     return name
 
 
@@ -103,21 +102,28 @@ def postprocess(
     For all unspecified columns provided to `original`, each augmented entry
     will have the same value on those columns as their original.
 
+    The `index` of the returned DataFrame is the same as its `aug_from_0`
+    column.
+
     Arguments:
-    original -- Unaugmented code (index: int, code: str).
-    transforme_path -- The path to SPAT output java files
+    original -- Unaugmented code [*: int](code: str).
+    transformed_path -- The path to SPAT output java files
     rule_id -- the ID of the rule for transformation
 
-    Returns: Augmented dataframe (code: str, aug_type_0: str, aug_success_0:
-    bool, (index) aug_from_0: int)
+    Returns: Augmented dataframe [*: int](code: str, aug_type_0: str,
+    aug_success_0: bool, (index) aug_from_0: int)
     """
     augmented = pd.DataFrame(original)
     augmented = augmented.rename(rename_augfrom, axis="columns")
     augmented["aug_type_0"] = pd.Series(
-        np.full(augmented.shape[0], id_to_name[rule_id])
+        np.full(augmented.shape[0], id_to_name[rule_id]),
+        index=augmented.index,
     )
-    augmented["aug_success_0"] = pd.Series(np.full(augmented.shape[0], False))
-    augmented = augmented.set_index("aug_from_0")
+    augmented["aug_from_0"] = augmented.index
+    augmented["aug_success_0"] = pd.Series(
+        np.full(augmented.shape[0], False),
+        index=augmented.index,
+    )
 
     for file in tqdm(os.listdir(transformed_path)):
         aug_from = int(file.lstrip("n").rstrip(".java"))
@@ -145,15 +151,22 @@ def spat(
     For all unspecified columns provided to `original`, each augmented entry
     will have the same value on those columns as their original.
 
+    The `index` of the returned `DataFrame` starts at the largest `index` of
+    `original` + 1.
+
     Arguments:
-    original -- Unaugmented code. (index: int, code: str)
+    original -- Unaugmented code. [*: int](code: str)
     spat_jar -- Path to the SPAT jarfile
     rule_ids -- the IDs of the augmentation rule; see README
     lib_path -- the library used by SPAT
 
-    Returns: Dataframe (index: int, code: str, aug_type_0: str,
-    aug_success_0: bool, aug_from_0: int)
+    Returns: Dataframe [*: int](code: str, aug_type_0: str, aug_success_0: bool,
+    aug_from_0: int)
     """
+    index = original.index.max()
+    index = index + 1
+    print(index)
+
     artifact_path = Path("tmp")
     transformed_path = artifact_path / Path("transformed")
     original_path = artifact_path / Path("original")
@@ -181,18 +194,25 @@ def spat(
         shutil.rmtree(transformed_path)
     shutil.rmtree(artifact_path)
 
-    index = original["index"].max() + 1
     for i in range(0, len(dfs)):
-        dfs[i]["index"] = range(index, index + len(dfs[i]))
-        dfs[i] = dfs[i].reset_index()
+        name = dfs[i].index.name
+        dfs[i].index = range(index, index + len(dfs[i]))
+        dfs[i].index.name = name
         index += len(dfs[i])
+        print(dfs[i].index)
     if include_original:
         original = original.rename(rename_augfrom, axis="columns")
-        original["aug_type_0"] = pd.Series(np.full(original.shape[0], "None"))
-        original["aug_success_0"] = pd.Series(np.full(original.shape[0], True))
-        original["index"] = original["aug_from_0"]
+        original["aug_type_0"] = pd.Series(
+            np.full(original.shape[0], "None"),
+            index=original.index,
+        )
+        original["aug_success_0"] = pd.Series(
+            np.full(original.shape[0], True),
+            index=original.index,
+        )
+        original["aug_from_0"] = original.index
         dfs.append(original)
-    output = pd.concat(dfs, ignore_index=True)
+    output = pd.concat(dfs)
 
     return output
 
@@ -229,8 +249,9 @@ def main(
     18. Case2IfElse
 
     Args:
-    input_path: Path to the input jsonl
-    output_path: Path to save the augmented jsonl
+    input_path: Path to the input jsonl (index: int, code: str)
+    output_path: Path to save the augmented jsonl (code: str, aug_type_0: str,
+        aug_success_0: bool, aug_from_0: int)
     spat_jar: Path to the SPAT jar file used for augmentation
     spat_lib: Path to the Java library used by SPAT (see SPAT documentation)
     rules: List of SPAT rule IDs.
@@ -240,12 +261,14 @@ def main(
     """
     df = jsonl_to_df(input_path)
     assert set(["index", "code"]).issubset(df.columns)
-    shutil.copyfile(input_path, output_path)
+    df.set_index("index", inplace=True)
+    print(df.index.dtype)
     if accumulate:
         for rule in rules:
             df = spat(df, Path(spat_jar), [rule], Path(spat_lib), include_original)
     else:
         df = spat(df, Path(spat_jar), rules, Path(spat_lib), include_original)
+    df.reset_index(inplace=True)
     df = df[sorted(df.columns, key=col_key)]
     print(df)
     with open(output_path, "w") as f:
