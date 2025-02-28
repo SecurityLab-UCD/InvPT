@@ -1,12 +1,11 @@
 from pathlib import Path
-from numbers import Number
+from tempfile import TemporaryDirectory
 from tqdm import tqdm
-import re
 import fire
 import numpy as np
 import os
 import pandas as pd
-import shutil
+import re
 import subprocess
 
 
@@ -54,7 +53,7 @@ id_to_name = [
 ]
 
 
-def decompose(original_df, code_dir):
+def decompose(original_df: pd.DataFrame, code_dir: Path):
     """Decompose a dataframe into java files to be processed by SPAT.
 
     The java files will have names n<idex>.java, where <idex> corresponds to the
@@ -167,32 +166,26 @@ def spat(
     index = index + 1
     print(index)
 
-    artifact_path = Path("tmp")
-    transformed_path = artifact_path / Path("transformed")
-    original_path = artifact_path / Path("original")
-    os.mkdir(artifact_path)
-    os.mkdir(original_path)
-
     dfs = []
-    decompose(original, artifact_path / "original")
-    for rule_id in rule_ids:
-        print(f"Augmenting dataset with rule {rule_id}...")
-        subprocess.run(
-            [
-                "java",
-                "-jar",
-                spat_jar,
-                str(rule_id),
-                original_path,
-                transformed_path,
-                lib_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        dfs.append(postprocess(original, transformed_path, rule_id))
-        shutil.rmtree(transformed_path)
-    shutil.rmtree(artifact_path)
+    with TemporaryDirectory() as original_dir:
+        decompose(original, Path(original_dir))
+        for rule_id in rule_ids:
+            print(f"Augmenting dataset with rule {rule_id}...")
+            with TemporaryDirectory() as transformed_dir:
+                subprocess.run(
+                    [
+                        "java",
+                        "-jar",
+                        spat_jar,
+                        str(rule_id),
+                        original_dir,
+                        transformed_dir,
+                        lib_path,
+                    ],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                dfs.append(postprocess(original, Path(transformed_dir), rule_id))
 
     for i in range(0, len(dfs)):
         name = dfs[i].index.name
