@@ -10,7 +10,6 @@ import subprocess
 
 
 DIR_PATH = Path(__file__).resolve().parent
-print(DIR_PATH)
 
 
 def jsonl_to_df(path, chunksize=1000):
@@ -164,7 +163,6 @@ def spat(
     """
     index = original.index.max()
     index = index + 1
-    print(index)
 
     dfs = []
     with TemporaryDirectory() as original_dir:
@@ -192,7 +190,6 @@ def spat(
         dfs[i].index = range(index, index + len(dfs[i]))
         dfs[i].index.name = name
         index += len(dfs[i])
-        print(dfs[i].index)
     if include_original:
         original = original.rename(rename_augfrom, axis="columns")
         original["aug_type_0"] = pd.Series(
@@ -255,7 +252,6 @@ def main(
     df = jsonl_to_df(input_path)
     assert set(["index", "code"]).issubset(df.columns)
     df.set_index("index", inplace=True)
-    print(df.index.dtype)
     if accumulate:
         for rule in rules:
             df = spat(df, Path(spat_jar), [rule], Path(spat_lib), include_original)
@@ -263,7 +259,6 @@ def main(
         df = spat(df, Path(spat_jar), rules, Path(spat_lib), include_original)
     df.reset_index(inplace=True)
     df = df[sorted(df.columns, key=col_key)]
-    print(df)
     with open(output_path, "w") as f:
         f.write(df.to_json(orient="records", lines=True, force_ascii=False))
 
