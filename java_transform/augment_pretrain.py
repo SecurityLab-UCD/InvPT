@@ -13,7 +13,7 @@ def col_key(col: str) -> float:
         case "aug_type":
             return 2
 
-    return float('inf')
+    return float("inf")
 
 
 def main(
@@ -39,18 +39,14 @@ def main(
     """
     original = jsonl_to_df(input_path)
 
-    augmented = spat(
-        original, Path(spat_jar), rules, Path(spat_lib), include_original
-    )
+    augmented = spat(original, Path(spat_jar), rules, Path(spat_lib), include_original)
     augmented = augmented.loc[augmented["aug_success_0"]]
     augmented.rename(
         {"aug_type_0": "aug_type", "code": "transformed", "aug_from_0": "code"},
         axis="columns",
-        inplace=True
+        inplace=True,
     )
-    augmented["code"] = augmented["code"].apply(
-        lambda id: original.loc[id, "code"]
-    )
+    augmented["code"] = augmented["code"].apply(lambda id: original.loc[id, "code"])
     augmented.drop(["aug_success_0"], axis="columns", inplace=True)
 
     augmented = augmented[sorted(augmented.columns, key=col_key)]
