@@ -24,7 +24,7 @@ def postprocess(
     output_path -- the path to append the SPAT output to
     rule_id -- the ID of the SPAT transformation rule
     """
-    with open(output_path, 'a') as output_file:
+    with open(output_path, "a") as output_file:
         for file in tqdm(os.listdir(transformed_path), desc="Processing SPAT output"):
             aug_from = int(file.lstrip("n").rstrip(".java"))
             with open(transformed_path / file) as transformed_file:
@@ -34,7 +34,7 @@ def postprocess(
                 "aug_type": id_to_name[rule_id],
                 "transformed": transformed,
             }
-            output_file.write(f'{json.dumps(entry)}\n')
+            output_file.write(f"{json.dumps(entry)}\n")
 
 
 def main(
@@ -81,9 +81,8 @@ def main(
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                postprocess(
-                    original, Path(transformed_dir), Path(output_path), rule
-                )
+                postprocess(original, Path(transformed_dir), Path(output_path), rule)
+
 
 if __name__ == "__main__":
     fire.Fire(main)
