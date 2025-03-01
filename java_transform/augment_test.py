@@ -156,8 +156,8 @@ def main(
     spat_jar: str = str(DIR_PATH / "SPAT-linux.jar"),
     spat_lib: str = "/usr/lib/jvm/java-18-openjdk-amd64/lib",
     rules: list[int] = [0, 1, 2, 3, 6, 7],
-    include_original: bool = True,
-    accumulate: bool = False,
+    include_original: bool = False,
+    accumulate: bool = True,
 ):
     """Augment a Java dataset with SPAT
 
