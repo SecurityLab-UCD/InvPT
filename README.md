@@ -13,7 +13,7 @@ The dataset can be found in the [artifacts](https://zenodo.org/records/5376257#.
 cd data
 curl "https://zenodo.org/records/5376257/files/Code%20search.7z?download=1" --output codesearch.7z
 7za x codesearch.7z
-mv CodeSearchNet/java/large_train.json codesearchnet_java.jsonl
+python3 strip.py
 ```
 
 ### Pre-training RoBERTa
