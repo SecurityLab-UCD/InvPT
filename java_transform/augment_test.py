@@ -130,12 +130,7 @@ def spat(
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                dfs.append(postprocess(
-                    original,
-                    Path(transformed_dir),
-                    rule_id,
-                    index
-                ))
+                dfs.append(postprocess(original, Path(transformed_dir), rule_id, index))
                 index += dfs[-1].shape[0]
 
     for i in range(0, len(dfs)):
