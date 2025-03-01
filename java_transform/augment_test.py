@@ -36,7 +36,10 @@ def col_key(col: str) -> tuple[float, str]:
 
 
 def postprocess(
-    original: pd.DataFrame, transformed_path: Path, rule_id: int
+    original: pd.DataFrame,
+    transformed_path: Path,
+    rule_id: int,
+    start_index: int,
 ) -> pd.DataFrame:
     """Process SPAT output
 
@@ -47,12 +50,13 @@ def postprocess(
     column.
 
     Arguments:
-    original -- Unaugmented code [*: int](code: str).
-    transformed_path -- The path to SPAT output java files
-    rule_id -- the ID of the rule for transformation
+    original: Unaugmented code [*: int](code: str).
+    transformed_path: The path to SPAT output java files
+    rule_id: the ID of the rule for transformation
+    start_index: the lowest index of the returned DataFrame
 
     Returns: Augmented dataframe [*: int](code: str, aug_type_0: str,
-    aug_success_0: bool, (index) aug_from_0: int)
+    aug_success_0: bool, aug_from_0: int)
     """
     augmented = pd.DataFrame(original)
     augmented = augmented.rename(rename_augfrom, axis="columns")
@@ -72,6 +76,7 @@ def postprocess(
             transformed = f.read()
         augmented.loc[aug_from, "code"] = transformed
         augmented.loc[aug_from, "aug_success_0"] = True
+    augmented.index = range(start_index, start_index + augmented.shape[0])
     return augmented
 
 
@@ -96,20 +101,19 @@ def spat(
     `original` + 1.
 
     Arguments:
-    original -- Unaugmented code. [*: int](code: str)
-    spat_jar -- Path to the SPAT jarfile
-    rule_ids -- the IDs of the augmentation rule; see README
-    lib_path -- the library used by SPAT
+    original: Unaugmented code. [*: int](code: str)
+    spat_jar: Path to the SPAT jarfile
+    rule_ids: the IDs of the augmentation rule; see README
+    lib_path: the library used by SPAT
 
     Returns: Dataframe [*: int](code: str, aug_type_0: str, aug_success_0: bool,
     aug_from_0: int)
     """
-    index = original.index.max()
-    index = index + 1
-
     dfs = []
     with TemporaryDirectory() as original_dir:
         decompose(original, Path(original_dir))
+        index = original.index.max()
+        index = index + 1
         for rule_id in rule_ids:
             print(f"Augmenting dataset with rule {rule_id}...")
             with TemporaryDirectory() as transformed_dir:
@@ -126,7 +130,13 @@ def spat(
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                dfs.append(postprocess(original, Path(transformed_dir), rule_id))
+                dfs.append(postprocess(
+                    original,
+                    Path(transformed_dir),
+                    rule_id,
+                    index
+                ))
+                index += dfs[-1].shape[0]
 
     for i in range(0, len(dfs)):
         name = dfs[i].index.name
@@ -158,6 +168,7 @@ def main(
     rules: list[int] = [0, 1, 2, 3, 6, 7],
     include_original: bool = False,
     accumulate: bool = True,
+    debug: bool = False,
 ):
     """Augment a Java dataset with SPAT
 
@@ -191,8 +202,11 @@ def main(
     include_original: If True, the augmented dataset contains the original
     accumulate: If True, the rules are applied accumulatively instead of
         mapping (i.e. [t1(t2(x)]) instead of [t1(x), t2(x)])
+    debug: Only augment the first 100 entries
     """
     df = jsonl_to_df(input_path)
+    if debug:
+        df = df.iloc[:100]
     assert set(["index", "code"]).issubset(df.columns)
     df.set_index("index", inplace=True)
     if accumulate:
