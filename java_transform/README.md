@@ -1,9 +1,9 @@
-# Java augmentations
+# `augment_test.py`
 
 ## Quick start
 
 ```
-python3 augment.py ./datasets/example.jsonl ./datasets/aug_example.jsonl
+python3 augment_test.py ./datasets/example.jsonl ./datasets/aug_example.jsonl
 ```
 
 ## Input
@@ -73,3 +73,25 @@ have their iteration incremented and the new augmentation becomes
 `aug_<statistic>_0`.
 
 Use the `--accumulate` flag as a shortcut for chaining augmentations.
+
+
+# `augment_pretrain.py`
+
+`augment_pretrain.py` has nearly identical flags with `augment_test.py`.
+However, it takes in a different dataset format and supports different features.
+
+The format of the input dataset should be CodeSearchNet, with at least the
+`code: str` column. These entries are then mapped (not accumulated) to the
+augmentation rules to create augmented entries.
+
+If an augmentation fails on an entry, it is ignored. The original input dataset
+is a subset of the augmented output dataset.
+
+The output dataset has all the columns of the original with two extra:
+* `transformed: str`: the augmented `code`. If  the entry is not modified,
+  `transformed = code`
+* `aug_type: str`: the augmentation rule applied in human-readable ID. If the
+  entry is not modified, `aug_type = "None"`
+
+Notably, `code` is the original unaugmented code in augmented entries.
+
