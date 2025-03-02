@@ -12,7 +12,12 @@ class AugType(str, Enum):
 
     @classmethod
     def get_python_transformations(cls):
-        return {cls.LOCALVARRENAMING, cls.ADDASSIGNMENT2EQUALASSIGNMENT, cls.REVERSEIFELSE}
+        return {
+            cls.LOCALVARRENAMING,
+            cls.ADDASSIGNMENT2EQUALASSIGNMENT,
+            cls.REVERSEIFELSE,
+        }
+
 
 @dataclass
 class CodeSearchNetExample:

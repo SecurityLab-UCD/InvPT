@@ -12,7 +12,8 @@ import os
 
 JSON_ENCODING = "utf-8"
 
-def augment_accumulatively(j: Dict[str, Any]) -> None:    
+
+def augment_accumulatively(j: Dict[str, Any]) -> None:
     for aug_type in AugType.get_python_transformations():
         j["code"] = apply_code_transformation(aug_type, j["code"])
     return j

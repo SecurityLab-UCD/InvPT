@@ -1,9 +1,6 @@
-import sys
-
-sys.path.append("..")
 import os
 from dataclasses import asdict
-from src import (
+from python_transform.src import (
     LocalVariableRenamer,
     ReverseIfElser,
     OpAssignment2EqualAssignment,
@@ -72,22 +69,23 @@ def parse(source_code: str) -> Maybe[ast.Module]:
         return Nothing
     return original_ast_module
 
+
 def apply_code_transformation(aug_type: AugType, code: str) -> str:
     """
     Given an augmentation type and source code, return the transformed code
     """
     ast_transformer = TRANSFORMATION_MAP[aug_type]()
-    return parse(code)
-        .map(ast_transformer.visit)
-        .map(ast.unparse)
-        .value_or(code)
+    return parse(code).map(ast_transformer.visit).map(ast.unparse).value_or(code)
+
 
 def transform(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
     """
     Apply the ast.NodeTransformer class on the source code and return the transformed code
     """
-    csn_example.transformed = apply_code_transformation(csn_example.aug_type, csn_example.code)
-    return csn_example    
+    csn_example.transformed = apply_code_transformation(
+        csn_example.aug_type, csn_example.code
+    )
+    return csn_example
 
 
 def load_csn_example(augtype: AugType, json_line: str) -> Maybe[CodeSearchNetExample]:
