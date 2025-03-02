@@ -1,4 +1,4 @@
-from python_transform.transform import apply_code_transformation
+from python_transform.transform import apply_code_transformation, TRANSFORMATION_MAP
 from modeling.dataloader import AugType
 from returns.maybe import Maybe, Nothing, Some
 from multiprocessing import cpu_count
@@ -14,7 +14,7 @@ JSON_ENCODING = "utf-8"
 
 
 def augment_accumulatively(j: Dict[str, Any]) -> None:
-    for aug_type in AugType.get_python_transformations():
+    for aug_type in TRANSFORMATION_MAP.keys():
         j["code"] = apply_code_transformation(aug_type, j["code"])
     return j
 
