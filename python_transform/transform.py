@@ -19,7 +19,7 @@ import argparse
 from typing import Type
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
-from functools import partial, singledispatch
+from functools import partial
 
 
 TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
@@ -62,48 +62,32 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
     return Some(modified_code)
 
 
-def convert_source_to_ast_module(source_code: str) -> Maybe[ast.Module]:
+def parse(source_code: str) -> Maybe[ast.Module]:
     original_ast_module: Maybe[ast.Module]
     try:
         original_ast_module = Some(ast.parse(source_code))
     except SyntaxError:
         original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
-    except RecursionError as e:
+    except RecursionError:
         return Nothing
     return original_ast_module
 
+def apply_code_transformation(aug_type: AugType, code: str) -> str:
+    """
+    Given an augmentation type and source code, return the transformed code
+    """
+    ast_transformer = TRANSFORMATION_MAP[aug_type]()
+    return parse(code)
+        .map(ast_transformer.visit)
+        .map(ast.unparse)
+        .value_or(code)
 
-def transform(origional_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
+def transform(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
     """
     Apply the ast.NodeTransformer class on the source code and return the transformed code
-
     """
-    # parse the source code into AST
-    # print('source code: ', source)
-
-    source = origional_example.code
-    transform_type = origional_example.aug_type
-
-    ast_transformer = TRANSFORMATION_MAP[transform_type]()
-
-    original_ast_module: Maybe[ast.Module]
-    try:
-        # If Python 3.x syntax, then no error will be raised
-        original_ast_module = Some(ast.parse(source))
-    except SyntaxError:
-        # Ohterwise, convert to pyhon 3.x syntax from python 2.x
-        original_ast_module = convert_python2_to_python3(source).map(ast.parse)
-
-    def add_transformed_code(transformed_code: str):
-        origional_example.transformed = transformed_code
-        return origional_example
-
-    # ToDo: check if `source` is really modified. If not, return Nothing
-    return (
-        original_ast_module.map(ast_transformer.visit)
-        .map(ast.unparse)
-        .map(add_transformed_code)
-    )
+    csn_example.transformed = apply_code_transformation(csn_example.aug_type, csn_example.code)
+    return csn_example    
 
 
 def load_csn_example(augtype: AugType, json_line: str) -> Maybe[CodeSearchNetExample]:
