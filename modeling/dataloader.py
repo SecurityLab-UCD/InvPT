@@ -10,6 +10,9 @@ class AugType(str, Enum):
     ADDASSIGNMENT2EQUALASSIGNMENT = "AddAssignment2EqualAssignment"
     REVERSEIFELSE = "ReverseIfElse"
 
+    @classmethod
+    def get_python_transformations(cls):
+        return {cls.LOCALVARRENAMING, cls.ADDASSIGNMENT2EQUALASSIGNMENT, cls.REVERSEIFELSE}
 
 @dataclass
 class CodeSearchNetExample:

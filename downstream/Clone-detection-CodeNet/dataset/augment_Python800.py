@@ -1,4 +1,4 @@
-from transform import apply_code_transformation
+from python_transform.transform import apply_code_transformation
 from modeling.dataloader import AugType
 from returns.maybe import Maybe, Nothing, Some
 from multiprocessing import cpu_count
@@ -12,10 +12,10 @@ import os
 
 JSON_ENCODING = "utf-8"
 
-
-def augment_accumulatively(j: Dict[str, Any]) -> None:
-    for aug_type in AugType:
-        j['code'] = apply_code_transformation(aug_type, j['code'])    
+def augment_accumulatively(j: Dict[str, Any]) -> None:    
+    for aug_type in AugType.get_python_transformations():
+        j["code"] = apply_code_transformation(aug_type, j["code"])
+    return j
 
 
 def augment_jsonl(test_jsonl: str) -> None:
@@ -27,11 +27,11 @@ def augment_jsonl(test_jsonl: str) -> None:
 
     with Pool(num_cpus) as pool:
         augmented_test_jsonl = pool.map(augment_accumulatively, all_test_json)
-    
-    with open(test_jsonl, 'w') as f:
+
+    with open(test_jsonl, "w") as f:
         for ajs in augmented_test_jsonl:
             f.write(json.dumps(ajs) + "\n")
-    
+
     print(f"Finished augmentation!")
 
 
