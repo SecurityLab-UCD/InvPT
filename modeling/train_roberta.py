@@ -66,6 +66,7 @@ def main(
     continue_from_pretrained: bool = False,
     percentage: float = 1,
     use_nl: bool = False,
+    learning_rate: float = 5e-5,
 ):
 
     set_seed(seed)
@@ -113,7 +114,7 @@ def main(
         logging_steps=1000,
         eval_strategy="steps",
         eval_steps=1000,
-        learning_rate=5e-5,
+        learning_rate=learning_rate,
         weight_decay=0.01,
         remove_unused_columns=False,
         report_to="wandb",
@@ -152,6 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_steps", type=int, default=100_000)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--use_nl", default=False, action="store_true")
+    parser.add_argument("--learning_rate", type=float, default=5e-5)
 
     args = parser.parse_args()
 
@@ -168,4 +170,5 @@ if __name__ == "__main__":
         max_steps=args.max_steps,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         use_nl=args.use_nl,
+        learning_rate=args.learning_rate,
     )
