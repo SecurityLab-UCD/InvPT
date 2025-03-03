@@ -3,6 +3,10 @@ from collections import deque
 import sys
 from ast_util import *
 
+def add_assignmenter(root_node, file_code: str):
+    modifications = []
+    return add_assignment(root_node, "example.cpp", file_code.splitlines(), modifications)
+
 def add_assignment(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
     is_valid = set()

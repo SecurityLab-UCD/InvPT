@@ -3,6 +3,9 @@ from collections import deque
 import sys
 from ast_util import *
 
+def for_while_reverser(root_node, file_code):
+    return for_while_reverser(root_node, "example.cpp", file_code, [0, len(file_code)])
+
 def for_while_reverse(root_node, source_file, source_code, start_end):
     # Collect all nodes that have IF_STMT
     change_nodes = []

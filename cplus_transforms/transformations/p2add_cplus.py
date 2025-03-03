@@ -3,6 +3,10 @@ from collections import deque
 import sys
 from ast_util import *
 
+def replace_short_adder(root_node, file_code: str):
+    modifications = []
+    return replace_short_adder(root_node, "example.cpp", file_code.splitlines(), modifications)
+
 def replace_short_add(root_node, source_file, source_code_lines, modifications):
     # Collect all nodes that have function names
     is_valid = set()
