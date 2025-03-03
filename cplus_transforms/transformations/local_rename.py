@@ -3,16 +3,6 @@ from collections import deque
 import random
 import sys
 from ast_util import *
-
-# def generate_random_name(i, length = -1):
-#     generator = random.Random()
-#     generator.seed(i + 2025)
-#     if length == -1:
-#         length = generator.randint(10, 25)
-#     random_name = ""
-#     for i in range(length):
-#         random_name += chr(generator.randint(0, 25) + ord('A'))
-#     return random_name
     
 generated_names = set()
 
@@ -25,7 +15,7 @@ def map_num_char(i):
     else:
         return chr(i + ord('A') - 27)
 
-def generate_random_name(src_name, seed = 2023):
+def generate_random_name(seed = 2023):
     global generated_names
     generator = random.Random()
     generator.seed(seed)
@@ -38,8 +28,7 @@ def generate_random_name(src_name, seed = 2023):
     generated_names.add(random_name)
     return random_name
 
-
-def local_rename(root_node, source_file, source_code_lines, modifications):
+def local_rename(root_node, source_file, file_code, start_end):
     # Collect all nodes that have function names
     i = 0
     function_name_changes = {}
@@ -57,7 +46,7 @@ def local_rename(root_node, source_file, source_code_lines, modifications):
             if curr_visit.spelling not in function_name_changes:
                 temp_name = generate_hidden_name(curr_visit.spelling)
                 function_name_changes[curr_visit.spelling] = temp_name
-                function_actual_name[temp_name] = generate_random_name(temp_name, i)
+                function_actual_name[temp_name] = generate_random_name(i)
                 i += 1
             change_nodes.append(curr_visit)
         if curr_visit.kind == CursorKind.DECL_REF_EXPR:
@@ -66,20 +55,11 @@ def local_rename(root_node, source_file, source_code_lines, modifications):
 
     # Edit all the function names
     for node in change_nodes:
-        print(f"Function / Variable {node.spelling} will be renamed")
-        line_number = node.location.line
-        column_number = node.location.column
-        function_name = node.spelling
-        
-        # Update the source line to replace the function name
-        line = source_code_lines[line_number - 1]
-        modified_line = line[:column_number - 1] + function_name_changes[function_name] + line[column_number + len(function_name) - 1:]
-        source_code_lines[line_number - 1] = modified_line
+        offset = get_character_offset(source_file, node.location.line, node.location.column)
+        hidden_name = function_name_changes[node.spelling]
+        file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
+        print(file_code)
 
-        # Store modification details (optional logging or rollback)
-        modifications.append((line_number, line, modified_line))
-
-    file_code = "".join(source_code_lines)
     length_sorted = list(function_actual_name.keys())
     length_sorted.sort(reverse=True,key=len)
     # Replace placeholder names with actual names
@@ -104,11 +84,12 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    file_code = local_rename(tu.cursor, source_file, source_code_lines, modifications)
+    file_code = "".join(source_code_lines)
+    code = local_rename(tu.cursor, source_file, file_code, [0, len(file_code)])
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
-        f.write(file_code)
+        f.write(code)
 
     print("\nModifications Applied:")
     for line_num, old_line, new_line in modifications:
