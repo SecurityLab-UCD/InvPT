@@ -28,6 +28,9 @@ def generate_random_name(seed = 2023):
     generated_names.add(random_name)
     return random_name
 
+def local_renamer(root_node, file_code):
+    return local_rename(root_node, "example.cpp", file_code, [0, len(file_code)])
+
 def local_rename(root_node, source_file, file_code, start_end):
     # Collect all nodes that have function names
     i = 0
