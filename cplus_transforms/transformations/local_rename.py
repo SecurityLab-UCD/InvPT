@@ -2,7 +2,7 @@ from clang.cindex import Index, CursorKind
 from collections import deque
 import random
 import sys
-from ast_util import *
+from cplus_transforms.transformations.ast_util import *
     
 generated_names = set()
 
