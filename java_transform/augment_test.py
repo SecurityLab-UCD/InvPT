@@ -74,6 +74,8 @@ def postprocess(
         aug_from = int(file.lstrip("n").rstrip(".java"))
         with open(transformed_path / file) as f:
             transformed = f.read()
+        # Strip the wrapper class
+        transformed = "\n".join(transformed.splitlines()[1:-1])
         augmented.loc[aug_from, "code"] = transformed
         augmented.loc[aug_from, "aug_success_0"] = True
     augmented.index = range(start_index, start_index + augmented.shape[0])
