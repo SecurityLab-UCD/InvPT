@@ -64,7 +64,7 @@ def main(source_file, output_file):
     modifications = []
 
     # Extract AST and make modifications
-    generalize_function(tu.cursor, source_file, source_code_lines, modifications)
+    add_assignment(tu.cursor, source_file, source_code_lines, modifications)
 
     # Write the modified source code to the output file
     with open(output_file, "w") as f:
