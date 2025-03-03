@@ -1,19 +1,21 @@
 import fire
 import pandas as pd
 import subprocess
-import os
 import logging
 from tqdm import tqdm
-from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile
 from pathlib import Path
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 # Pre-augmentation downloaded dataset
-ORIGINAL_PATH = Path("./original_data.jsonl")
+ORIGINAL = Path("./original_data.jsonl")
 # Path used by BCB benchmark
-DATA_PATH = Path("./data.jsonl")
+DATA = Path("./data.jsonl")
+AUGSCRIPT_PATH = Path("../../../java_transform/augment_test.py")
+
 
 def jsonl_to_df(path, chunksize=1000):
     with open(path, "r") as file:
@@ -34,26 +36,34 @@ def jsonl_to_df(path, chunksize=1000):
 
 def main():
     """Augments BCB dataset"""
-    with TemporaryFile() as preprocessed, TemporaryFile() as augmented, open(DATA_PATH, 'w') as data:
-        logger.info(f"Preprocessing {ORIGINAL_PATH} to {preprocessed} for augmentation...")
-        df = jsonl_to_df(ORIGINAL_PATH)
+    with NamedTemporaryFile() as preprocessed, NamedTemporaryFile() as augmented, open(
+        DATA, "w"
+    ) as data:
+        logger.info(
+            f"Preprocessing {ORIGINAL} to {preprocessed.name} for augmentation..."
+        )
+        df = jsonl_to_df(ORIGINAL)
         df = df.rename({"func": "code", "idx": "index"}, axis="columns")
-        preprocessed.write(df.reset_index().to_json(orient="records", lines=True, force_ascii=False))
+        df.reset_index().to_json(
+            preprocessed, orient="records", lines=True, force_ascii=False
+        )
 
-        logger.info(f"Augmenting {preprocessed} to {augmented}...")
+        logger.info(f"Augmenting {preprocessed.name} to {augmented.name}...")
         subprocess.run(
             [
                 "python3",
-                "../../../java_transform/augment.py",
-                str(preprocessed),
-                str(augmented),
+                AUGSCRIPT_PATH,
+                preprocessed.name,
+                augmented.name,
             ],
         )
 
         # Preprocess dataset for testing
-        logger.info(f"Postprocessing {augmented} for testing...")
-        df = df.rename({"code": "func", "index": "idx"}, axis="columns")
-        data.write(df.to_json(orient="records", lines=True, force_ascii=False))
+        logger.info(f"Postprocessing {augmented.name} for testing...")
+        df = jsonl_to_df(augmented.name)
+        df = df.rename({"code": "func", "aug_from_5": "idx"}, axis="columns")
+        df = df[["func", "idx"]]
+        df.to_json(data, orient="records", lines=True, force_ascii=False)
 
 
 if __name__ == "__main__":
