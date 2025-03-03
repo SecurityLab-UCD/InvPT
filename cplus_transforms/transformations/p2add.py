@@ -1,7 +1,7 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
 import sys
-from ast_util import *
+from cplus_transforms.transformations.ast_util import *
 
 def replace_short_adder(root_node, file_code: str):
     modifications = []

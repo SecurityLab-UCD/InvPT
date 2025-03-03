@@ -1,11 +1,11 @@
 import os
 from dataclasses import asdict
-from transformations.addassignment import add_assignmenter
-from transformations.local_rename import local_renamer
-from transformations.p2add import replace_short_adder
-from transformations.for_while import for_while_reverser
-from transformations.while_for import while_for_reverser
-from transformations.if_else_transform import if_else_reverser
+from cplus_transforms.transformations.addassignment import add_assignmenter
+from cplus_transforms.transformations.local_rename import local_renamer
+from cplus_transforms.transformations.p2add import replace_short_adder
+from cplus_transforms.transformations.for_while import for_while_reverser
+from cplus_transforms.transformations.while_for import while_for_reverser
+from cplus_transforms.transformations.if_else_transform import if_else_reverser
 from modeling.dataloader import CodeSearchNetExample, AugType
 import ast
 import json
