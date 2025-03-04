@@ -2,13 +2,19 @@ from clang.cindex import Index, CursorKind
 from collections import deque
 from cplus_transforms.transformations.ast_util import *
 import sys
+import clang
 
 def add_assignmenter(root_node, file_code: str):
     modifications = []
-    return add_assignment(root_node, "example.cpp", file_code.splitlines(), modifications)
+    source_code_lines = file_code.splitlines(keepends=True)
+    add_assignment(root_node, "example.cpp", source_code_lines, modifications)
+    return "".join(source_code_lines)
 
 def add_assignment(root_node, source_file, source_code_lines, modifications):
+    # File code
+    file_code = "".join(source_code_lines)
     # Collect all nodes that have function names
+    is_valid = set()
     i = 0
     change_nodes = []
     to_visit = deque()
@@ -19,7 +25,15 @@ def add_assignment(root_node, source_file, source_code_lines, modifications):
             to_visit.appendleft(child)
         if source_file not in str(curr_visit.location):
             continue
-        if "+=" in extract_source_code(curr_visit):
+        if curr_visit.kind == CursorKind.DECL_STMT:
+            source_code = extract_source_code(curr_visit, file_code)
+            assignment_index = source_code.index("=")
+            arr = source_code[:assignment_index].split()
+            type = " ".join(arr[:-1])
+            var_name = arr[-1]
+            if type in NUMBER_TYPES:
+                is_valid.add(var_name)
+        if "+=" in extract_source_code(curr_visit, file_code) and curr_visit.kind == CursorKind.COMPOUND_ASSIGNMENT_OPERATOR:
             change_nodes.append(curr_visit)
 
     replace_dictionary = {}
@@ -29,14 +43,18 @@ def add_assignment(root_node, source_file, source_code_lines, modifications):
     for node in change_nodes:
         line_number = node.location.line
         column_number = node.location.column
-        structure_name = extract_source_code(node).strip()
+        structure_name = extract_source_code(node, file_code).strip()
         
-        edited = generate_hidden_name(structure_name)
-        i += 1
         index = structure_name.index("+=")
         variable_name = structure_name[:index].strip()
         number = structure_name[index+2:].strip()
-        replace_dictionary[edited] = f"({variable_name}=({variable_name})+({number}))"
+
+        # if variable_name not in is_valid:
+        #     continue
+
+        edited = generate_hidden_name(structure_name)
+        i += 1
+        replace_dictionary[edited] = f"(({variable_name})=({variable_name})+({number}))"
         print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
 
         # Update the source line to put the placeholder name
@@ -52,37 +70,22 @@ def add_assignment(root_node, source_file, source_code_lines, modifications):
         for key in replace_dictionary.keys():
             source_code_lines[i] = source_code_lines[i].replace(key, replace_dictionary[key])
 
-def main(source_file, output_file):
-    """Parse the source, modify it, and write updated source to a file."""
-    index = Index.create()
-    tu = index.parse(source_file)
-
-    # Read source code
-    with open(source_file, "r") as f:
-        source_code_lines = f.readlines()
-
-    print(f"AST Traversal and Modifications for: {source_file}")
-    print("-" * 40)
-
-    # Modifications storage
-    modifications = []
-
-    # Extract AST and make modifications
-    add_assignment(tu.cursor, source_file, source_code_lines, modifications)
-
-    # Write the modified source code to the output file
-    with open(output_file, "w") as f:
-        f.writelines(source_code_lines)
-
-    print("\nModifications Applied:")
-    for line_num, old_line in modifications:
-        print(f"Line {line_num}: {old_line.strip()}")
+def main(code):
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
+    print(add_assignmenter(translation_unit.cursor, code))
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <source_file> <output_file>")
-        sys.exit(1)
-    source_file = sys.argv[1]
-    output_file = sys.argv[2]
-    main(source_file, output_file)
+    code = code = """
+#include <stdio.h>
+
+int main() {
+    int x = 0;
+    x = 10;
+    x += 1;
+    printf("Hello, World!\\n");
+    return 0;
+}
+"""
+    main(code)
 

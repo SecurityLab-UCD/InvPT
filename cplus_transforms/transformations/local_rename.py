@@ -1,4 +1,5 @@
 from clang.cindex import Index, CursorKind
+import clang
 from collections import deque
 import random
 import sys
@@ -58,7 +59,7 @@ def local_rename(root_node, source_file, file_code, start_end):
 
     # Edit all the function names
     for node in change_nodes:
-        offset = get_character_offset(source_file, node.location.line, node.location.column)
+        offset = get_character_offset(file_code, node.location.line, node.location.column)
         hidden_name = function_name_changes[node.spelling]
         file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
         print(file_code)
@@ -71,38 +72,21 @@ def local_rename(root_node, source_file, file_code, start_end):
 
     return file_code
 
-def main(source_file, output_file):
-    """Parse the source, modify it, and write updated source to a file."""
-    index = Index.create()
-    tu = index.parse(source_file)
-
-    # Read source code
-    with open(source_file, "r") as f:
-        source_code_lines = f.readlines()
-
-    print(f"AST Traversal and Modifications for: {source_file}")
-    print("-" * 40)
-
-    # Modifications storage
-    modifications = []
-
-    # Extract AST and make modifications
-    file_code = "".join(source_code_lines)
-    code = local_rename(tu.cursor, source_file, file_code, [0, len(file_code)])
-
-    # Write the modified source code to the output file
-    with open(output_file, "w") as f:
-        f.write(code)
-
-    print("\nModifications Applied:")
-    for line_num, old_line, new_line in modifications:
-        print(f"Line {line_num}: {old_line.strip()} -> {new_line.strip()}")
+def main(code):
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
+    print(local_renamer(translation_unit.cursor, code))
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <source_file> <output_file>")
-        sys.exit(1)
-    source_file = sys.argv[1]
-    output_file = sys.argv[2]
-    main(source_file, output_file)
+    code = code = """
+#include <stdio.h>
+
+int main() {
+    int x = 0;
+    x = 10;
+    printf("Hello, World!\\n");
+    return 0;
+}
+"""
+    main(code)
 
