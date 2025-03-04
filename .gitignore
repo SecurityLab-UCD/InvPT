@@ -164,9 +164,6 @@ dmypy.json
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-example.cpp
-cplus_transforms/example.cpp
-cplus_transforms/traverse.py
 /src/dataset/*
 data/
 saved_models/

@@ -2,12 +2,17 @@ from clang.cindex import Index, CursorKind
 from collections import deque
 import sys
 from cplus_transforms.transformations.ast_util import *
+import clang
 
 def replace_short_adder(root_node, file_code: str):
     modifications = []
-    return replace_short_adder(root_node, "example.cpp", file_code.splitlines(), modifications)
+    source_code_lines = file_code.splitlines(keepends=True)
+    replace_short_add(root_node, "example.cpp", source_code_lines, modifications)
+    return "".join(source_code_lines)
 
 def replace_short_add(root_node, source_file, source_code_lines, modifications):
+    # File code
+    file_code = "".join(source_code_lines)
     # Collect all nodes that have function names
     change_nodes = []
     to_visit = deque()
@@ -18,7 +23,7 @@ def replace_short_add(root_node, source_file, source_code_lines, modifications):
             to_visit.appendleft([child, curr_visit])
         if source_file not in str(curr_visit.location):
             continue
-        source_code = extract_source_code(curr_visit)
+        source_code = extract_source_code(curr_visit, file_code)
         length = len(source_code)
         if curr_visit.kind == CursorKind.UNARY_OPERATOR:
             if "++" in source_code.strip()[:2]:
@@ -32,7 +37,7 @@ def replace_short_add(root_node, source_file, source_code_lines, modifications):
     for node in change_nodes:
         line_number = node.location.line
         column_number = node.location.column
-        structure_name = extract_source_code(node).strip()
+        structure_name = extract_source_code(node, file_code).strip()
         
         edited = generate_hidden_name(structure_name)
         replace_dictionary[edited] = "(" + structure_name.strip("+").strip() + "+=1)"
@@ -51,37 +56,19 @@ def replace_short_add(root_node, source_file, source_code_lines, modifications):
         for key in replace_dictionary.keys():
             source_code_lines[i] = source_code_lines[i].replace(key, replace_dictionary[key])
 
-def main(source_file, output_file):
-    """Parse the source, modify it, and write updated source to a file."""
-    index = Index.create()
-    tu = index.parse(source_file)
-
-    # Read source code
-    with open(source_file, "r") as f:
-        source_code_lines = f.readlines()
-
-    print(f"AST Traversal and Modifications for: {source_file}")
-    print("-" * 40)
-
-    # Modifications storage
-    modifications = []
-
-    # Extract AST and make modifications
-    replace_short_add(tu.cursor, source_file, source_code_lines, modifications)
-
-    # Write the modified source code to the output file
-    with open(output_file, "w") as f:
-        f.writelines(source_code_lines)
-
-    print("\nModifications Applied:")
-    for line_num, old_line in modifications:
-        print(f"Line {line_num}: {old_line.strip()}")
+def main(code):
+    index = clang.cindex.Index.create()
+    translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
+    print(replace_short_adder(translation_unit.cursor, code))
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <source_file> <output_file>")
-        sys.exit(1)
-    source_file = sys.argv[1]
-    output_file = sys.argv[2]
-    main(source_file, output_file)
+    code = code = """
+#include <stdio.h>
+
+int main() {
+    int x = 0;
+    x++;
+}
+"""
+    main(code)
 
