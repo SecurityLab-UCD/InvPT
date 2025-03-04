@@ -4,7 +4,7 @@ import sys
 from cplus_transforms.transformations.ast_util import *
 import clang
 
-def replace_short_adder(root_node, file_code: str):
+def replace_short_adder_cplus(root_node, file_code: str):
     modifications = []
     source_code_lines = file_code.splitlines(keepends=True)
     replace_short_add(root_node, "example.cpp", source_code_lines, modifications)
