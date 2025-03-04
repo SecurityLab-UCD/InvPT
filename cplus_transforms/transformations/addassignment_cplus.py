@@ -4,7 +4,7 @@ import sys
 from cplus_transforms.transformations.ast_util import *
 import clang
 
-def add_assignmenter(root_node, file_code: str):
+def add_assignmenter_cplus(root_node, file_code: str):
     modifications = []
     source_code_lines = file_code.splitlines(keepends=True)
     add_assignment(root_node, "example.cpp", source_code_lines, modifications)

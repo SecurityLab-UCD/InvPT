@@ -6,6 +6,8 @@ from cplus_transforms.transformations.p2add import replace_short_adder
 from cplus_transforms.transformations.for_while import for_while_reverser
 from cplus_transforms.transformations.while_for import while_for_reverser
 from cplus_transforms.transformations.if_else_transform import if_else_reverser
+from cplus_transforms.transformations.addassignment_cplus import add_assignmenter_cplus
+from cplus_transforms.transformations.p2add_cplus import replace_short_adder_cplus
 from modeling.dataloader import CodeSearchNetExample, AugType
 import ast
 import json
@@ -22,7 +24,7 @@ import clang
 from collections.abc import Callable
 
 
-TRANSFORMATION_MAP: dict[AugType, Callable] = {
+TRANSFORMATION_MAP_N: dict[AugType, Callable] = {
     AugType.LOCALVARRENAMING: local_renamer,
     AugType.REVERSEIFELSE: if_else_reverser,
     AugType.ADDASSIGNMENT2EQUALASSIGNMENT: add_assignmenter,
@@ -31,11 +33,23 @@ TRANSFORMATION_MAP: dict[AugType, Callable] = {
     AugType.FOR2WHILE: for_while_reverser,
 }
 
-def apply_code_transformation(aug_type: AugType, code: str) -> str:
+TRANSFORMATION_MAP: dict[AugType, Callable] = {
+    AugType.LOCALVARRENAMING: local_renamer,
+    AugType.REVERSEIFELSE: if_else_reverser,
+    AugType.ADDASSIGNMENT2EQUALASSIGNMENT: add_assignmenter_cplus,
+    AugType.PP2ADDASSIGNMENT: replace_short_adder_cplus,
+    AugType.WHILE2FOR: while_for_reverser,
+    AugType.FOR2WHILE: for_while_reverser,
+}
+
+def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> str:
     """
     Given an augmentation type and source code, return the transformed code
     """
-    ast_transformer = TRANSFORMATION_MAP[aug_type]
+    tmap = TRANSFORMATION_MAP
+    if naive:
+        tmap = TRANSFORMATION_MAP_N
+    ast_transformer = tmap[aug_type]
     index = clang.cindex.Index.create()
     translation_unit = index.parse('example.cpp', args=['-std=c11'], unsaved_files=[('example.cpp', code)], options=0)
     return ast_transformer(translation_unit.cursor, code)

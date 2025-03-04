@@ -12,22 +12,25 @@ import os
 
 JSON_ENCODING = "utf-8"
 
+def get_augment_accumulatively(naive: bool) -> None:
+    return (lambda a, b : augment_accumulatively(a, b, naive))
 
-def augment_accumulatively(j: Dict[str, Any]) -> None:
+def augment_accumulatively(j: Dict[str, Any], naive: bool) -> None:
     for aug_type in TRANSFORMATION_MAP.keys():
-        j["code"] = apply_code_transformation(aug_type, j["code"])
+        j["code"] = apply_code_transformation(naive, aug_type, j["code"])
     return j
 
 
-def augment_jsonl(test_jsonl: str) -> None:
+def augment_jsonl(naive: bool, test_jsonl: str) -> None:
     num_cpus = cpu_count()
+    augment = get_augment_accumulatively(naive)
 
     with open(test_jsonl, "r", encoding=JSON_ENCODING) as f:
         all_test_json = [json.loads(json_line) for json_line in f]
         initial_size = len(all_test_json)
 
     with Pool(num_cpus) as pool:
-        augmented_test_jsonl = pool.map(augment_accumulatively, all_test_json)
+        augmented_test_jsonl = pool.map(augment, all_test_json)
 
     with open(test_jsonl, "w") as f:
         for ajs in augmented_test_jsonl:
@@ -41,9 +44,9 @@ def validate_jsonl_path(path: str):
     assert path.endswith(".jsonl"), f"The file {path} is not a JSONL file."
 
 
-def main(test_jsonl_file):
+def main(test_jsonl_file, naive):
     validate_jsonl_path(test_jsonl_file)
-    augment_jsonl(test_jsonl_file)
+    augment_jsonl(test_jsonl_file, naive)
     print(f"Successfully added transformed data to {test_jsonl_file}")
 
 
