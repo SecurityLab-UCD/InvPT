@@ -19,9 +19,10 @@ from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
 import clang
+from collections.abc import Callable
 
 
-TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
+TRANSFORMATION_MAP: dict[AugType, Callable] = {
     AugType.LOCALVARRENAMING: local_renamer,
     AugType.REVERSEIFELSE: if_else_reverser,
     AugType.ADDASSIGNMENT2EQUALASSIGNMENT: add_assignmenter,
@@ -34,7 +35,7 @@ def apply_code_transformation(aug_type: AugType, code: str) -> str:
     """
     Given an augmentation type and source code, return the transformed code
     """
-    ast_transformer = TRANSFORMATION_MAP[aug_type]()
+    ast_transformer = TRANSFORMATION_MAP[aug_type]
     index = clang.cindex.Index.create()
     translation_unit = index.parse('example.cpp', args=['-std=c11'], unsaved_files=[('example.cpp', code)], options=0)
     return ast_transformer(translation_unit.cursor, code)
