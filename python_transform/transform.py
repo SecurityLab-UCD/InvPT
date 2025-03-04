@@ -70,22 +70,33 @@ def parse(source_code: str) -> Maybe[ast.Module]:
     return original_ast_module
 
 
-def apply_code_transformation(aug_type: AugType, code: str) -> str:
+def apply_code_transformation(aug_type: AugType, code: str) -> Maybe[str]:
     """
     Given an augmentation type and source code, return the transformed code
     """
     ast_transformer = TRANSFORMATION_MAP[aug_type]()
-    return parse(code).map(ast_transformer.visit).map(ast.unparse).value_or(code)
+    return parse(code).map(ast_transformer.visit).map(ast.unparse)
 
 
-def transform(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
+def transform_csn(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
     """
     Apply the ast.NodeTransformer class on the source code and return the transformed code
     """
-    csn_example.transformed = apply_code_transformation(
-        csn_example.aug_type, csn_example.code
+
+    def csn_add_transformed(transformed: str) -> CodeSearchNetExample:
+        return CodeSearchNetExample(
+            repo=csn_example.repo,
+            func_name=csn_example.func_name,
+            language=csn_example.language,
+            code=csn_example.code,
+            docstring=csn_example.docstring,
+            transformed=transformed,
+            aug_type=csn_example.aug_type,
+        )
+
+    return apply_code_transformation(csn_example.aug_type, csn_example.code).map(
+        csn_add_transformed
     )
-    return csn_example
 
 
 def load_csn_example(augtype: AugType, json_line: str) -> Maybe[CodeSearchNetExample]:
@@ -124,7 +135,7 @@ def main(
 
     with Pool(num_cpus) as pool:
         csn_examples = pool.map(partial(load_csn_example, augtype), lines)
-        transformed_data = pool.map(bind(transform), csn_examples)
+        transformed_data = pool.map(bind(transform_csn), csn_examples)
 
     with open(output_file_path, "w") as f:
         for transformed_csn in transformed_data:
