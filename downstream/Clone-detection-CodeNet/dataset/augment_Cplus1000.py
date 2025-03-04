@@ -45,8 +45,11 @@ def validate_jsonl_path(path: str):
 
 
 def main(test_jsonl_file, naive):
+    is_naive = False
+    if naive == "true":
+        is_naive = True
     validate_jsonl_path(test_jsonl_file)
-    augment_jsonl(test_jsonl_file, naive)
+    augment_jsonl(test_jsonl_file, is_naive)
     print(f"Successfully added transformed data to {test_jsonl_file}")
 
 
