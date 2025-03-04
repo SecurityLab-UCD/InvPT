@@ -67,6 +67,7 @@ def main(
     percentage: float = 1,
     use_nl: bool = False,
     learning_rate: float = 5e-5,
+    resume: bool = False,
 ):
 
     set_seed(seed)
@@ -133,7 +134,7 @@ def main(
         alpha=0.7,
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume)
     trainer.save_model(f"saved_models/{run_name}/final")
 
 
@@ -154,6 +155,7 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--use_nl", default=False, action="store_true")
     parser.add_argument("--learning_rate", type=float, default=5e-5)
+    parser.add_argument("--resume", default=False, action="store_true")
 
     args = parser.parse_args()
 
@@ -171,4 +173,5 @@ if __name__ == "__main__":
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         use_nl=args.use_nl,
         learning_rate=args.learning_rate,
+        resume=args.resume,
     )
