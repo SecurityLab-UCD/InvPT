@@ -18,8 +18,8 @@ class CodeSearchNetExample:
     language: str
     code: str
     docstring: str
-    transformed: str  # This is added after code transformation
-    aug_type: AugType
+    transformed: str | None = None  # This is added after code transformation
+    aug_type: AugType | None = None
 
 
 def contra_data_collator(mlm_collator, features):

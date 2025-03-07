@@ -94,6 +94,7 @@ def transform_csn(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExamp
             aug_type=csn_example.aug_type,
         )
 
+    assert csn_example.aug_type is not None, "Augmentation type is not provided"
     return apply_code_transformation(csn_example.aug_type, csn_example.code).map(
         csn_add_transformed
     )
