@@ -16,7 +16,7 @@ def augment_accumulatively(j: CodeNetProgram) -> CodeNetProgram:
     code = j.code
     for aug_type in TRANSFORMATION_MAP.keys():
         code = apply_code_transformation(aug_type, code).value_or(code)
-    return CodeNetProgram(label=j.label, index=j.label, code=code)
+    return CodeNetProgram(label=j.label, index=j.index, code=code)
 
 
 def validate_jsonl_path(path: str):
