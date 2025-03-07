@@ -14,7 +14,7 @@ python ./code/run.py \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
     --eval_data_file=./dataset/$subset/valid.jsonl \
-    --test_data_file=./dataset/$subset/test.jsonl \
+    --test_data_file=./dataset/$subset/aug_test.jsonl \
     --test_predictions_file=aug_predictions.jsonl \
     --epoch 2 \
     --block_size 400 \
@@ -23,13 +23,15 @@ python ./code/run.py \
     --max_grad_norm 1.0 \
     --seed 123456 2>&1| tee $output_dir/aug_train.log
 
-# test
 echo "Extracting answers..."
 python evaluator/extract_answers.py \
-    -c dataset/$subset/aug_test.jsonl \
-    -o $output_dir/aug_answer.jsonl
+    -c dataset/$subset/test.jsonl \
+    -o $output_dir/answer.jsonl
+
 
 echo "Evaluating test predictions..."
 python evaluator/evaluator.py \
-    -a $output_dir/aug_answer.jsonl \
+    -a $output_dir/answer.jsonl \
     -p $output_dir/aug_predictions.jsonl > $output_dir/aug_test.log
+
+echo "Done"
