@@ -499,7 +499,7 @@ def test(args, model, tokenizer):
     model.eval()
     vecs = []
     labels = []
-    for batch in eval_dataloader:
+    for batch in tqdm(eval_dataloader):
         inputs = batch[0].to(args.device)
         p_inputs = batch[1].to(args.device)
         n_inputs = batch[2].to(args.device)
@@ -522,7 +522,9 @@ def test(args, model, tokenizer):
     indexs = []
     for example in eval_dataset.examples:
         indexs.append(example.index)
-    with open(os.path.join(args.output_dir, "predictions.jsonl"), "w") as f:
+    
+    prediction_file = os.path.join(args.output_dir, args.test_predictions_file)
+    with open(prediction_file, "w") as f:
         for index, sort_id in zip(indexs, sort_ids):
             js = {}
             js["index"] = index
@@ -747,6 +749,12 @@ def main():
     )
     parser.add_argument(
         "--server_port", type=str, default="", help="For distant debugging."
+    )
+    parser.add_argument(
+        "--test_predictions_file",
+        type=str,
+        default="predictions.jsonl",
+        help="The output file of test predictions in output_dir (jsonl).",
     )
 
     args = parser.parse_args()
