@@ -23,7 +23,6 @@ def process(
     augtype: AugType,
     dataset: list[CodeSearchNetExample],
 ) -> list[CodeSearchNetExample]:
-    dataset = dataset.copy()
 
     logging.info("Preparing data for transformation")
     id_map = {i: entry for i, entry in enumerate(dataset)}
