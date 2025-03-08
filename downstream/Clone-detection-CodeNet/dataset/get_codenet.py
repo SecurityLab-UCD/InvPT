@@ -6,6 +6,7 @@ import logging
 import os
 
 from augment_Python800 import main as augment_Python800
+from augment_Java250 import main as augment_Java250
 
 
 def process(subset: str):
@@ -20,6 +21,11 @@ def process(subset: str):
                 augment_Python800(
                     input_file_path=test_file_path,
                     ouput_file_path=aug_file_path,
+                )
+            case "Java250":
+                augment_Java250(
+                    input_file_path=test_file_path,
+                    output_file_path=aug_file_path,
                 )
             case _:
                 logging.info(f"Skipping augmentation for {subset}")
