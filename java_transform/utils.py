@@ -1,8 +1,16 @@
 from tqdm import tqdm
 from pathlib import Path
 import pandas as pd
+import os
+import subprocess
+import tempfile
+from typing import Callable
 
 DIR_PATH = Path(__file__).resolve().parent
+
+PIA_HOME = os.environ.get("PIA_HOME", ".")
+SPAT_JAR = os.path.join(PIA_HOME, "java_transform", "SPAT-linux.jar")
+JDK_LIB = os.environ.get("JDK_LIB", "/usr/lib/jvm/java-11-openjdk-amd64/lib")
 
 id_to_name = [
     "LocalVarRenaming",
@@ -29,19 +37,7 @@ id_to_name = [
 def jsonl_to_df(path, chunksize=1000):
     with open(path, "r") as file:
         # Count total lines in the file
-        total_lines = sum(1 for _ in file)
-
-    with open(path, "r") as file, tqdm(
-        total=total_lines, desc=f"reading {path}"
-    ) as pbar:
-        chunks = []
-        for chunk in pd.read_json(file, lines=True, chunksize=chunksize):
-            chunks.append(chunk)
-            pbar.update(chunksize)
-        df = pd.concat(chunks, ignore_index=True)
-        print("read complete! Here's a preview")
-        print(df.head(3))
-        return df
+        return pd.read_json(path, lines=True)
 
 
 def decompose(original_df: pd.DataFrame, code_dir: Path):
@@ -59,3 +55,58 @@ def decompose(original_df: pd.DataFrame, code_dir: Path):
         entry.code = f"class n{idstr}{{\n{entry.code}\n}}"
         with open(java_path, "w") as f:
             f.write(entry.code)
+
+
+Program = tuple[int, str]  # index, code
+
+
+def write_programs(dst_path: str, programs: list[Program]):
+    for i, p in programs:
+        dst_file_path = os.path.join(dst_path, f"p_{i}.java")
+        with open(dst_file_path, "w") as f:
+            f.write(p)
+
+
+def read_programs(src_path: str) -> list[Program]:
+    programs = []
+    for file in os.listdir(src_path):
+        with open(os.path.join(src_path, file)) as f:
+            pid = int(file.lstrip("p_").rstrip(".java"))
+            code = f.read()
+            programs.append((pid, code))
+    return programs
+
+
+def spat_caller(
+    rule_id: int, spat_path: str = SPAT_JAR, lib_path: str = JDK_LIB
+) -> Callable[[list[Program]], list[Program]]:
+    def transform_dir(input_path: str, output_path: str):
+        """Transforms all files in a directory using SPAT.
+
+        Args:
+        input_path -- the path to the directory containing the files to transform
+        output_path -- the path to save the transformed files
+        """
+        subprocess.run(
+            [
+                "java",
+                "-jar",
+                spat_path,
+                str(rule_id),
+                input_path,
+                output_path,
+                lib_path,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def transform_programs(programs: list[Program]) -> list[Program]:
+        with tempfile.TemporaryDirectory() as temp_src:
+            with tempfile.TemporaryDirectory() as temp_dst:
+                write_programs(temp_src, programs)
+                transform_dir(temp_src, temp_dst)
+                transformed = read_programs(temp_dst)
+        return transformed
+
+    return transform_programs
