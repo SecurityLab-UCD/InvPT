@@ -10,6 +10,8 @@ import random
 
 from download import get_fullname
 
+JSON_ENCODING = "utf-8"
+
 
 @dataclass
 class CodeNetProgram:
