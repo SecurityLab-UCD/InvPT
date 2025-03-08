@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from tqdm import tqdm
-from utils import jsonl_to_df, decompose, id_to_name, DIR_PATH
+from java_transform.utils import jsonl_to_df, decompose, id_to_name, DIR_PATH
 import fire
 import numpy as np
 import os
