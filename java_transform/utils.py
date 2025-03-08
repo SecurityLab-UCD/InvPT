@@ -62,16 +62,18 @@ Program = tuple[int, str]  # index, code
 
 def write_programs(dst_path: str, programs: list[Program]):
     for i, p in programs:
-        dst_file_path = os.path.join(dst_path, f"p_{i}.java")
+        class_name = f"p{i}"
+        dst_file_path = os.path.join(dst_path, f"{class_name}.java")
+        p_w_class = f"class {class_name}{{\n{p}\n}}"
         with open(dst_file_path, "w") as f:
-            f.write(p)
+            f.write(p_w_class)
 
 
 def read_programs(src_path: str) -> list[Program]:
     programs = []
     for file in os.listdir(src_path):
         with open(os.path.join(src_path, file)) as f:
-            pid = int(file.lstrip("p_").rstrip(".java"))
+            pid = int(file.lstrip("p").rstrip(".java"))
             code = f.read()
             programs.append((pid, code))
     return programs
