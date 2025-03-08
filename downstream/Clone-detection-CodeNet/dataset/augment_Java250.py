@@ -10,9 +10,15 @@ from java_transform.transform import TRANSFORMATION_MAP
 
 
 def augment_accumulatively(ps: list[Program]) -> list[Program]:
+    ps_map = {i: p for i, p in ps}
     for aug_type in TRANSFORMATION_MAP.keys():
         ps = TRANSFORMATION_MAP[aug_type](ps)
-    return ps
+        # if for all program in result, replace the original program in ps with the same id
+        for i, p in ps:
+            ps_map[i] = p
+
+    # convert the map back to list
+    return [(i, p) for i, p in ps_map.items()]
 
 
 def process(dataset: list[CodeNetProgram]) -> list[CodeNetProgram]:
