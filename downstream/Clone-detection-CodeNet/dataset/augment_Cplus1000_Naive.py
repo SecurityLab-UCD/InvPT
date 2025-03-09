@@ -15,7 +15,7 @@ JSON_ENCODING = "utf-8"
 def augment_accumulatively(j: CodeNetProgram) -> CodeNetProgram:
     code = j.code
     for aug_type in TRANSFORMATION_MAP.keys():
-        code = apply_code_transformation(False, aug_type, code).value_or(code)
+        code = apply_code_transformation(True, aug_type, code).value_or(code)
     return CodeNetProgram(label=j.label, index=j.index, code=code)
 
 
