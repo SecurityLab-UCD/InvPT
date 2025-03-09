@@ -74,8 +74,19 @@ def apply_code_transformation(aug_type: AugType, code: str) -> Maybe[str]:
     """
     Given an augmentation type and source code, return the transformed code
     """
-    ast_transformer = TRANSFORMATION_MAP[aug_type]()
-    return parse(code).map(ast_transformer.visit).map(ast.unparse)
+
+    def transformer(node: ast.AST) -> Maybe[str]:
+        ast_transformer = TRANSFORMATION_MAP[aug_type]()
+
+        # ! fix: ReverseIfElse transformation may introduce RecursionError
+        try:
+            transformed_node = ast_transformer.visit(node)
+            code = ast.unparse(transformed_node)
+        except RecursionError:
+            return Nothing
+        return Some(code)
+
+    return parse(code).bind(transformer)
 
 
 def transform_csn(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
