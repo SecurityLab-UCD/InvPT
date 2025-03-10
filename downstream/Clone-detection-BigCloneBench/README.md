@@ -3,40 +3,11 @@
 ## Getting the dataset
 ```bash
 cd dataset
-wget https://raw.githubusercontent.com/microsoft/CodeXGLUE/refs/heads/main/Code-Code/Clone-detection-BigCloneBench/dataset/data.jsonl
+python3 get_bcb.py
 ```
 
-## Task Definition
-
-Given two codes as the input, the task is to do binary classification (0/1), where 1 stands for semantic equivalence and 0 for others. Models are evaluated by F1 score.
-
-## Updates
-
-2021-9-13: We have update the evaluater script. Since it's a binary classification, we use binary F1 score instead of "macro" F1 score.
-
-## Dataset
-
-The dataset we use is [BigCloneBench](https://www.cs.usask.ca/faculty/croy/papers/2014/SvajlenkoICSME2014BigERA.pdf) and filtered following the paper [Detecting Code Clones with Graph Neural Network and Flow-Augmented Abstract Syntax Tree](https://arxiv.org/pdf/2002.08653.pdf).
-
-### Data Format
-
-1. dataset/data.jsonl is stored in jsonlines format. Each line in the uncompressed file represents one function.  One row is illustrated below.
-
-   - **func:** the function
-
-   - **idx:** index of the example
-
-2. train.txt/valid.txt/test.txt provide examples, stored in the following format:    idx1	idx2	label
-
-### Data Statistics
-
-Data statistics of the dataset are shown in the below table:
-
-|       | #Examples |
-| ----- | :-------: |
-| Train |  901,028  |
-| Dev   |  415,416  |
-| Test  |  415,416  |
+`original_data.jsonl` is the original `data.jsonl` file from the CodeXGLUE
+repository. `augmented_data.jsonl` is the augmented version.
 
 ## Evaluator
 
