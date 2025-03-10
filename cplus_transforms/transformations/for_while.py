@@ -4,6 +4,8 @@ import sys
 from cplus_transforms.transformations.ast_util import *
 import clang
 
+clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
+
 def for_while_reverser(root_node, file_code):
     return for_while_reverse(root_node, "example.cpp", file_code, [0, len(file_code)])
 

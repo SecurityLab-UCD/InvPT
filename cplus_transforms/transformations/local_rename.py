@@ -7,6 +7,8 @@ from cplus_transforms.transformations.ast_util import *
     
 generated_names = set()
 
+clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
+
 def map_num_char(i):
     i = i % 53
     if i == 0:
