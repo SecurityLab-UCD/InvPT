@@ -3,8 +3,8 @@ python modeling/train_roberta.py \
     --batch_size=256 \
     --max_steps=50000 \
     --model_name="microsoft/codebert-base" \
-    --dataset_path="data/codesearchnet_jp.jsonl" \
-    --run_name="jp_continue_50k_2e-4" \
+    --dataset_path="data/csn_jp.jsonl" \
+    --run_name="new_jp_continue_50k_2e-4" \
     --seed=0 \
     --percentage=1 \
     --gradient_accumulation_steps=1 \

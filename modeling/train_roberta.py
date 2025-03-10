@@ -33,13 +33,6 @@ def tokenize(tokenizer, example):
         max_length=256,
         return_special_tokens_mask=True,
     )
-    nl_inputs = tokenizer(
-        example["docstring"],
-        padding="max_length",
-        truncation=True,
-        max_length=256,
-        return_special_tokens_mask=True,
-    )
     return {
         "code_input_ids": code_inputs["input_ids"],
         "code_attention_mask": code_inputs["attention_mask"],
@@ -47,9 +40,6 @@ def tokenize(tokenizer, example):
         "aug_input_ids": aug_inputs["input_ids"],
         "aug_attention_mask": aug_inputs["attention_mask"],
         "aug_special_tokens_mask": aug_inputs["special_tokens_mask"],
-        "nl_input_ids": nl_inputs["input_ids"],
-        "nl_attention_mask": nl_inputs["attention_mask"],
-        "nl_special_tokens_mask": nl_inputs["special_tokens_mask"],
     }
 
 
@@ -65,7 +55,6 @@ def main(
     run_name: str = "ContraBERT",
     continue_from_pretrained: bool = False,
     percentage: float = 1,
-    use_nl: bool = False,
     learning_rate: float = 5e-5,
     resume: bool = False,
 ):
@@ -126,7 +115,6 @@ def main(
 
     trainer = ContraBERTTrainer(
         model=model,
-        use_nl=use_nl,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
@@ -153,7 +141,6 @@ if __name__ == "__main__":
     parser.add_argument("--percentage", type=float, default=1)
     parser.add_argument("--max_steps", type=int, default=100_000)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
-    parser.add_argument("--use_nl", default=False, action="store_true")
     parser.add_argument("--learning_rate", type=float, default=5e-5)
     parser.add_argument("--resume", default=False, action="store_true")
 
@@ -171,7 +158,6 @@ if __name__ == "__main__":
         percentage=args.percentage,
         max_steps=args.max_steps,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
-        use_nl=args.use_nl,
         learning_rate=args.learning_rate,
         resume=args.resume,
     )

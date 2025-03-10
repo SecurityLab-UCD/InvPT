@@ -40,18 +40,9 @@ def contra_data_collator(mlm_collator, features):
         }
         for f in features
     ]
-    nl_features = [
-        {
-            "input_ids": f["nl_input_ids"],
-            "attention_mask": f["nl_attention_mask"],
-            "special_tokens_mask": f["nl_special_tokens_mask"],
-        }
-        for f in features
-    ]
     # Apply MLM collator
     code_batch = mlm_collator(code_features)
     aug_batch = mlm_collator(aug_features)
-    nl_batch = mlm_collator(nl_features)
 
     # Combine batches
     batch = {
@@ -61,8 +52,5 @@ def contra_data_collator(mlm_collator, features):
         "aug_input_ids": aug_batch["input_ids"],
         "aug_attention_mask": aug_batch["attention_mask"],
         "aug_labels": aug_batch["labels"],
-        "nl_input_ids": nl_batch["input_ids"],
-        "nl_attention_mask": nl_batch["attention_mask"],
-        "nl_labels": nl_batch["labels"],
     }
     return batch
