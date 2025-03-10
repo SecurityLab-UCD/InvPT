@@ -26,6 +26,6 @@ python ./code/run.py \
     --seed 123456  2>&1 | tee $output_dir/train.log
 
 cp $output_dir/predictions.txt $output_dir/original_predictions.txt
-python evaluator/evaluator.py -a dataset/test.txt -p $output_dir/predictions.txt > $output_dir/test.log
+python evaluator/evaluator.py -a dataset/test.txt -p $output_dir/original_predictions.txt > $output_dir/test.log
 
 ./run_aug_test.sh $1 $2
