@@ -19,11 +19,16 @@ python3 strip.py
 ### Pre-training RoBERTa
 
 1. Install required packages:
+    a. Customize the `JDK_LIB` path used for java augmentation to your installed
+    OpenJDK
 
 ```sh
 conda create -n bert python=3.10.12
 conda activate bert
 pip install -r requirements.txt
+./set_env.sh
+conda deactivate
+conda activate bert
 ```
 
 2. Train the model
