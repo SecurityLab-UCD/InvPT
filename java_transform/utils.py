@@ -74,6 +74,7 @@ def read_programs(src_path: str) -> list[Program]:
         with open(os.path.join(src_path, file)) as f:
             pid = int(file.lstrip("p").rstrip(".java"))
             code = f.read()
+            code = "\n".join(code.splitlines()[1:-1])
             programs.append((pid, code))
     return programs
 
