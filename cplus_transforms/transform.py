@@ -53,9 +53,10 @@ def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> str:
             tmap = TRANSFORMATION_MAP_N
         ast_transformer = tmap[aug_type]
         index = clang.cindex.Index.create()
-        translation_unit = index.parse('example.cpp', args=['-std=c11'], unsaved_files=[('example.cpp', code)], options=0)
+        translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
         return ast_transformer(translation_unit.cursor, code)
     except:
+        print("Got Here")
         return Nothing
 
 
