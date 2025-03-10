@@ -7,10 +7,12 @@ from dataclasses import asdict
 import fire
 import json
 import os
+import clang
 from preprocess import CodeNetProgram
 
-JSON_ENCODING = "utf-8"
+clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
 
+JSON_ENCODING = "utf-8"
 
 def augment_accumulatively(j: CodeNetProgram) -> CodeNetProgram:
     code = j.code
