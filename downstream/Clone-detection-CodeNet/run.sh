@@ -1,6 +1,8 @@
 model_path=$1
-output_dir=$2
+save_path=$2
 subset=$3
+
+output_dir=$save_path/$subset
 
 mkdir -p $output_dir
 touch $output_dir/train.log
@@ -36,4 +38,4 @@ python evaluator/evaluator.py \
 
 
 echo "Running evaluation for augmented test set..."
-./run_aug_test.sh $model_path $output_dir $subset
+./run_aug_test.sh $model_path $save_path $subset
