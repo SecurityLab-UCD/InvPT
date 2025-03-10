@@ -1,5 +1,6 @@
 import json
 import os
+from java_transform import TRANSFORMATION_MAP
 from java_transform.utils import spat_caller
 from modeling.dataloader import CodeSearchNetExample, AugType
 from multiprocessing import cpu_count
@@ -7,16 +8,6 @@ from pathos.multiprocessing import ProcessingPool as Pool
 import argparse
 from tqdm import tqdm
 import logging
-
-
-TRANSFORMATION_MAP = {
-    AugType.LOCALVARRENAMING: spat_caller(0),
-    AugType.FOR2WHILE: spat_caller(1),
-    AugType.WHILE2FOR: spat_caller(2),
-    AugType.REVERSEIFELSE: spat_caller(3),
-    AugType.PP2ADDASSIGNMENT: spat_caller(6),
-    AugType.ADDASSIGNMENT2EQUALASSIGNMENT: spat_caller(7),
-}
 
 
 def process(
