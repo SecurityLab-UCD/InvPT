@@ -23,6 +23,7 @@ from functools import partial
 import clang
 from collections.abc import Callable
 
+clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
 
 TRANSFORMATION_MAP_N: dict[AugType, Callable] = {
     AugType.LOCALVARRENAMING: local_renamer,

@@ -4,6 +4,8 @@ from cplus_transforms.transformations.ast_util import *
 import sys
 import clang
 
+clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
+
 def add_assignmenter(root_node, file_code: str):
     modifications = []
     source_code_lines = file_code.splitlines(keepends=True)
