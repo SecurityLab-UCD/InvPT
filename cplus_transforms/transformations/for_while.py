@@ -37,7 +37,7 @@ def for_while_reverse(root_node, source_file, source_code, start_end):
         offset = get_offset(change_node[0], source_code)
         source_code = extract_source_code(change_node[0], source_code)
         hidden_name = generate_hidden_name(source_code)
-        print(len(source_code))
+        # print(len(source_code))
         replace_dictionary[hidden_name] = change_node[1]
         file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
         # print("File Code Here 1: ", file_code)
