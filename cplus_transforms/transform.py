@@ -56,7 +56,7 @@ def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> str:
         translation_unit = index.parse('example.cpp', args=['-std=c11'], unsaved_files=[('example.cpp', code)], options=0)
         return ast_transformer(translation_unit.cursor, code)
     except:
-        return None
+        return Nothing
 
 
 def transform(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
