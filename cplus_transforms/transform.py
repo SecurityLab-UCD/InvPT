@@ -47,13 +47,16 @@ def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> str:
     """
     Given an augmentation type and source code, return the transformed code
     """
-    tmap = TRANSFORMATION_MAP
-    if naive:
-        tmap = TRANSFORMATION_MAP_N
-    ast_transformer = tmap[aug_type]
-    index = clang.cindex.Index.create()
-    translation_unit = index.parse('example.cpp', args=['-std=c11'], unsaved_files=[('example.cpp', code)], options=0)
-    return ast_transformer(translation_unit.cursor, code)
+    try:
+        tmap = TRANSFORMATION_MAP
+        if naive:
+            tmap = TRANSFORMATION_MAP_N
+        ast_transformer = tmap[aug_type]
+        index = clang.cindex.Index.create()
+        translation_unit = index.parse('example.cpp', args=['-std=c11'], unsaved_files=[('example.cpp', code)], options=0)
+        return ast_transformer(translation_unit.cursor, code)
+    except:
+        return None
 
 
 def transform(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
