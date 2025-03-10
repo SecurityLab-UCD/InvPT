@@ -64,7 +64,7 @@ def local_rename(root_node, source_file, file_code, start_end):
         offset = get_character_offset(file_code, node.location.line, node.location.column)
         hidden_name = function_name_changes[node.spelling]
         file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
-        print(file_code)
+        # print(file_code)
 
     length_sorted = list(function_actual_name.keys())
     length_sorted.sort(reverse=True,key=len)

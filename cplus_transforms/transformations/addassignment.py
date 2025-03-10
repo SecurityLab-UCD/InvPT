@@ -57,7 +57,7 @@ def add_assignment(root_node, source_file, source_code_lines, modifications):
         edited = generate_hidden_name(structure_name)
         i += 1
         replace_dictionary[edited] = f"(({variable_name})=({variable_name})+({number}))"
-        print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
+        # print(f"Expression {structure_name} will be renamed to {replace_dictionary[edited]}")
 
         # Update the source line to put the placeholder name
         line = source_code_lines[line_number - 1]
