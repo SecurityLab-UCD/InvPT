@@ -43,7 +43,7 @@ TRANSFORMATION_MAP: dict[AugType, Callable] = {
     AugType.FOR2WHILE: for_while_reverser,
 }
 
-def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> str:
+def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> Maybe[str]:
     """
     Given an augmentation type and source code, return the transformed code
     """
@@ -54,9 +54,9 @@ def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> str:
         ast_transformer = tmap[aug_type]
         index = clang.cindex.Index.create()
         translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
-        return ast_transformer(translation_unit.cursor, code)
+        return Some(ast_transformer(translation_unit.cursor, code))
     except:
-        print("Got Here")
+        print("Error Occured")
         return Nothing
 
 
