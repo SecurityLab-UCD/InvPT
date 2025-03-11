@@ -1,18 +1,17 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
 import sys
-from cplus_transforms.transformations.ast_util import *
+from cpp_transforms.transformations.ast_util import extract_source_code, OUTPUT_USING_EXPRESSION_TYPES, generate_hidden_name
 import clang
 
 clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
 
-def replace_short_adder(root_node, file_code: str):
-    modifications = []
+def replace_short_adder(root_node: Index, file_code: str) -> str:
     source_code_lines = file_code.splitlines(keepends=True)
-    replace_short_add(root_node, "example.cpp", source_code_lines, modifications)
+    replace_short_add(root_node, "example.cpp", source_code_lines)
     return "".join(source_code_lines)
 
-def replace_short_add(root_node, source_file, source_code_lines, modifications):
+def replace_short_add(root_node: Index, source_file: str, source_code_lines: list[str]) -> None:
     # File code
     file_code = "".join(source_code_lines)
     # Collect all nodes that have function names
@@ -58,13 +57,13 @@ def replace_short_add(root_node, source_file, source_code_lines, modifications):
         for key in replace_dictionary.keys():
             source_code_lines[i] = source_code_lines[i].replace(key, replace_dictionary[key])
 
-def main(code):
+def main(code: str) -> None:
     index = clang.cindex.Index.create()
     translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
     print(replace_short_adder(translation_unit.cursor, code))
 
 if __name__ == "__main__":
-    code = code = """
+    test_code = """
 #include <stdio.h>
 
 int main() {
@@ -72,5 +71,5 @@ int main() {
     x++;
 }
 """
-    main(code)
+    main(test_code)
 
