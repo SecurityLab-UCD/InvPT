@@ -1,13 +1,13 @@
 import os
 from dataclasses import asdict
-from cplus_transforms.transformations.addassignment import add_assignmenter
-from cplus_transforms.transformations.local_rename import local_renamer
-from cplus_transforms.transformations.p2add import replace_short_adder
-from cplus_transforms.transformations.for_while import for_while_reverser
-from cplus_transforms.transformations.while_for import while_for_reverser
-from cplus_transforms.transformations.if_else_transform import if_else_reverser
-from cplus_transforms.transformations.addassignment_cplus import add_assignmenter_cplus
-from cplus_transforms.transformations.p2add_cplus import replace_short_adder_cplus
+from cpp_transforms.transformations.addassignment import add_assignmenter
+from cpp_transforms.transformations.local_rename import local_renamer
+from cpp_transforms.transformations.p2add import replace_short_adder
+from cpp_transforms.transformations.for_while import for_while_reverser
+from cpp_transforms.transformations.while_for import while_for_reverser
+from cpp_transforms.transformations.if_else_transform import if_else_reverser
+from cpp_transforms.transformations.addassignment_cplus import add_assignmenter_cplus
+from cpp_transforms.transformations.p2add_cplus import replace_short_adder_cplus
 from modeling.dataloader import CodeSearchNetExample, AugType
 import ast
 import json
@@ -21,9 +21,10 @@ from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
 import clang
+import clang.cindex
 from collections.abc import Callable
 
-clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
+clang.cindex.Config.set_library_file("/usr/lib/llvm-15/lib/libclang.so.1")
 
 TRANSFORMATION_MAP_N: dict[AugType, Callable] = {
     AugType.LOCALVARRENAMING: local_renamer,
@@ -43,6 +44,7 @@ TRANSFORMATION_MAP: dict[AugType, Callable] = {
     AugType.FOR2WHILE: for_while_reverser,
 }
 
+
 def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> Maybe[str]:
     """
     Given an augmentation type and source code, return the transformed code
@@ -53,7 +55,9 @@ def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> Mayb
             tmap = TRANSFORMATION_MAP_N
         ast_transformer = tmap[aug_type]
         index = clang.cindex.Index.create()
-        translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
+        translation_unit = index.parse(
+            "example.cpp", unsaved_files=[("example.cpp", code)], options=0
+        )
         return Some(ast_transformer(translation_unit.cursor, code))
     except:
         print("Error Occured")
