@@ -1,15 +1,15 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
 import sys
-from cplus_transforms.transformations.ast_util import extract_source_code, get_node_char_positions, get_offset, generate_hidden_name
+from cpp_transforms.transformations.ast_util import extract_source_code, get_node_char_positions, get_offset, generate_hidden_name
 import clang
 
 clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
 
-def for_while_reverser(root_node, file_code):
+def for_while_reverser(root_node: Index, file_code: str) -> str:
     return for_while_reverse(root_node, "example.cpp", file_code, [0, len(file_code)])
 
-def for_while_reverse(root_node, source_file, source_code, start_end):
+def for_while_reverse(root_node: Index, source_file: str, source_code: str, start_end: tuple[int, int]) -> str:
     # Collect all nodes that have IF_STMT
     change_nodes = []
     to_visit = deque()
@@ -54,13 +54,13 @@ def for_while_reverse(root_node, source_file, source_code, start_end):
 
     return file_code
 
-def main(code):
+def main(code: str) -> None:
     index = clang.cindex.Index.create()
     translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
     print(for_while_reverser(translation_unit.cursor, code))
 
 if __name__ == "__main__":
-    code = code = """
+    test_code = """
 #include <stdio.h>
 
 int main() {
@@ -69,5 +69,5 @@ int main() {
     }
 }
 """
-    main(code)
+    main(test_code)
 

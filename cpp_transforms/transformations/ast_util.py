@@ -1,13 +1,13 @@
-from clang.cindex import CursorKind
+from clang.cindex import CursorKind, Index
 
 # Generates a unique hidden name to be replaced later
-def generate_hidden_name(str):
-    replaced_char = chr(ord(str[0]) - ord('a') + 1138)
-    random_name = replaced_char + str[1:]
+def generate_hidden_name(org_str: str) -> str:
+    replaced_char = chr(ord(org_str[0]) - ord('a') + 1138)
+    random_name = replaced_char + org_str[1:]
     return random_name
 
 # Gives the character offset of a certain line and column position given the file
-def get_character_offset(file_code, line, column):
+def get_character_offset(file_code: str, line: int, column: int) -> int:
     """Convert line and column into absolute character offset."""
     # with open(file_path, "r", encoding="utf-8") as f:
     #     lines = f.readlines()
@@ -18,11 +18,11 @@ def get_character_offset(file_code, line, column):
     return char_pos
 
 # Gets the starting character offset of a specific AST node
-def get_offset(node, file_code):
+def get_offset(node: Index, file_code: str) -> int:
     return get_character_offset(file_code, node.extent.start.line, node.extent.start.column)
 
 # Function to get start and end character positions of a node
-def get_node_char_positions(node, file_code):
+def get_node_char_positions(node: Index, file_code: str) -> tuple[int, int]:
     """Returns (start_offset, end_offset) of a node."""
     if node.location.file and node.extent.start.file:  # Ensure valid locations
         # print(node.extent.start)
@@ -32,7 +32,7 @@ def get_node_char_positions(node, file_code):
     return [None, None]
 
 # Gives back the source code for the AST node
-def extract_source_code(node, file_code):
+def extract_source_code(node: Index, file_code: str) -> str:
     """Extract the source code for the node."""
     start_end = get_node_char_positions(node, file_code)
     return file_code[start_end[0]:start_end[1]]

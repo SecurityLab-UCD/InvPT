@@ -3,13 +3,13 @@ import clang
 from collections import deque
 import random
 import sys
-from cplus_transforms.transformations.ast_util import generate_hidden_name, get_character_offset
+from cpp_transforms.transformations.ast_util import generate_hidden_name, get_character_offset
     
 generated_names = set()
 
 clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
 
-def map_num_char(i):
+def map_num_char(i: int) -> str:
     i = i % 53
     if i == 0:
         return '_'
@@ -18,7 +18,7 @@ def map_num_char(i):
     else:
         return chr(i + ord('A') - 27)
 
-def generate_random_name(seed = 2023):
+def generate_random_name(seed: int = 2023) -> str:
     global generated_names
     generator = random.Random()
     generator.seed(seed)
@@ -26,15 +26,15 @@ def generate_random_name(seed = 2023):
     random_name = ""
     while random_name in generated_names or random_name == "":
         random_name = ""
-        for i in range(length):
+        for _ in range(length):
             random_name += map_num_char(generator.randint(0, 52))
     generated_names.add(random_name)
     return random_name
 
-def local_renamer(root_node, file_code):
-    return local_rename(root_node, "example.cpp", file_code, [0, len(file_code)])
+def local_renamer(root_node: Index, file_code: str) -> str:
+    return local_rename(root_node, "example.cpp", file_code)
 
-def local_rename(root_node, source_file, file_code, start_end):
+def local_rename(root_node: Index, source_file: str, file_code: str) -> str:
     # Collect all nodes that have function names
     i = 0
     function_name_changes = {}
@@ -74,13 +74,13 @@ def local_rename(root_node, source_file, file_code, start_end):
 
     return file_code
 
-def main(code):
+def main(code: str) -> None:
     index = clang.cindex.Index.create()
     translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
     print(local_renamer(translation_unit.cursor, code))
 
 if __name__ == "__main__":
-    code = code = """
+    test_code = """
 #include <stdio.h>
 
 int main() {
@@ -90,5 +90,5 @@ int main() {
     return 0;
 }
 """
-    main(code)
+    main(test_code)
 
