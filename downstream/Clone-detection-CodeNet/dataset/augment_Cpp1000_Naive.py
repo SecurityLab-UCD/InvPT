@@ -1,4 +1,4 @@
-from cplus_transforms.transform import apply_code_transformation, TRANSFORMATION_MAP
+from cpp_transforms.transform import apply_code_transformation, TRANSFORMATION_MAP
 from modeling.dataloader import AugType
 from returns.maybe import Maybe, Nothing, Some
 from multiprocessing import cpu_count
@@ -14,10 +14,11 @@ clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
 
 JSON_ENCODING = "utf-8"
 
+
 def augment_accumulatively(j: CodeNetProgram) -> CodeNetProgram:
     code = j.code
     for aug_type in TRANSFORMATION_MAP.keys():
-        code = apply_code_transformation(False, aug_type, code).value_or(code)
+        code = apply_code_transformation(True, aug_type, code).value_or(code)
     return CodeNetProgram(label=j.label, index=j.index, code=code)
 
 
