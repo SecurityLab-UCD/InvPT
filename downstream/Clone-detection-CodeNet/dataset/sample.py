@@ -12,7 +12,7 @@ def sample_id_json(json_array, percentage=16):
     """
     pids = list(set(p["label"] for p in json_array))
     sample_size = max(1, int(len(pids) * (percentage / 100)))
-    sampled_pids = random.sample(json_array, sample_size)
+    sampled_pids = random.sample(pids, sample_size)
 
     final_json = []
     for p in json_array:
