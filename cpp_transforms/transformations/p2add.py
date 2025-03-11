@@ -49,9 +49,6 @@ def replace_short_add(root_node: Index, source_file: str, source_code_lines: lis
         modified_line = line[:column_number - 1] + edited + line[column_number + len(structure_name) - 1:]
         source_code_lines[line_number - 1] = modified_line
 
-        # Store modification details (optional logging or rollback)
-        modifications.append((line_number, structure_name))
-
     # Replace placeholder names with actual names
     for i in range(len(source_code_lines)):
         for key in replace_dictionary.keys():
