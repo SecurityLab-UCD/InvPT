@@ -3,7 +3,7 @@ import clang
 from collections import deque
 import random
 import sys
-from cplus_transforms.transformations.ast_util import *
+from cplus_transforms.transformations.ast_util import generate_hidden_name, get_character_offset
     
 generated_names = set()
 
