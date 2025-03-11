@@ -2,7 +2,7 @@ import json
 import random
 import argparse
 
-def sample_json(json_array, percentage=16):
+def sample_id_json(json_array, percentage=16):
     """
     Randomly samples a given percentage of JSON objects from the input array.
     
@@ -10,8 +10,16 @@ def sample_json(json_array, percentage=16):
     :param percentage: Percentage of objects to sample (default: 16%)
     :return: List of sampled JSON objects
     """
-    sample_size = max(1, int(len(json_array) * (percentage / 100)))
-    return random.sample(json_array, sample_size)
+    pids = list(set(p["label"] for p in json_array))
+    sample_size = max(1, int(len(pids) * (percentage / 100)))
+    sampled_pids = random.sample(json_array, sample_size)
+
+    final_json = []
+    for p in json_array:
+        if p["label"] in sampled_pids:
+            final_json.append(p)
+
+    return final_json
 
 def load_jsonl(file_path):
     """
@@ -43,7 +51,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     json_array = load_jsonl(args.input_file)
-    sampled_data = sample_json(json_array, args.percentage)
+    sampled_data = sample_id_json(json_array, args.percentage)
     save_jsonl(args.output_file, sampled_data)
     
     print(f"Sampled data saved to {args.output_file}")
