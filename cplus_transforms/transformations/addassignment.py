@@ -1,6 +1,6 @@
 from clang.cindex import Index, CursorKind
 from collections import deque
-from cplus_transforms.transformations.ast_util import *
+from cplus_transforms.transformations.ast_util import extract_source_code, NUMBER_TYPES, generate_hidden_name
 import sys
 import clang
 
