@@ -5,20 +5,7 @@ from multiprocessing import cpu_count
 from preprocess import CodeNetProgram, JSON_ENCODING
 from pathos.multiprocessing import ProcessingPool as Pool
 import logging
-from java_transform.utils import Program
-from java_transform.transform import TRANSFORMATION_MAP
-
-
-def augment_accumulatively(ps: list[Program]) -> list[Program]:
-    ps_map = {i: p for i, p in ps}
-    for aug_type in TRANSFORMATION_MAP.keys():
-        ps = TRANSFORMATION_MAP[aug_type](ps)
-        # if for all program in result, replace the original program in ps with the same id
-        for i, p in ps:
-            ps_map[i] = p
-
-    # convert the map back to list
-    return [(i, p) for i, p in ps_map.items()]
+from java_transform import augment_accumulatively
 
 
 def process(dataset: list[CodeNetProgram]) -> list[CodeNetProgram]:

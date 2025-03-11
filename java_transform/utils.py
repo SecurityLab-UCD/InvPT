@@ -36,7 +36,6 @@ id_to_name = [
 
 def jsonl_to_df(path, chunksize=1000):
     with open(path, "r") as file:
-        # Count total lines in the file
         return pd.read_json(path, lines=True)
 
 
@@ -75,6 +74,7 @@ def read_programs(src_path: str) -> list[Program]:
         with open(os.path.join(src_path, file)) as f:
             pid = int(file.lstrip("p").rstrip(".java"))
             code = f.read()
+            code = "\n".join(code.splitlines()[1:-1])
             programs.append((pid, code))
     return programs
 
