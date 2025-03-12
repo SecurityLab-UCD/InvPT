@@ -1,22 +1,27 @@
-from clang.cindex import Index, CursorKind
+import clang.cindex
+from clang.cindex import Index, CursorKind, Cursor
 import clang
 from collections import deque
 import random
 import sys
-from cpp_transforms.transformations.ast_util import generate_hidden_name, get_character_offset
-    
-generated_names = set()
+from cpp_transforms.transformations.ast_util import (
+    generate_hidden_name,
+    get_character_offset,
+)
+from cpp_transforms.transformations.cursor_util import is_var_decl, is_decl_ref_stmt
 
-clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
+generated_names: set[str] = set()
+
 
 def map_num_char(i: int) -> str:
     i = i % 53
     if i == 0:
-        return '_'
+        return "_"
     elif i <= 26:
-        return chr(i + ord('a') - 1)
+        return chr(i + ord("a") - 1)
     else:
-        return chr(i + ord('A') - 27)
+        return chr(i + ord("A") - 27)
+
 
 def generate_random_name(seed: int = 2023) -> str:
     global generated_names
@@ -31,16 +36,18 @@ def generate_random_name(seed: int = 2023) -> str:
     generated_names.add(random_name)
     return random_name
 
-def local_renamer(root_node: Index, file_code: str) -> str:
+
+def local_renamer(root_node: Cursor, file_code: str) -> str:
     return local_rename(root_node, "example.cpp", file_code)
 
-def local_rename(root_node: Index, source_file: str, file_code: str) -> str:
+
+def local_rename(root_node: Cursor, source_file: str, file_code: str) -> str:
     # Collect all nodes that have function names
     i = 0
     function_name_changes = {}
     function_actual_name = {}
     change_nodes = []
-    to_visit = deque()
+    to_visit: deque[Cursor] = deque()
     to_visit.appendleft(root_node)
     while len(to_visit) > 0:
         curr_visit = to_visit.pop()
@@ -48,36 +55,44 @@ def local_rename(root_node: Index, source_file: str, file_code: str) -> str:
             to_visit.appendleft(child)
         if source_file not in str(curr_visit.location):
             continue
-        if curr_visit.kind == CursorKind.VAR_DECL:
+        if is_var_decl(curr_visit):
             if curr_visit.spelling not in function_name_changes:
                 temp_name = generate_hidden_name(curr_visit.spelling)
                 function_name_changes[curr_visit.spelling] = temp_name
                 function_actual_name[temp_name] = generate_random_name(i)
                 i += 1
             change_nodes.append(curr_visit)
-        if curr_visit.kind == CursorKind.DECL_REF_EXPR:
+        if is_decl_ref_stmt(curr_visit):
             if curr_visit.spelling in function_name_changes:
                 change_nodes.append(curr_visit)
 
     # Edit all the function names
     for node in change_nodes:
-        offset = get_character_offset(file_code, node.location.line, node.location.column)
+        offset = get_character_offset(
+            file_code, node.location.line, node.location.column
+        )
         hidden_name = function_name_changes[node.spelling]
-        file_code = file_code[:offset] + hidden_name + file_code[offset + len(hidden_name):]
+        file_code = (
+            file_code[:offset] + hidden_name + file_code[offset + len(hidden_name) :]
+        )
         # print(file_code)
 
     length_sorted = list(function_actual_name.keys())
-    length_sorted.sort(reverse=True,key=len)
+    length_sorted.sort(reverse=True, key=len)
     # Replace placeholder names with actual names
     for key in length_sorted:
         file_code = file_code.replace(key, function_actual_name[key])
 
     return file_code
 
+
 def main(code: str) -> None:
     index = clang.cindex.Index.create()
-    translation_unit = index.parse('example.cpp', unsaved_files=[('example.cpp', code)], options=0)
+    translation_unit = index.parse(
+        "example.cpp", unsaved_files=[("example.cpp", code)], options=0
+    )
     print(local_renamer(translation_unit.cursor, code))
+
 
 if __name__ == "__main__":
     test_code = """
@@ -91,4 +106,3 @@ int main() {
 }
 """
     main(test_code)
-
