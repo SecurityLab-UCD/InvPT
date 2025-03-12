@@ -43,7 +43,7 @@ def off_diagonal(x):
     return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
 
 
-class ContraBERTTrainer(Trainer):
+class ContrastiveTrainer(Trainer):
     def __init__(self, alpha=1.0, temperature=0.07, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.alpha = alpha

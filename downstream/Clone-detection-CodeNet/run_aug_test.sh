@@ -1,6 +1,8 @@
 model_path=$1
-output_dir=$2
+save_path=$2
 subset=$3
+
+output_dir=$save_path/$subset
 
 mkdir -p $output_dir
 touch $output_dir/aug_train.log

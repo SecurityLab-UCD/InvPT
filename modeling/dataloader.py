@@ -43,6 +43,7 @@ def contra_data_collator(mlm_collator, features):
     # Apply MLM collator
     code_batch = mlm_collator(code_features)
     aug_batch = mlm_collator(aug_features)
+
     # Combine batches
     batch = {
         "code_input_ids": code_batch["input_ids"],
