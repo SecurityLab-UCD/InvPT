@@ -1,20 +1,17 @@
 import os
 from dataclasses import asdict
-from cpp_transforms.transformations.addassignment import add_assignmenter
-from cpp_transforms.transformations.local_rename import local_renamer
-from cpp_transforms.transformations.p2add import replace_short_adder
-from cpp_transforms.transformations.for_while import for_while_reverser
-from cpp_transforms.transformations.while_for import while_for_reverser
-from cpp_transforms.transformations.if_else_transform import if_else_reverser
-from cpp_transforms.transformations.addassignment_cplus import add_assignmenter_cplus
-from cpp_transforms.transformations.p2add_cplus import replace_short_adder_cplus
 from modeling.dataloader import CodeSearchNetExample, AugType
-import ast
+from cpp_transforms.transformations import (
+    local_renamer,
+    for_while_reverser,
+    while_for_reverser,
+    if_else_reverser,
+    add_assignmenter,
+    replace_short_adder,
+)
 import json
-import subprocess
-from returns.maybe import Maybe, Nothing, Some
+from returns.result import ResultE, safe, Success, Failure
 from returns.pointfree import bind
-import tempfile
 import argparse
 from typing import Type
 from multiprocessing import cpu_count
@@ -22,11 +19,11 @@ from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
 import clang
 import clang.cindex
+from clang.cindex import Index as CursorIndex, Cursor
 from collections.abc import Callable
 
-clang.cindex.Config.set_library_file("/usr/lib/llvm-15/lib/libclang.so.1")
 
-TRANSFORMATION_MAP_N: dict[AugType, Callable] = {
+TRANSFORMATION_MAP: dict[AugType, Callable[[Cursor, str], str]] = {
     AugType.LOCALVARRENAMING: local_renamer,
     AugType.REVERSEIFELSE: if_else_reverser,
     AugType.ADDASSIGNMENT2EQUALASSIGNMENT: add_assignmenter,
@@ -35,61 +32,47 @@ TRANSFORMATION_MAP_N: dict[AugType, Callable] = {
     AugType.FOR2WHILE: for_while_reverser,
 }
 
-TRANSFORMATION_MAP: dict[AugType, Callable] = {
-    AugType.LOCALVARRENAMING: local_renamer,
-    AugType.REVERSEIFELSE: if_else_reverser,
-    AugType.ADDASSIGNMENT2EQUALASSIGNMENT: add_assignmenter_cplus,
-    AugType.PP2ADDASSIGNMENT: replace_short_adder_cplus,
-    AugType.WHILE2FOR: while_for_reverser,
-    AugType.FOR2WHILE: for_while_reverser,
-}
 
-
-def apply_code_transformation(naive: bool, aug_type: AugType, code: str) -> Maybe[str]:
+@safe
+def apply_code_transformation(aug_type: AugType, code: str) -> str:
     """
     Given an augmentation type and source code, return the transformed code
     """
-    try:
-        tmap = TRANSFORMATION_MAP
-        if naive:
-            tmap = TRANSFORMATION_MAP_N
-        ast_transformer = tmap[aug_type]
-        index = clang.cindex.Index.create()
-        translation_unit = index.parse(
-            "example.cpp", unsaved_files=[("example.cpp", code)], options=0
-        )
-        return Some(ast_transformer(translation_unit.cursor, code))
-    except:
-        print("Error Occured")
-        return Nothing
+    ast_transformer = TRANSFORMATION_MAP[aug_type]
+    index = CursorIndex.create()
+    translation_unit = index.parse(
+        "example.cpp", unsaved_files=[("example.cpp", code)], options=0
+    )
+    return ast_transformer(translation_unit.cursor, code)
 
 
-def transform(csn_example: CodeSearchNetExample) -> Maybe[CodeSearchNetExample]:
+def transform(csn_example: CodeSearchNetExample) -> ResultE[CodeSearchNetExample]:
     """
     Apply the ast.NodeTransformer class on the source code and return the transformed code
     """
-    csn_example.transformed = apply_code_transformation(
-        csn_example.aug_type, csn_example.code
+
+    def add_transformed(transformed_code: str) -> CodeSearchNetExample:
+        csn_example.transformed = transformed_code
+        return csn_example
+
+    assert csn_example.aug_type is not None
+    return apply_code_transformation(csn_example.aug_type, csn_example.code).map(
+        add_transformed
     )
-    return csn_example
 
 
-def load_csn_example(augtype: AugType, json_line: str) -> Maybe[CodeSearchNetExample]:
+@safe
+def load_csn_example(augtype: AugType, json_line: str) -> CodeSearchNetExample:
     data = json.loads(json_line)
-    try:
-        csn_example = CodeSearchNetExample(
-            repo=data["repo"],
-            func_name=data["func_name"],
-            language=data["language"],
-            code=data["code"],
-            docstring=data["docstring"],
-            transformed="",
-            aug_type=augtype,
-        )
-    except KeyError:
-        return Nothing
-
-    return Some(csn_example)
+    return CodeSearchNetExample(
+        repo=data["repo"],
+        func_name=data["func_name"],
+        language=data["language"],
+        code=data["code"],
+        docstring=data["docstring"],
+        transformed="",
+        aug_type=augtype,
+    )
 
 
 def main(
@@ -115,9 +98,9 @@ def main(
     with open(output_file_path, "w") as f:
         for transformed_csn in transformed_data:
             match transformed_csn:
-                case Some(csn):
+                case Success(csn):
                     f.write(json.dumps(asdict(csn)) + "\n")
-                case Nothing:
+                case Failure(e):
                     pass
 
     print("\nFinished Transformed!\n\n")
