@@ -26,9 +26,17 @@ python3 strip.py
 conda create -n bert python=3.10.12
 conda activate bert
 pip install -r requirements.txt
+```
+
+And load the environment variables:
+
+```sh
 ./set_env.sh
 conda deactivate
 conda activate bert
+
+# or
+source env.sh
 ```
 
 2. Train the model
