@@ -20,5 +20,5 @@ jsonlines==4.0.0
 returns[compatible-mypy]>=0.23.0
 pytest>=8.0.0 
 pathos>0.3
-clang==15.0.7
-libclang
+clang==14.0
+libclang==14.0.1
