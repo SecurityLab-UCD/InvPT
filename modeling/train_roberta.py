@@ -9,7 +9,7 @@ from transformers import (
 )
 from datasets import load_dataset, DatasetDict
 import fire
-from model import ContraBERTTrainer
+from model import ContrastiveTrainer
 from dataloader import contra_data_collator
 
 from common import DEVICE, set_seed
@@ -113,7 +113,7 @@ def main(
         load_best_model_at_end=True,
     )
 
-    trainer = ContraBERTTrainer(
+    trainer = ContrastiveTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
