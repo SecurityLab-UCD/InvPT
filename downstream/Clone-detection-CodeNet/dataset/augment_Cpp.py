@@ -11,14 +11,13 @@ import clang
 from preprocess import CodeNetProgram
 
 
-clang.cindex.Config.set_library_file('/usr/lib/llvm-15/lib/libclang.so.1')
-
 JSON_ENCODING = "utf-8"
+
 
 def augment_accumulatively(j: CodeNetProgram) -> CodeNetProgram:
     code = j.code
     for aug_type in TRANSFORMATION_MAP.keys():
-        code = apply_code_transformation(False, aug_type, code).value_or(code)
+        code = apply_code_transformation(aug_type, code).value_or(code)
     return CodeNetProgram(label=j.label, index=j.index, code=code)
 
 
@@ -29,7 +28,7 @@ def validate_jsonl_path(path: str):
 
 def main(
     input_file_path: str,
-    ouput_file_path: str = "augmented_C++1000_test.jsonl",
+    output_file_path: str = "augmented_C++1000_test.jsonl",
     nproc: int = cpu_count(),
 ):
     validate_jsonl_path(input_file_path)
@@ -41,11 +40,11 @@ def main(
         augmented_dataset = pool.map(augment_accumulatively, all_test_json)
         augmented_jsonl = pool.map(lambda j: json.dumps(asdict(j)), augmented_dataset)
 
-    with open(ouput_file_path, "w", encoding=JSON_ENCODING) as f:
+    with open(output_file_path, "w", encoding=JSON_ENCODING) as f:
         for aj in augmented_jsonl:
             f.write(aj + "\n")
 
-    print(f"Successfully added transformed data to {ouput_file_path}")
+    print(f"Successfully added transformed data to {output_file_path}")
 
 
 if __name__ == "__main__":
