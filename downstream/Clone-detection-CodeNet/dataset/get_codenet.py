@@ -7,6 +7,7 @@ import os
 
 from augment_Python800 import main as augment_Python800
 from augment_Java250 import main as augment_Java250
+from augment_Cpp import main as augment_Cpp
 
 
 def process(subset: str):
@@ -24,6 +25,11 @@ def process(subset: str):
                 )
             case "Java250":
                 augment_Java250(
+                    input_file_path=test_file_path,
+                    output_file_path=aug_file_path,
+                )
+            case "C++1000" | "C++1400":
+                augment_Cpp(
                     input_file_path=test_file_path,
                     output_file_path=aug_file_path,
                 )

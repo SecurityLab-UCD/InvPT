@@ -26,6 +26,10 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# .cpp files used for testing
+*.cpp
+cplus_transforms/*.cpp
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -170,3 +174,17 @@ wandb/
 *.tar.gz
 **/ProgramData/*
 **/raw/*
+
+/src/dataset/*
+data/
+saved_models/
+saved_models
+wandb/
+*.json
+*.jsonl
+*.tar.gz
+**/ProgramData/*
+**/raw/*
+example.cpp
+cplus_transforms/example.cpp
+cplus_transforms/traverse.py
