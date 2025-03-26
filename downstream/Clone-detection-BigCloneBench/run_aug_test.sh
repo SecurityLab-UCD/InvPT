@@ -8,7 +8,6 @@ cp dataset/augmented_data.jsonl dataset/data.jsonl
 python ./code/run.py \
     --output_dir=$output_dir \
     --model_type=roberta \
-    --tokenizer_name=microsoft/codebert-base \
     --model_name_or_path=$model_path \
     --do_test \
     --train_data_file=./dataset/train.txt \

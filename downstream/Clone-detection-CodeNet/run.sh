@@ -10,7 +10,6 @@ touch $output_dir/train.log
 python ./code/run.py \
     --output_dir=$output_dir \
     --model_type=roberta \
-    --config_name=microsoft/codebert-base \
     --model_name_or_path=$model_path \
     --tokenizer_name=roberta-base \
     --do_train \
