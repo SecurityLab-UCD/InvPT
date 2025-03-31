@@ -37,6 +37,9 @@ def main(nproc: int = cpu_count()):
         num_proc=nproc,
     )
 
+    print("saving dataset")
+    save_dataset(dataset, "raw_csn.jsonl")
+
     print("processing Python")
     py_dataset = dataset.filter(lambda x: x["language"] == "python")
     save_dataset(py_dataset, "raw_csn_py.jsonl")
