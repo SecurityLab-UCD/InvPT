@@ -522,7 +522,7 @@ def test(args, model, tokenizer):
     indexs = []
     for example in eval_dataset.examples:
         indexs.append(example.index)
-    
+
     prediction_file = os.path.join(args.output_dir, args.test_predictions_file)
     with open(prediction_file, "w") as f:
         for index, sort_id in zip(indexs, sort_ids):
@@ -834,7 +834,7 @@ def main():
     )
     config.num_labels = 1
     tokenizer = tokenizer_class.from_pretrained(
-        args.tokenizer_name,
+        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
