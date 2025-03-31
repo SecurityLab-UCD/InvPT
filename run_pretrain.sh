@@ -2,9 +2,9 @@
 python modeling/train_roberta.py \
     --batch_size=256 \
     --max_steps=50000 \
-    --model_name="microsoft/codebert-base" \
+    --model_name="microsoft/graphcodebert-base" \
     --dataset_path="data/csn_jp.jsonl" \
-    --run_name="new_jp_continue_50k_2e-4" \
+    --run_name="GraphCodeBERT_JP" \
     --seed=0 \
     --percentage=1 \
     --gradient_accumulation_steps=1 \
