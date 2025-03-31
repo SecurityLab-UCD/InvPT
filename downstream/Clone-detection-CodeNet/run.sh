@@ -11,6 +11,7 @@ python ./code/run.py \
     --output_dir=$output_dir \
     --model_type=roberta \
     --model_name_or_path=$model_path \
+    --tokenizer_name=roberta-base \
     --do_train \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
