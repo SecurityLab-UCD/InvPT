@@ -1,4 +1,5 @@
 export CUDA_VISIBLE_DEVICES=4,5,6,7 
+export WANDB_PROJECT="PIA"
 
 # stage 1
 python modeling/train_stage1.py \
@@ -13,7 +14,7 @@ python modeling/train_stage1.py \
 
 
 # total batch size = 
-python modeling/train_roberta.py \
+python modeling/train_stage2.py \
     --batch_size=256 \
     --max_steps=50000 \
     --model_name="microsoft/graphcodebert-base" \

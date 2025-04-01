@@ -44,23 +44,19 @@ def tokenize(tokenizer, example):
 
 
 def main(
-    dataset_path: str = "data/codesearchnet.jsonl",
-    model_name: str = "microsoft/codebert-base",
-    batch_size: int = 256,
-    max_steps: int = 200_000,
-    gradient_accumulation_steps: int = 1,
-    num_proc: int = 80,
-    seed: int = 0,
-    wandb_project: str | None = "PIA",
-    run_name: str = "ContraBERT",
-    learning_rate: float = 4e-4,
-    resume: bool = False,
+    dataset_path: str,
+    model_name: str,
+    batch_size: int,
+    max_steps: int,
+    gradient_accumulation_steps: int,
+    num_proc: int,
+    seed: int,
+    run_name: str,
+    learning_rate: float,
+    resume: bool,
 ):
 
     set_seed(seed)
-
-    if wandb_project is not None:
-        os.environ["WANDB_PROJECT"] = wandb_project
 
     tokenizer = RobertaTokenizerFast.from_pretrained(model_name)
     config = RobertaConfig.from_pretrained(model_name)
@@ -117,14 +113,13 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_path", type=str, default="data/codesearchnet.jsonl")
+    parser.add_argument("--dataset_path", type=str, default="data/raw_csn.jsonl")
     parser.add_argument("--model_name", type=str, default="microsoft/codebert-base")
-    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--num_proc", type=int, default=80)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--wandb_project", type=str, default="PIA")
     parser.add_argument("--run_name", type=str, default="InvarientBERT")
-    parser.add_argument("--max_steps", type=int, default=100_000)
+    parser.add_argument("--max_steps", type=int, default=200_000)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=4e-4)
     parser.add_argument("--resume", default=False, action="store_true")
@@ -137,7 +132,6 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         num_proc=args.num_proc,
         seed=args.seed,
-        wandb_project=args.wandb_project,
         run_name=args.run_name,
         max_steps=args.max_steps,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
