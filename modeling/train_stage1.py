@@ -79,7 +79,7 @@ def main(
     )
 
     training_args = TrainingArguments(
-        output_dir=f"./saved_models/{run_name}",
+        output_dir=f"./saved_models/{run_name}/stage1",
         overwrite_output_dir=True,
         per_device_train_batch_size=batch_size // device_count(),
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -93,7 +93,7 @@ def main(
         weight_decay=0.01,
         remove_unused_columns=False,
         report_to="wandb",
-        run_name=run_name,
+        run_name=f"{run_name}_stage1",
         save_total_limit=3,
         load_best_model_at_end=True,
     )
@@ -108,7 +108,7 @@ def main(
     )
 
     trainer.train(resume_from_checkpoint=resume)
-    trainer.save_model(f"saved_models/{run_name}/final")
+    trainer.save_model(f"saved_models/{run_name}/stage1/final")
 
 
 if __name__ == "__main__":

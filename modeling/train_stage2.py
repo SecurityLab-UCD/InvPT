@@ -60,12 +60,11 @@ def main(
 
     tokenizer = RobertaTokenizerFast.from_pretrained(model_name)
     config = RobertaConfig.from_pretrained(model_name)
+    # model = RobertaForMaskedLM.from_pretrained(model_name)
 
-    model = (
-        RobertaForMaskedLM.from_pretrained(model_name)
-        if continue_from_pretrained
-        else RobertaForMaskedLM(config)  # start pre-training from scratch
-    )
+    model = RobertaForMaskedLM.from_pretrained(
+        f"./saved_models/{run_name}/stage1/final"
+    ) # load weights from stage 1
     model.to(DEVICE)
 
     dataset = load_dataset("json", data_files=dataset_path)["train"]
@@ -88,7 +87,7 @@ def main(
     )
 
     training_args = TrainingArguments(
-        output_dir=f"./saved_models/{run_name}",
+        output_dir=f"./saved_models/{run_name}/stage2",
         overwrite_output_dir=True,
         per_device_train_batch_size=batch_size // device_count(),
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -102,7 +101,7 @@ def main(
         weight_decay=0.01,
         remove_unused_columns=False,
         report_to="wandb",
-        run_name=run_name,
+        run_name=f"{run_name}_stage2",
         save_total_limit=3,
         load_best_model_at_end=True,
     )
@@ -117,7 +116,7 @@ def main(
     )
 
     trainer.train(resume_from_checkpoint=resume)
-    trainer.save_model(f"saved_models/{run_name}/final")
+    trainer.save_model(f"saved_models/{run_name}/stage2/final")
 
 
 if __name__ == "__main__":
