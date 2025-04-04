@@ -20,13 +20,6 @@ cd ..
 ```
 
 2.Preprocess dataset
-
-```shell
-cd dataset
-python preprocess.py
-cd ..
-```
-
 ### Data Format
 
 After preprocessing dataset, you can obtain three .jsonl files, i.e. train.jsonl, valid.jsonl, test.jsonl
@@ -37,6 +30,13 @@ For each file, each line in the uncompressed file represents one function.  One 
    - **target:** 0 or 1 (vulnerability or not)
    - **idx:** the index of example
 
+### Preprocess CodeXClue Dataset
+```shell
+cd dataset
+python preprocess.py
+cd ..
+```
+
 ### Data Statistics
 
 Data statistics of the dataset are shown in the below table:
@@ -46,6 +46,19 @@ Data statistics of the dataset are shown in the below table:
 | Train |  21,854   |
 | Dev   |   2,732   |
 | Test  |   2,732   |
+
+### Preprocess CVEFixes Dataset
+First download `CVEfixes_v1.0.8.sql.gz`, a compressed SQL dump for CVEFixes dataset, from [here](https://zenodo.org/records/13118970).
+Then, converted it into an SQLite3 database using the following command: 
+
+```console
+$ gzcat CVEfixes_v1.0.8.sql.gz | sqlite3 CVEfixes.db
+```
+
+Lastly, run the following command to get the dataset for fine-tunning and evaluation.
+```shell
+python get_CVEfixes.py [Path to the CVEfixes.db] [Language, such as Python, Java, etc]
+```
 
 ## Evaluator
 
