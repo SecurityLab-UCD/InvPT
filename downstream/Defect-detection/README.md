@@ -48,6 +48,8 @@ Data statistics of the dataset are shown in the below table:
 | Test  |   2,732   |
 
 ### Preprocess CVEFixes Dataset
+CVEfixes dataset is essentially sql tables ([diagram](https://github.com/secureIT-project/CVEfixes/blob/main/Doc/ER_diagram.png)).
+
 First download `CVEfixes_v1.0.8.sql.gz`, a compressed SQL dump for CVEFixes dataset, from [here](https://zenodo.org/records/13118970).
 Then, converted it into an SQLite3 database using the following command: 
 
