@@ -38,6 +38,7 @@ def get_file_changes_from_sql(cursor: lite.Cursor, language: str):
     random.shuffle(repo_file_counts)
 
     total_file_changes = sum(count for _, count in repo_file_counts)
+    print(f"total file changes: {total_file_changes}")
     target_train = total_file_changes * 0.8
     target_val = total_file_changes * 0.1
     target_test = total_file_changes * 0.1
@@ -46,6 +47,7 @@ def get_file_changes_from_sql(cursor: lite.Cursor, language: str):
     counts = {"train": 0, "val": 0, "test": 0}
 
     # assign repos to train/val/test while keeping the ratio of samples
+
     for repo, count in sorted(repo_file_counts, key=lambda x: -x[1]):
         remaining = {
             "train": target_train - counts["train"],
@@ -56,7 +58,7 @@ def get_file_changes_from_sql(cursor: lite.Cursor, language: str):
         splits[best_split].append(repo)
         counts[best_split] += count
 
-    def get_file_change_for_repos(repos):
+    def get_file_change_for_repos(repos, language: str):
         if not repos:
             return []
         placeholders = ",".join(["?"] * len(repos))
@@ -66,19 +68,19 @@ def get_file_changes_from_sql(cursor: lite.Cursor, language: str):
             JOIN commits c ON fc.hash = c.hash
             WHERE fc.code_before IS NOT NULL
             AND fc.code_after IS NOT NULL
-            AND fc.programming_language = 'Python'
+            AND fc.programming_language = ?
             AND c.repo_url IN ({placeholders})
         """
-        cursor.execute(query, repos)
+        cursor.execute(query, (language,) + tuple(repos))
         return cursor.fetchall()
 
     # Step 5: Fetch the actual file_change entries
-    train_file_changes = get_file_change_for_repos(splits["train"])
-    val_file_changes = get_file_change_for_repos(splits["val"])
-    test_file_changes = get_file_change_for_repos(splits["test"])
+    train_file_changes = get_file_change_for_repos(splits["train"], language)
+    val_file_changes = get_file_change_for_repos(splits["val"], language)
+    test_file_changes = get_file_change_for_repos(splits["test"], language)
 
     print(
-        f"Train: {len(train_file_changes)}, Val: {len(val_file_changes)}, Test: {len(test_file_changes)}"
+        f"file change\nTrain: {len(train_file_changes)}\nVal: {len(val_file_changes)}\nTest: {len(test_file_changes)}"
     )
 
     return train_file_changes, val_file_changes, test_file_changes
