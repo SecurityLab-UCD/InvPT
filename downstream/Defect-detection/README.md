@@ -48,7 +48,7 @@ Data statistics of the dataset are shown in the below table:
 | Test  |   2,732   |
 
 ### Preprocess CVEFixes Dataset
-CVEfixes dataset is essentially sql tables ([diagram](https://github.com/secureIT-project/CVEfixes/blob/main/Doc/ER_diagram.png)).
+CVEfixes dataset is essentially sql tables ([Data Dictionary](https://github.com/secureIT-project/CVEfixes/blob/main/Doc/DataDictionary.md)).
 
 First download `CVEfixes_v1.0.8.sql.gz`, a compressed SQL dump for CVEFixes dataset, from [here](https://zenodo.org/records/13118970).
 Then, converted it into an SQLite3 database using the following command: 
@@ -59,7 +59,7 @@ $ gzcat CVEfixes_v1.0.8.sql.gz | sqlite3 CVEfixes.db
 
 Lastly, run the following command to get the dataset for fine-tunning and evaluation.
 ```shell
-python get_CVEfixes.py [Path to the CVEfixes.db] [Language, such as Python, Java, etc]
+python get_CVEfixes.py [Path to the CVEfixes.db] [Language, such as Python, Java, C++, etc]
 ```
 
 ## Evaluator
