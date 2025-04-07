@@ -2,6 +2,7 @@ import sqlite3 as lite
 from sqlite3 import Error
 import random
 import fire
+import argparse
 import json
 
 SEED = 888
@@ -49,7 +50,7 @@ def report_num_fixed_and_defect(method_changes: list, set_name: str):
     print(f"{set_name}: num_fixed: {num_fixed}, num_defect: {num_defect}")
 
 
-def get_method_change_for_repos(cursor: lite.Cursor, repos: list, language: str):
+def get_method_change_for_repos(cursor: lite.Cursor, repos: list, languages: list[str]):
     if not repos:
         return []
     placeholders = ",".join(["?"] * len(repos))
@@ -65,7 +66,7 @@ def get_method_change_for_repos(cursor: lite.Cursor, repos: list, language: str)
         AND c.repo_url IN ({placeholders})
         ORDER BY c.repo_url, fc.file_change_id
     """
-    cursor.execute(query, (language,) + tuple(repos))
+    cursor.execute(query, tuple(languages) + tuple(repos))
     return cursor.fetchall()
 
 
@@ -92,18 +93,48 @@ def make_num_fixed_and_num_defect_equal(method_changes: list):
     return all_method_changes
 
 
-def split_method_changes(cursor: lite.Cursor, language: str):
+def split_method_changes(cursor: lite.Cursor, languages: list[str]):
+    placeholders = ",".join(["?"] * len(languages))
     cursor.execute(
-        """
+        f"""
+        SELECT mc.code, mc.before_change, c.repo_url
+        FROM method_change mc
+        JOIN file_change fc ON mc.file_change_id = fc.file_change_id
+        JOIN commits c ON fc.hash = c.hash
+        WHERE fc.programming_language IN ({placeholders})
+    """,
+        tuple(languages),
+    )
+
+    method_changes = cursor.fetchall()
+    random.shuffle(method_changes)
+
+    train_method_changes = method_changes[: int(len(method_changes) * 0.8)]
+    val_method_changes = method_changes[
+        int(len(method_changes) * 0.8) : int(len(method_changes) * 0.9)
+    ]
+    test_method_changes = method_changes[int(len(method_changes) * 0.9) :]
+
+    train_method_changes = make_num_fixed_and_num_defect_equal(train_method_changes)
+    val_method_changes = make_num_fixed_and_num_defect_equal(val_method_changes)
+    test_method_changes = make_num_fixed_and_num_defect_equal(test_method_changes)
+
+    return train_method_changes, val_method_changes, test_method_changes
+
+
+def split_method_changes_by_repo(cursor: lite.Cursor, languages: list[str]):
+    placeholders = ",".join(["?"] * len(languages))
+    cursor.execute(
+        f"""
         SELECT c.repo_url, COUNT(mc.method_change_id) AS method_change_count
         FROM method_change mc
         JOIN file_change fc ON mc.file_change_id = fc.file_change_id
         JOIN commits c ON fc.hash = c.hash
         JOIN repository r ON c.repo_url = r.repo_url
-        WHERE fc.programming_language = ?
+        WHERE fc.programming_language IN ({placeholders})
         GROUP BY c.repo_url
     """,
-        (language,),
+        tuple(languages),
     )
 
     repo_method_change_counts = cursor.fetchall()
@@ -132,10 +163,10 @@ def split_method_changes(cursor: lite.Cursor, language: str):
 
     # get method changes for train, val, test
     train_method_changes = get_method_change_for_repos(
-        cursor, splits["train"], language
+        cursor, splits["train"], languages
     )
-    val_method_changes = get_method_change_for_repos(cursor, splits["val"], language)
-    test_method_changes = get_method_change_for_repos(cursor, splits["test"], language)
+    val_method_changes = get_method_change_for_repos(cursor, splits["val"], languages)
+    test_method_changes = get_method_change_for_repos(cursor, splits["test"], languages)
 
     train_method_changes = make_num_fixed_and_num_defect_equal(train_method_changes)
     val_method_changes = make_num_fixed_and_num_defect_equal(val_method_changes)
@@ -157,11 +188,12 @@ def write_data_to_jsonl(method_changes: str, file_name: str, curr_idx: int):
     return curr_idx
 
 
-def main(data_path_sql: str, language: str):
+def main(data_path_sql: str, languages: list[str], split_by_repo: bool = False):
     """
     Args:
         data_path_sql: path to the CVE fixes sql file
-        language: language of the code
+        languages: language of the code
+        split_by_repo: whether to split the data by repo
     Goal:
         Convert the CVE fixes sql file to jsonl file for data split into train, val, test
     """
@@ -170,7 +202,9 @@ def main(data_path_sql: str, language: str):
     add_index(cursor, conn)
 
     train_method_changes, val_method_changes, test_method_changes = (
-        split_method_changes(cursor, language)
+        split_method_changes_by_repo(cursor, languages)
+        if split_by_repo
+        else split_method_changes(cursor, languages)
     )
 
     report_num_fixed_and_defect(train_method_changes, "train")
@@ -184,4 +218,24 @@ def main(data_path_sql: str, language: str):
 
 if __name__ == "__main__":
     random.seed(SEED)
-    fire.Fire(main)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--data_path_sql",
+        type=str,
+        required=True,
+        help="Path to the CVE fixes sql file",
+    )
+    parser.add_argument(
+        "--languages",
+        type=str,
+        nargs="+",
+        required=True,
+        help="List of programming languages, e.g. Python Java C++",
+    )
+    parser.add_argument(
+        "--split_by_repo", action="store_true", help="Split the data by repo"
+    )
+    args = parser.parse_args()
+
+    main(args.data_path_sql, args.languages, split_by_repo=args.split_by_repo)

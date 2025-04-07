@@ -59,7 +59,14 @@ $ gzcat CVEfixes_v1.0.8.sql.gz | sqlite3 CVEfixes.db
 
 Lastly, run the following command to get the dataset for fine-tunning and evaluation.
 ```shell
-python get_CVEfixes.py [Path to the CVEfixes.db] [Language, such as Python, Java, C++, etc]
+python get_CVEfixes.py --data_path_sql [Path to the CVEfixes.db] --languages [Languages, such as Python, Java, C++, etc]
+```
+
+
+For example, to generate a dataset specifically for Python and Java, run the following command. You can optionally add the `--split_by_repo` flag to ensure that the train, eval, and test sets do not contain code samples from the same repositories.
+
+```shell
+python get_CVEfixes.py --data_path_sql dataset/CVEfixes.db --languages Python Java --split_by_repo
 ```
 
 ## Evaluator
