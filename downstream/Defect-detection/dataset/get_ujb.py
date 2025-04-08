@@ -6,6 +6,7 @@ from datasets import load_dataset
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from pprint import pprint
+from augment import main as augment
 import json
 
 
@@ -29,7 +30,7 @@ class UJBExample:
 def main(output_dir: Path = Path("ujb")):
     os.makedirs(output_dir, exist_ok=True)
     idx = 0
-    with open(output_dir / Path("train.jsonl"), "w") as f:
+    with open(output_dir / Path("test.jsonl"), "w") as f:
         for entry in load_dataset(UJB_PATH, split="train"):
             example = UJBExample(**entry)
             json.dump(
@@ -43,6 +44,7 @@ def main(output_dir: Path = Path("ujb")):
             )
             f.write("\n")
             idx += 1
+    augment(output_dir / Path("test.jsonl"), output_dir / Path("aug_test.jsonl"))
 
 
 if __name__ == "__main__":
