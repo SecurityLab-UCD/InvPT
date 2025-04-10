@@ -27,6 +27,7 @@ cd ..
 ```shell
 cd dataset
 python preprocess.py
+python augment_Cpp.py -i test.jsonl -o aug_test.jsonl
 cd ..
 ```
 
