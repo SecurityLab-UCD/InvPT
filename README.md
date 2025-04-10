@@ -2,13 +2,48 @@
 
 Program-Invariant-Aware Training for Large Language Models in Code Understanding
 
-## Setup Environment
+## Usage
+
+### Environment
+
+#### Python
 
 We use [`uv`](https://docs.astral.sh/uv/guides/install-python/) to manage Python environments.
 
 ```sh
 uv sync
 ```
+
+#### Java
+
+We need a Java 11+ JDK for the Java augmentation.
+For our experiments, we use OpenJDK21.
+
+```sh
+export JDK_LIB=/usr/lib/jvm/java-21-openjdk-amd64/lib
+```
+
+You should modify this line in `.envrc`.
+
+#### C/C++
+
+We use Clang-14 and LLVM-14 for C/C++ augmentation.
+We have a script to install the required packages:
+
+```sh
+./clang.sh
+```
+
+This will install the required packages for C/C++ augmentation to `/home/your_username/clang+llvm`.
+Please make sure to provide this path in `.envrc`:
+
+```sh
+export LLVM=$HOME/clang+llvm
+export LIBCLANG_PATH=$LLVM/lib/libclang.so
+export LD_LIBRARY_PATH=$LLVM/lib:$LD_LIBRARY_PATH
+```
+
+#### **Loading Environment Variables**
 
 Before running the code, please make sure to load the environment variables:
 
@@ -17,51 +52,39 @@ source .envrc
 ```
 
 To avoid sourcing the environment variables every time,
-we recommend using [`direnv`](https://direnv.net/) to automatically load the environment variables when you enter the directory.
+we recommend using [`direnv`](https://direnv.net/) to automatically load the environment variables when you enter the directory,
+and unload them when you leave the directory.
 
-## Training
+### Pre-training Dataset
 
-### Pre-training Datset
-
-We use the transformed CodeSearchNet_java for now.
-The dataset can be found in the [artifacts](https://zenodo.org/records/5376257#.YTC3oI4zZsY) of paper "Bridging Pre-trained Models and Downstream Tasks for Source Code Understanding" under "Code search".
+We use CodeSearchNet for pre-training.
 
 ```sh
 cd data
-curl "https://zenodo.org/records/5376257/files/Code%20search.7z?download=1" --output codesearch.7z
-7za x codesearch.7z
-python3 strip.py
+python get_code_search_net.py
 ```
+
+This script will download the CodeSearchNet dataset and convert it to jsonl format.
+It will writes to the following files:
+
+- `raw_csn.jsonl`: the entire CodeSearchNet dataset
+- `raw_csn_py.jsonl`, `raw_csn_java.jsonl`: the Python and Java subset of CodeSearchNet
+
+After conforming the dataset is downloaded, we need to transform the dataset to the format used in our paper.
+
+```sh
+python ../python_transform/augment_pretrain.py -i raw_csn_py.jsonl -o aug_csn_py.jsonl
+python ../java_transform/augment_pretrain.py -i raw_csn_java.jsonl -o aug_csv_java.jsonl
+
+mv raw_csn.jsonl csn.jsonl
+cat aug_csn_py.jsonl >> csn.jsonl
+cat aug_csv_java.jsonl >> csn.jsonl
+```
+
+The resulting file `csn.jsonl` will be used for pre-training.
 
 ### Pre-training RoBERTa
 
-1. Install required packages:
-   a. Customize the `JDK_LIB` path used for java augmentation to your installed
-   OpenJDK
-
-```sh
-conda create -n bert python=3.10.12
-conda activate bert
-pip install -r requirements.txt
-```
-
-And load the environment variables:
-
-```sh
-./set_env.sh
-conda deactivate
-conda activate bert
-
-# or
-source env.sh
-```
-
-2. Train the model
-
 ```bash
-python modeling/train_roberta.py \
-    --dataset_path="data/codesearchnet_java.jsonl" \
-    --batch_size=32 \
-    --num_train_epochs=30 \
-    --run_name="ContraBERT_java"
+./run_pretrain.sh
 ```
