@@ -2,6 +2,23 @@
 
 Program-Invariant-Aware Training for Large Language Models in Code Understanding
 
+## Setup Environment
+
+We use [`uv`](https://docs.astral.sh/uv/guides/install-python/) to manage Python environments.
+
+```sh
+uv sync
+```
+
+Before running the code, please make sure to load the environment variables:
+
+```sh
+source .envrc
+```
+
+To avoid sourcing the environment variables every time,
+we recommend using [`direnv`](https://direnv.net/) to automatically load the environment variables when you enter the directory.
+
 ## Training
 
 ### Pre-training Datset
@@ -19,8 +36,8 @@ python3 strip.py
 ### Pre-training RoBERTa
 
 1. Install required packages:
-    a. Customize the `JDK_LIB` path used for java augmentation to your installed
-    OpenJDK
+   a. Customize the `JDK_LIB` path used for java augmentation to your installed
+   OpenJDK
 
 ```sh
 conda create -n bert python=3.10.12

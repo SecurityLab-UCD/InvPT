@@ -1,0 +1,32 @@
+[project]
+name = "pia"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "2to3==1.0",
+    "accelerate>=0.26.0",
+    "autopep8==2.3.2",
+    "clang==14.0",
+    "dacite==1.8.1",
+    "datasets==3.1.0",
+    "fire==0.5.0",
+    "gdown==5.2.0",
+    "jsonlines==4.0.0",
+    "libclang==14.0.1",
+    "matplotlib>=3.8.3",
+    "numpy>=1.26.4",
+    "orjson>=3.10,<4",
+    "pandas==2.2.3",
+    "pathos>0.3",
+    "pytest>=8.0.0",
+    "returns[compatible-mypy]>=0.23.0",
+    "scikit-learn==1.6.0",
+    "tensorboardx==2.6.2.2",
+    "tokenizers==0.20",
+    "torch==2.3.1",
+    "tqdm>=4.66.2",
+    "transformers==4.46.3",
+    "wandb==0.18.7",
+]
