@@ -52,7 +52,6 @@ def write(out_path: Path, programs: list[DevignProgram]):
 def main(in_path: Path, out_path: Path):
     programs = preprocess(in_path)
     augmented = process(programs)
-    pprint(programs[0])
     pprint(augmented[0])
     write(out_path, augmented)
 
