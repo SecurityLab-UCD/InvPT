@@ -47,6 +47,13 @@ def main(
         augmented_dataset = pool.map(augment_accumulatively, all_test_json)
         augmented_jsonl = pool.map(lambda j: json.dumps(asdict(j)), augmented_dataset)
 
+    count = 0
+    for i in range(len(augmented_dataset)):
+        if augmented_dataset[i] == all_test_json[i]:
+            count += 1
+    
+    print(f"Transformed: {count}/{len(all_test_json)}")
+
     with open(output_file_path, "w", encoding=JSON_ENCODING) as f:
         for aj in augmented_jsonl:
             f.write(aj + "\n")
