@@ -73,8 +73,7 @@ score.
 ### Example
 
 ```shell
-python evaluator/evaluator.py -a evaluator/test.jsonl -p
-evaluator/predictions.txt 
+python evaluator/evaluator.py -a evaluator/test.jsonl -p evaluator/predictions.txt 
 ```
 
 {'Acc': 0.6}
