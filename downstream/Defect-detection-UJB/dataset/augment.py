@@ -7,7 +7,9 @@ import json
 import fire
 import logging
 from pprint import pprint
+
 logging.basicConfig(level=logging.INFO)
+
 
 @dataclass
 class DevignProgram:
@@ -15,13 +17,17 @@ class DevignProgram:
     func: str
     target: int
 
+
 def preprocess(jsonl_path: Path) -> list[DevignProgram]:
     programs: list[DevignProgram] = []
     with open(jsonl_path, "r") as f:
         for line in f:
             decoded = json.loads(line)
-            programs.append(DevignProgram(str(decoded["idx"]), str(decoded["func"]),
-                                      int(decoded["target"])))
+            programs.append(
+                DevignProgram(
+                    str(decoded["idx"]), str(decoded["func"]), int(decoded["target"])
+                )
+            )
     return programs
 
 
@@ -41,6 +47,7 @@ def process(dataset: list[DevignProgram]) -> list[DevignProgram]:
 
     return succeed
 
+
 def write(out_path: Path, programs: list[DevignProgram]):
     logging.info("Writing augmented dataset")
     with Pool(cpu_count()) as pool:
@@ -49,11 +56,13 @@ def write(out_path: Path, programs: list[DevignProgram]):
         for j in jsonl:
             f.write(j + "\n")
 
+
 def main(in_path: Path, out_path: Path):
     programs = preprocess(in_path)
     augmented = process(programs)
     pprint(augmented[0])
     write(out_path, augmented)
+
 
 if __name__ == "__main__":
     fire.Fire(main)

@@ -17,6 +17,7 @@ UJB_PATH = "ZHENGRAN/code_ujb_defectdetection"
 @dataclass
 class UJBExample:
     """An entry in the UJB dataset"""
+
     bug_id: str
     task_id: str
     function_signature: str
