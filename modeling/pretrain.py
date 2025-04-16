@@ -63,20 +63,16 @@ def main(
     # model = RobertaForMaskedLM.from_pretrained(model_name)
 
     model = RobertaForMaskedLM.from_pretrained(
-        f"./saved_models/{run_name}/stage1/final"
-    ) # load weights from stage 1
+        model_name,
+    )  # load weights from stage 1
     model.to(DEVICE)
 
     dataset = load_dataset("json", data_files=dataset_path)["train"]
 
-    tokenized_datasets = (
-        dataset.shuffle(seed=seed)
-        .take(int(len(dataset) * percentage))
-        .map(
-            lambda example: tokenize(tokenizer, example),
-            batched=True,
-            num_proc=num_proc,
-        )
+    tokenized_datasets = dataset.shuffle(seed=seed).map(
+        lambda example: tokenize(tokenizer, example),
+        batched=True,
+        num_proc=num_proc,
     )
     split_dataset = tokenized_datasets.train_test_split(test_size=0.1)
     train_dataset = split_dataset["train"]
@@ -87,7 +83,7 @@ def main(
     )
 
     training_args = TrainingArguments(
-        output_dir=f"./saved_models/{run_name}/stage2",
+        output_dir=f"./saved_models/{run_name}",
         overwrite_output_dir=True,
         per_device_train_batch_size=batch_size // device_count(),
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -101,7 +97,7 @@ def main(
         weight_decay=0.01,
         remove_unused_columns=False,
         report_to="wandb",
-        run_name=f"{run_name}_stage2",
+        run_name=run_name,
         save_total_limit=3,
         load_best_model_at_end=True,
     )
@@ -116,7 +112,7 @@ def main(
     )
 
     trainer.train(resume_from_checkpoint=resume)
-    trainer.save_model(f"saved_models/{run_name}/stage2/final")
+    trainer.save_model(f"saved_models/{run_name}/final")
 
 
 if __name__ == "__main__":
