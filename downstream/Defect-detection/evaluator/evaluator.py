@@ -11,7 +11,7 @@ def read_answers(filename):
         for line in f:
             line=line.strip()
             js=json.loads(line)
-            answers[js['idx']]=js['target']
+            answers[int(js['idx'])]=js['target']
     return answers
 
 def read_predictions(filename):
