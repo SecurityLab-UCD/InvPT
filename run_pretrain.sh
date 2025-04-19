@@ -11,5 +11,5 @@ python modeling/pretrain.py \
     --seed=0 \
     --gradient_accumulation_steps=1 \
     --learning_rate=5e-5 \
-    --checkpoint="saved_models/ContraBERT/ContraBERT_C
+    --checkpoint="saved_models/ContraBERT/ContraBERT_C"
 
