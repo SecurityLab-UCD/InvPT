@@ -16,6 +16,8 @@ class DevignProgram:
     idx: str
     func: str
     target: int
+    project: str
+    commit_id: str
 
 
 JSON_ENCODING = "utf-8"
@@ -25,7 +27,7 @@ def augment_accumulatively(j: DevignProgram) -> DevignProgram:
     code = j.func
     for aug_type in TRANSFORMATION_MAP.keys():
         code = apply_code_transformation(aug_type, code).value_or(code)
-    return DevignProgram(idx=j.idx, func=code, target=j.target)
+    return DevignProgram(idx=j.idx, func=code, target=j.target, project=j.project, commit_id=j.commit_id)
 
 
 def validate_jsonl_path(path: str):
@@ -50,6 +52,11 @@ def main(
     with open(output_file_path, "w", encoding=JSON_ENCODING) as f:
         for aj in augmented_jsonl:
             f.write(aj + "\n")
+    count = 0
+    for i in range(len(all_test_json)):
+        if all_test_json[i].func != augmented_dataset[i].func:
+            count += 1
+    print(f"Successfully transformed: {count}/{len(all_test_json)}")
 
     print(f"Successfully added transformed data to {output_file_path}")
 
