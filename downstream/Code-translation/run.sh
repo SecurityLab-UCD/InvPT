@@ -6,7 +6,6 @@ pretrained_model=$1
 # Example: /mnt/sda/user/ericxu/saved_models/codebert
 output_dir=$2
 log_path=$output_dir/test.log
-aug_log_path=$output_dir/aug_test.log
 
 # Clean up
 rm -f $log_path
