@@ -84,7 +84,7 @@ We use full test data for inference.
 cd code
 $output_dir = the place where you want to save the fine-tuned models and predictions
 python run.py \
-    	--do_test \
+    --do_test \
 	--model_type roberta \
 	--model_name_or_path roberta-base \
 	--config_name roberta-base \
