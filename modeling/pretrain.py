@@ -54,6 +54,7 @@ def main(
     run_name: str,
     learning_rate: float,
     resume: bool,
+    checkpoint: str | None = None,
 ):
 
     set_seed(seed)
@@ -63,7 +64,8 @@ def main(
     # model = RobertaForMaskedLM.from_pretrained(model_name)
 
     model = RobertaForMaskedLM.from_pretrained(
-        model_name,
+        model_name if checkpoint is None else checkpoint,
+        config=config,
     )  # load weights from stage 1
     model.to(DEVICE)
 
@@ -127,6 +129,12 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
     parser.add_argument("--resume", default=False, action="store_true")
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to a checkpoint file to load model weights from. Use this to resume training from a previous state.",
+    )
 
     args = parser.parse_args()
 
@@ -141,4 +149,5 @@ if __name__ == "__main__":
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
         resume=args.resume,
+        checkpoint=args.checkpoint,
     )
