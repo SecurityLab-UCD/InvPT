@@ -12,20 +12,20 @@ from dataclasses import dataclass
 
 
 @dataclass
-class CodeNetProgram:
-    label: str  # problem id
-    index: str  # unique id
-    code: str  # code content
+class DefectDetectionProgram:
+    idx: str  # problem id
+    func: str  # unique id
+    target: int  # code content
 
 
 JSON_ENCODING = "utf-8"
 
 
-def augment_accumulatively(j: CodeNetProgram) -> CodeNetProgram:
-    code = j.code
+def augment_accumulatively(j: DefectDetectionProgram) -> DefectDetectionProgram:
+    code = j.func
     for aug_type in TRANSFORMATION_MAP.keys():
         code = apply_code_transformation(aug_type, code).value_or(code)
-    return CodeNetProgram(label=j.label, index=j.index, code=code)
+    return DefectDetectionProgram(idx=j.idx, func=code, target=j.target)
 
 
 def validate_jsonl_path(path: str):
@@ -41,7 +41,7 @@ def main(
     validate_jsonl_path(input_file_path)
 
     with open(input_file_path, "r", encoding=JSON_ENCODING) as f:
-        all_test_json = [CodeNetProgram(**json.loads(json_line)) for json_line in f]
+        all_test_json = [DefectDetectionProgram(**json.loads(json_line)) for json_line in f]
 
     with Pool(nproc) as pool:
         augmented_dataset = pool.map(augment_accumulatively, all_test_json)
