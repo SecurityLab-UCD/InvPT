@@ -1,4 +1,4 @@
-from cpp_transforms.transform import apply_code_transformation, TRANSFORMATION_MAP
+from cpp_transforms.transform import augment_accumulatively
 from modeling.dataloader import AugType
 from returns.maybe import Maybe, Nothing, Some
 from multiprocessing import cpu_count
@@ -19,14 +19,6 @@ class DefectDetectionProgram:
 
 
 JSON_ENCODING = "utf-8"
-
-
-def augment_accumulatively(j: DefectDetectionProgram) -> DefectDetectionProgram:
-    code = j.func
-    for aug_type in TRANSFORMATION_MAP.keys():
-        code = apply_code_transformation(aug_type, code).value_or(code)
-    return DefectDetectionProgram(idx=j.idx, func=code, target=j.target)
-
 
 def validate_jsonl_path(path: str):
     assert os.path.isfile(path), f"The path {path} does not refer to a file."
