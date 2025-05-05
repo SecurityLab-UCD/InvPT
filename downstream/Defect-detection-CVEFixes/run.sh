@@ -1,6 +1,6 @@
 model_path=$1
 output_dir=$2
-dataset_path=$3
+dataset_path=dataset/
 mkdir -p $output_dir
 touch $output_dir/train.log
 python ./code/run.py \
