@@ -1,5 +1,9 @@
 #!/bin/bash
-# init.sh 
+# uv run bash init.sh 
 # Initialization for this task, only need to run once
 
-docker pull zhouyang996/codebert-attack:v1
+SCRIPT_HOME="$PIA_HOME/downstream/Clone-detection-BCB-naturalness-attack"
+
+cd "$SCRIPT_HOME/python_parser/parser_folder"
+bash build.sh
+cd "$SCRIPT_HOME"

@@ -1256,7 +1256,7 @@ requires-dist = [
     { name = "torch", specifier = "==2.3.1" },
     { name = "tqdm", specifier = ">=4.66.2" },
     { name = "transformers", specifier = "==4.46.3" },
-    { name = "tree-sitter", specifier = "==0.19.0" },
+    { name = "tree-sitter", specifier = "==0.21.0" },
     { name = "wandb", specifier = "==0.18.7" },
 ]
 
@@ -2024,9 +2024,16 @@ wheels = [
 
 [[package]]
 name = "tree-sitter"
-version = "0.19.0"
+version = "0.21.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ac/46/da153b968bf088a8c1656e8e17cf2b8ac5ca5ca16bfe6bf2381fe1db2ca0/tree_sitter-0.19.0.tar.gz", hash = "sha256:861afcf39f957fdd75f8b93124bc403f2f3abe8b81f104c05b1a749e6dd33499", size = 112342, upload-time = "2021-03-05T23:38:58.437Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/46/c28e3280b4219cb662dd826377c511a4ef9267da471a7859c911e596e785/tree-sitter-0.21.0.tar.gz", hash = "sha256:c74ec9eff30e0c5b9f00ee578cca64df322b9885c8a15364a2c537f485abcc77", size = 155436, upload-time = "2024-03-10T20:24:02.898Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/af/e4/c20140468faa7c37ce08d9ec6830b1f5eb0e310ee128d77f9ab1882f92d1/tree_sitter-0.21.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:384c103edf6e5ac98710c1a71e2956849d692a0c47d55cd5ba3aedc000b7c3d6", size = 133290, upload-time = "2024-03-10T20:23:40.314Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/ce/4911165a4b0e913d73b411e1e6d96783bba62bddba948edcb4a9ef30bb3e/tree_sitter-0.21.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5ce18b46634a4132c6932e032ea4717e572cf0db40223afcf0eab69664ad3500", size = 125946, upload-time = "2024-03-10T20:23:42.039Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/a0/3589fca1044d954bda9d306eebdd57caf25a8c621a102b3bc950314851b8/tree_sitter-0.21.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3e2f0723c025bb532e9a0cad5e1b1f99b6e35049b948321c3ad7617be716bc7a", size = 498640, upload-time = "2024-03-10T20:23:43.748Z" },
+    { url = "https://files.pythonhosted.org/packages/98/1e/a69f443b0fd406a07eff8a88ad33186d5de2cb703b6141ae799fafc7917d/tree_sitter-0.21.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:63458f19b266d9ec58057d8435f92728a164a6debc24fb3c545664bc0b4fa087", size = 493619, upload-time = "2024-03-10T20:23:45.619Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/5a/6b47081ed5928ead57a7c71e91339292bb685c2df483018bc62c54221404/tree_sitter-0.21.0-cp311-cp311-win_amd64.whl", hash = "sha256:f308f7d05019c35d43ea609c1f04ed896fd713ddf5c95db92b3c56dbbd3c1e09", size = 109593, upload-time = "2024-03-10T20:23:47.641Z" },
+]
 
 [[package]]
 name = "triton"
