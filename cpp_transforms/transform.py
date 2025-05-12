@@ -13,7 +13,7 @@ import json
 from returns.result import ResultE, safe, Success, Failure
 from returns.pointfree import bind
 import argparse
-from typing import Type
+from typing import Type, Any
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
@@ -21,6 +21,7 @@ import clang
 import clang.cindex
 from clang.cindex import Index as CursorIndex, Cursor
 from collections.abc import Callable
+from dataclasses import replace
 
 
 TRANSFORMATION_MAP: dict[AugType, Callable[[Cursor, str], str]] = {
@@ -45,6 +46,22 @@ def apply_code_transformation(aug_type: AugType, code: str) -> str:
     )
     return ast_transformer(translation_unit.cursor, code)
 
+def augment_accumulatively(j: Any) -> Any:
+    # Check what type of object
+    if hasattr(j, 'code'):
+        code = j.code
+    elif hasattr(j, 'func'):
+        code = j.func
+    # Run the transformations on the code
+    for aug_type in TRANSFORMATION_MAP.keys():
+        code = apply_code_transformation(aug_type, code).value_or(code)
+    # Create the return object
+    ret_obj = replace(j)
+    if hasattr(j, 'code'):
+        ret_obj.code = code
+    elif hasattr(j, 'func'):
+        ret_obj.func = code
+    return ret_obj
 
 def transform(csn_example: CodeSearchNetExample) -> ResultE[CodeSearchNetExample]:
     """
