@@ -22,7 +22,13 @@ import clang.cindex
 from clang.cindex import Index as CursorIndex, Cursor
 from collections.abc import Callable
 from dataclasses import replace
+from typing import Protocol
 
+class HasCode(Protocol):
+    code: str
+
+class HasFunc(Protocol):
+    func: str
 
 TRANSFORMATION_MAP: dict[AugType, Callable[[Cursor, str], str]] = {
     AugType.LOCALVARRENAMING: local_renamer,
@@ -46,7 +52,7 @@ def apply_code_transformation(aug_type: AugType, code: str) -> str:
     )
     return ast_transformer(translation_unit.cursor, code)
 
-def augment_accumulatively(j: Any) -> Any:
+def augment_accumulatively(j: HasCode | HasFunc) -> HasCode | HasFunc:
     # Check what type of object
     if hasattr(j, 'code'):
         code = j.code
