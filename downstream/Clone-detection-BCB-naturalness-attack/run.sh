@@ -9,7 +9,8 @@ mkdir -p $outdir
 cd ./CodeXGLUE/Clone-detection-BigCloneBench
 
 cd code
-echo "Finetuning"
+echo
+echo "Finetune stage"
 python run.py \
     --output_dir="$outdir/saved_models/" \
     --model_type=roberta \
@@ -30,7 +31,8 @@ python run.py \
     --seed 123456 2>&1| tee "$outdir/train.log"
 cd ..
 
-echo "Inference"
+echo
+echo "Inference stage"
 cd code
 python run.py \
     --output_dir="$outdir/saved_models" \
@@ -50,4 +52,16 @@ python run.py \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
     --seed 123456 2>&1| tee "$outdir/test.log"
+cd ..
+
+echo
+echo "Attack stage"
+cd dataset
+python get_substitutes.py \
+    --store_path ./test_subs.jsonl \
+    --base_model=microsoft/codebert-base-mlm \
+    --eval_data_file=./test_sampled.txt \
+    --block_size 512 \
+    --index 0 4000
+
 cd ..
