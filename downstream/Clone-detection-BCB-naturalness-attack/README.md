@@ -1,3 +1,21 @@
+# InvBert pipeline
+
+This pipeline is modified from [](https://github.com/soarsmu/attack-pretrain-models-of-code). Here is how to run it.
+
+First, initialize the pipeline. This builds the tree-sitter parser, which is
+required for the attack.
+
+```bash
+uv run bash init.sh
+```
+
+Then, run the full pipeline.
+
+```bash
+uv run bash run.sh
+```
+
+
 # Attack pre-trained models of code
 
 This is the codebase for the paper "[Natural Attack for Pre-trained Models of Code](https://arxiv.org/abs/2201.08698)".
