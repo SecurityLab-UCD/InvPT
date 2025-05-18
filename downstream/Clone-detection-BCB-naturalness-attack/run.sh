@@ -58,7 +58,7 @@ echo
 echo "Attack stage"
 cd dataset
 python get_substitutes.py \
-    --store_path ./test_subs.jsonl \
+    --store_path ./test_subs_valid_sampled.jsonl \ # Name required for attack
     --base_model=microsoft/codebert-base-mlm \
     --eval_data_file=./test_sampled.txt \
     --block_size 512 \
