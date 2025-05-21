@@ -8,7 +8,17 @@ import fire
 import json
 import os
 import clang
-from preprocess import CodeNetProgram
+from dataclasses import dataclass
+
+
+@dataclass
+class DevignProgram:
+    idx: str
+    func: str
+    target: int
+    project: str
+    commit_id: str
+
 
 JSON_ENCODING = "utf-8"
 
@@ -26,7 +36,7 @@ def main(
     validate_jsonl_path(input_file_path)
 
     with open(input_file_path, "r", encoding=JSON_ENCODING) as f:
-        all_test_json = [CodeNetProgram(**json.loads(json_line)) for json_line in f]
+        all_test_json = [DevignProgram(**json.loads(json_line)) for json_line in f]
 
     with Pool(nproc) as pool:
         augmented_dataset = pool.map(augment_accumulatively, all_test_json)
@@ -35,6 +45,11 @@ def main(
     with open(output_file_path, "w", encoding=JSON_ENCODING) as f:
         for aj in augmented_jsonl:
             f.write(aj + "\n")
+    count = 0
+    for i in range(len(all_test_json)):
+        if all_test_json[i].func != augmented_dataset[i].func:
+            count += 1
+    print(f"Successfully transformed: {count}/{len(all_test_json)}")
 
     print(f"Successfully added transformed data to {output_file_path}")
 
