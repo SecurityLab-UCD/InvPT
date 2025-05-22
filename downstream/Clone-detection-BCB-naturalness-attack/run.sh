@@ -10,6 +10,7 @@ SUMMARY
 uv run bash test.sh [options] workspace
 
 OPTIONS
+    --do_all - Set all options
     --do_finetune - Finetune the model for Clone detection
     --do_baseline - Run baseline clone detection (without attacks)
     --do_substitute - Get substitutes for attacks
