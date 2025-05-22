@@ -7,7 +7,10 @@
 USAGE=$(cat <<EOF
 SUMMARY
 
-uv run bash test.sh [options] workspace
+uv run bash test.sh [options] [outdir]
+
+ARGUMENTS
+    outdir - the path of the stored model weights ("saved_models")
 
 OPTIONS
     --do_all - Set all options
@@ -25,7 +28,7 @@ if [[ $# == 0 ]]; then
     exit 0
 fi
 
-workspace=""
+outdir=""
 do_finetune=0
 do_baseline=0
 do_greedy_attack=0
@@ -73,20 +76,20 @@ while [[ $# -gt 0 ]]; do
             shift 1
             ;;
         *)
-            if [[ -n "$workspace" ]]; then
+            if [[ -n "$outdir" ]]; then
                 echo "unrecognized argument: $1"
                 exit 1
             fi
-            workspace=$1
+            outdir=$1
             shift 1
             ;;
     esac
 done
 
-workspace=${workspace:-"$PIA_HOME/downstream/Clone-detection-BCB-naturalness-attack/output"}
+outdir=${outdir:-"$PIA_HOME/downstream/Clone-detection-BCB-naturalness-attack/saved_models"}
 
 echo "Configuration:"
-echo "Workspace: $workspace"
+echo "outdir: $outdir"
 echo "Do finetune: $do_finetune"
 echo "Do baseline test: $do_baseline"
 echo "Do substitution: $do_substitute"
@@ -97,7 +100,7 @@ echo "Do mhm attack: $do_mhm_attack"
 
 # Initialize environment
 
-mkdir -p $workspace
+mkdir -p $outdir
 cd ./CodeXGLUE/Clone-detection-BigCloneBench
 
 
@@ -108,7 +111,7 @@ cd code
 echo
 echo "Finetune stage"
 python run.py \
-    --output_dir="$workspace/saved_models/" \
+    --output_dir="$outdir" \
     --model_type=roberta \
     --config_name=microsoft/codebert-base \
     --model_name_or_path=microsoft/codebert-base \
@@ -124,7 +127,7 @@ python run.py \
     --learning_rate 5e-5 \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
-    --seed 123456 2>&1| tee "$workspace/train.log"
+    --seed 123456 2>&1| tee "$outdir/train.log"
 cd ..
 fi
 
@@ -133,7 +136,7 @@ echo
 echo "Inference stage"
 cd code
 python run.py \
-    --output_dir="$workspace/saved_models" \
+    --output_dir="$outdir" \
     --model_type=roberta \
     --config_name=microsoft/codebert-base \
     --model_name_or_path=microsoft/codebert-base \
@@ -149,7 +152,7 @@ python run.py \
     --learning_rate 5e-5 \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
-    --seed 123456 2>&1| tee "$workspace/test.log"
+    --seed 123456 2>&1| tee "$outdir/test.log"
 cd ..
 fi
 
@@ -173,10 +176,10 @@ echo "Greedy attack"
 cd code
 # eval_data_file is the attacked subset
 python attack.py \
-    --output_dir="$workspace/saved_models" \
+    --output_dir="$outdir" \
     --model_type=roberta \
     --config_name=microsoft/codebert-base \
-    --csv_store_path "$workspace/attack_base_result.csv" \
+    --csv_store_path "$outdir/attack_base_result.csv" \
     --model_name_or_path=microsoft/codebert-base \
     --tokenizer_name=roberta-base \
     --base_model=microsoft/codebert-base-mlm \
@@ -185,7 +188,7 @@ python attack.py \
     --test_data_file=../dataset/test_sampled.txt \
     --block_size 512 \
     --eval_batch_size 32 \
-    --seed 123456 2>&1| tee "$workspace/attack.log"
+    --seed 123456 2>&1| tee "$outdir/attack.log"
 cd ..
 fi
 
@@ -194,10 +197,10 @@ echo
 echo "GA Attack"
 cd code
 python attack.py \
-    --output_dir="$workspace/saved_models" \
+    --output_dir="$outdir" \
     --model_type=roberta \
     --config_name=microsoft/codebert-base \
-    --csv_store_path "$workspace/attack_base_result_GA.csv" \
+    --csv_store_path "$outdir/attack_base_result_GA.csv" \
     --model_name_or_path=microsoft/codebert-base \
     --tokenizer_name=roberta-base \
     --use_ga \
@@ -207,7 +210,7 @@ python attack.py \
     --test_data_file=../dataset/test_sampled.txt \
     --block_size 512 \
     --eval_batch_size 32 \
-    --seed 123456 2>&1| tee "$workspace/attack_GA.log"
+    --seed 123456 2>&1| tee "$outdir/attack_GA.log"
 cd ..
 fi
 
@@ -216,11 +219,11 @@ echo
 echo "MHM attack"
 cd code
 python mhm_attack.py \
-    --output_dir="$workspace/saved_models" \
+    --output_dir="$outdir" \
     --model_type=roberta \
     --tokenizer_name=microsoft/codebert-base \
     --model_name_or_path=microsoft/codebert-base \
-    --csv_store_path "$workspace/attack_original_mhm.csv" \
+    --csv_store_path "$outdir/attack_original_mhm.csv" \
     --original \
     --base_model=microsoft/codebert-base-mlm \
     --train_data_file=../dataset/train_sampled.txt \
@@ -228,5 +231,5 @@ python mhm_attack.py \
     --test_data_file=../dataset/test_sampled.txt \
     --block_size 512 \
     --eval_batch_size 64 \
-    --seed 123456  2>&1 | tee "$workspace/attack_original_mhm.log"
+    --seed 123456  2>&1 | tee "$outdir/attack_original_mhm.log"
 fi

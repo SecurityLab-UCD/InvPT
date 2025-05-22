@@ -9,10 +9,10 @@ required for the attack.
 uv run bash init.sh
 ```
 
-Then, run the full pipeline.
+Then, run the full pipeline. See usage for run.sh
 
 ```bash
-uv run bash run.sh
+uv run bash run.sh -h
 ```
 
 
