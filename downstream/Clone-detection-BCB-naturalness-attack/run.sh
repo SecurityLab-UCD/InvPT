@@ -14,12 +14,12 @@ ARGUMENTS
 
 OPTIONS
     --do_all - Set all options
-    --do_finetune - Finetune the model for Clone detection
-    --do_baseline - Run baseline clone detection (without attacks)
+    --do_finetune - Finetune the model for Clone detection, logs to train.log
+    --do_baseline - Run baseline clone detection (without attacks), logs to test.log
     --do_substitute - Get substitutes for attacks
-    --do_greedy_attack
-    --do_ga_attack
-    --do_mhm_attack
+    --do_greedy_attack - Logs to attack.log
+    --do_ga_attack - Logs to attack_GA.log
+    --do_mhm_attack - Logs to attack_original_mhm.log
 EOF
 )
 
