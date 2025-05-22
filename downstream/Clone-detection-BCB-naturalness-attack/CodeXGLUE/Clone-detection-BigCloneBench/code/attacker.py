@@ -737,7 +737,7 @@ class MHM_Attacker():
         
         assert _candi_mode.lower() in ["random", "nearby"]
         
-        selected_uid = random.sample(substitute_dict.keys(), 1)[0] # 选择需要被替换的变量名
+        selected_uid = random.sample(sorted(substitute_dict.keys()), 1)[0] # 选择需要被替换的变量名
         if _candi_mode == "random":
             # First, generate candidate set.
             # The transition probabilities of all candidate are the same.
