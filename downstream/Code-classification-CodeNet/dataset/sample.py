@@ -71,4 +71,4 @@ if __name__ == "__main__":
     save_jsonl(f"{args.input_file}/test.jsonl", sample_id_json(test_array, pid_dict))
     save_jsonl(f"{args.input_file}/valid.jsonl", sample_id_json(value_array, pid_dict))
     
-    print(f"Sampled data saved to {args.output_file}")
+    print(f"Sampled data saved")
