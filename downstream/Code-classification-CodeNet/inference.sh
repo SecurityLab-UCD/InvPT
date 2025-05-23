@@ -13,9 +13,9 @@ python ./code/run.py \
     --model_name_or_path=$model_path \
     --do_eval \
     --do_test \
-    --train_data_file=../dataset/$subset/train.jsonl \
-    --eval_data_file=../dataset/$subset/valid.jsonl \
-    --test_data_file=../dataset/$subset/test.jsonl \
+    --train_data_file=./dataset/$subset/train.jsonl \
+    --eval_data_file=./dataset/$subset/valid.jsonl \
+    --test_data_file=./dataset/$subset/test.jsonl \
     --num_train_epochs 1 \
     --block_size 64 \
     --train_batch_size 8 \

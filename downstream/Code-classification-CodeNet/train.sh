@@ -12,9 +12,9 @@ python ./code/run.py \
     --tokenizer_name=roberta-base \
     --model_name_or_path=$model_path \
     --do_train \
-    --train_data_file=../dataset/$subset/train.jsonl \
-    --eval_data_file=../dataset/$subset/valid.jsonl \
-    --test_data_file=../dataset/$subset/test.jsonl \
+    --train_data_file=./dataset/$subset/train.jsonl \
+    --eval_data_file=./dataset/$subset/valid.jsonl \
+    --test_data_file=./dataset/$subset/test.jsonl \
     --num_train_epochs 5 \
     --block_size 256 \
     --train_batch_size 8 \
