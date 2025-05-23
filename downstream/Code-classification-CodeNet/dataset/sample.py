@@ -15,7 +15,7 @@ def sample_label(json_array, percentage=16):
     sampled_pids = random.sample(pids, sample_size)
 
     pid_dict = dict()
-    for value, index in sampled_pids:
+    for value, index in enumerate(sampled_pids):
         pid_dict[value] = index
     return pid_dict
 
