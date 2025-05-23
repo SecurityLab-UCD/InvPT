@@ -65,10 +65,10 @@ if __name__ == "__main__":
     
     train_array = load_jsonl(f"{args.input_file}/train.jsonl")
     test_array = load_jsonl(f"{args.input_file}/test.jsonl")
-    value_array = load_jsonl(f"{args.input_file}/value.jsonl")
+    value_array = load_jsonl(f"{args.input_file}/valid.jsonl")
     pid_dict = sample_label(train_array, args.percentage)
     save_jsonl(f"{args.input_file}/train.jsonl", sample_id_json(train_array, pid_dict))
     save_jsonl(f"{args.input_file}/test.jsonl", sample_id_json(test_array, pid_dict))
-    save_jsonl(f"{args.input_file}/value.jsonl", sample_id_json(value_array, pid_dict))
+    save_jsonl(f"{args.input_file}/valid.jsonl", sample_id_json(value_array, pid_dict))
     
     print(f"Sampled data saved to {args.output_file}")
