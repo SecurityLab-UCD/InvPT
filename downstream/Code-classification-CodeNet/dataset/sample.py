@@ -63,9 +63,9 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    train_array = load_jsonl(f"{args.input_file}/train.jsonl")
-    test_array = load_jsonl(f"{args.input_file}/test.jsonl")
-    value_array = load_jsonl(f"{args.input_file}/valid.jsonl")
+    train_array = load_jsonl(f"{args.input_file}/old_train.jsonl")
+    test_array = load_jsonl(f"{args.input_file}/old_test.jsonl")
+    value_array = load_jsonl(f"{args.input_file}/old_valid.jsonl")
     pid_dict = sample_label(train_array, args.percentage)
     save_jsonl(f"{args.input_file}/train.jsonl", sample_id_json(train_array, pid_dict))
     save_jsonl(f"{args.input_file}/test.jsonl", sample_id_json(test_array, pid_dict))
