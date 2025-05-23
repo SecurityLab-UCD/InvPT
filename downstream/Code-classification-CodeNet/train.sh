@@ -7,7 +7,7 @@ output_dir=$save_path/$subset
 mkdir -p $output_dir
 touch $output_dir/train.log
 
-python run.py \
+python ./code/run.py \
     --output_dir=$output_dir \
     --tokenizer_name=roberta-base \
     --model_name_or_path=$model_path \
