@@ -2,7 +2,7 @@ import json
 import random
 import argparse
 
-def sample_label(json_array, percentage=16):
+def sample_id_json(json_array, percentage=16):
     """
     Randomly samples a given percentage of JSON objects from the input array.
     
@@ -10,30 +10,10 @@ def sample_label(json_array, percentage=16):
     :param percentage: Percentage of objects to sample (default: 16%)
     :return: List of sampled JSON objects
     """
-    pids = list(set(p["label"] for p in json_array))
-    sample_size = max(1, int(len(pids) * (percentage / 100)))
-    sampled_pids = random.sample(pids, sample_size)
+    sample_size = max(1, int(len(json_array) * (percentage / 100)))
+    sampled = random.sample(json_array, sample_size)
 
-    pid_dict = dict()
-    for index, value in enumerate(sampled_pids):
-        pid_dict[value] = index
-    return pid_dict
-
-def sample_id_json(json_array, pid_dict):
-    """
-    Randomly samples a given percentage of JSON objects from the input array.
-    
-    :param json_array: List of JSON objects
-    :param percentage: Percentage of objects to sample (default: 16%)
-    :return: List of sampled JSON objects
-    """
-    final_json = []
-    for p in json_array:
-        if p["label"] in pid_dict:
-            p["label"] = pid_dict[p["label"]]
-            final_json.append(p)
-
-    return final_json
+    return sampled
 
 def load_jsonl(file_path):
     """
@@ -58,17 +38,14 @@ def save_jsonl(file_path, data):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sample a percentage of JSONL entries.")
-    parser.add_argument("input_file", help="Path to the folder of JSONL files")
+    parser.add_argument("input_file", help="Path to the input JSONL file")
+    parser.add_argument("output_file", help="Path to the output JSONL file")
     parser.add_argument("--percentage", type=float, default=16, help="Percentage of entries to sample (default: 16%)")
     
     args = parser.parse_args()
     
-    train_array = load_jsonl(f"{args.input_file}/old_train.jsonl")
-    test_array = load_jsonl(f"{args.input_file}/old_test.jsonl")
-    value_array = load_jsonl(f"{args.input_file}/old_valid.jsonl")
-    pid_dict = sample_label(train_array, args.percentage)
-    save_jsonl(f"{args.input_file}/train.jsonl", sample_id_json(train_array, pid_dict))
-    save_jsonl(f"{args.input_file}/test.jsonl", sample_id_json(test_array, pid_dict))
-    save_jsonl(f"{args.input_file}/valid.jsonl", sample_id_json(value_array, pid_dict))
+    json_array = load_jsonl(args.input_file)
+    sampled_data = sample_id_json(json_array, args.percentage)
+    save_jsonl(args.output_file, sampled_data)
     
-    print(f"Sampled data saved")
+    print(f"Sampled data saved to {args.output_file}")

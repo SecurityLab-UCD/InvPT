@@ -26,30 +26,29 @@ def get_problem_ids(all_programs: list[CodeNetProgram]) -> list[str]:
 
 def split_programs(
     all_programs: list[CodeNetProgram],
+    num_of_classes: int = 104
 ) -> tuple[list[CodeNetProgram], list[CodeNetProgram], list[CodeNetProgram]]:
     """split programs into train, valid, test sets by 50%, 25%, 25%"""
     # split the dataset by problems, not by programs
     # train, valid, test = 0.5, 0.25, 0.25
     pids = list(set(p.label for p in all_programs))
-    random.shuffle(pids)
-    split1 = len(pids) // 2
-    split2 = len(pids) // 4 + split1
-    train_pids = pids[:split1]
-    valid_pids = pids[split1:split2]
-    test_pids = pids[split2:]
+    sampled_pids = random.sample(pids, num_of_classes)
 
     train_programs = []
     valid_programs = []
     test_programs = []
+
+    index = 0
+    random.shuffle(all_programs)
     for p in all_programs:
-        if p.label in train_pids:
-            train_programs.append(p)
-        elif p.label in valid_pids:
-            valid_programs.append(p)
-        elif p.label in test_pids:
-            test_programs.append(p)
-        else:
-            raise ValueError("Invalid problem id")
+        if p.label in sampled_pids:
+            if index % 4 == 0:
+                valid_programs.append(p)
+            elif index % 4 == 1:
+                test_programs.append(p)
+            else:
+                train_programs.append(p)
+        index += 1
 
     return train_programs, valid_programs, test_programs
 
