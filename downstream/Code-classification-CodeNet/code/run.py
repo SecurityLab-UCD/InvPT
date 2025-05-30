@@ -130,7 +130,7 @@ def train(args, train_dataset, model, tokenizer):
  
     for idx in range(args.num_train_epochs): 
         bar = tqdm(train_dataloader,total=len(train_dataloader))
-        #losses=[]
+        losses=[]
         for step, batch in enumerate(bar):
             inputs = batch[0].to(args.device)        
             labels=batch[1].to(args.device) 
@@ -143,8 +143,8 @@ def train(args, train_dataset, model, tokenizer):
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
-            #losses.append(loss.item())
-            #bar.set_description("epoch {} loss {}".format(idx,round(np.mean(losses),3)))
+            losses.append(loss.item())
+            bar.set_description("epoch {} loss {}".format(idx,round(np.mean(losses),3)))
             optimizer.step()
             optimizer.zero_grad()
             scheduler.step()  
@@ -308,7 +308,7 @@ def main():
     set_seed(args.seed)
 
     config = RobertaConfig.from_pretrained(args.model_name_or_path)
-    config.num_labels=100
+    config.num_labels=104
     tokenizer = RobertaTokenizer.from_pretrained(args.tokenizer_name)
     model = RobertaForSequenceClassification.from_pretrained(args.model_name_or_path,config=config)    
 
