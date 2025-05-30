@@ -10,10 +10,20 @@ def sample_id_json(json_array, percentage=16):
     :param percentage: Percentage of objects to sample (default: 16%)
     :return: List of sampled JSON objects
     """
-    sample_size = max(1, int(len(json_array) * (percentage / 100)))
-    sampled = random.sample(json_array, sample_size)
+    pid_dict = {}
+    for p in json_array:
+        if p["label"] in pid_dict:
+            pid_dict[p["label"]].append(p)
+        else:
+            pid_dict[p["label"]] = [p]
+    
+    final_json = []
 
-    return sampled
+    for _, value in pid_dict.items():
+        sample_size = max(1, int(len(value) * (percentage / 100)))
+        final_json.extend(random.sample(value, sample_size))
+    
+    return final_json
 
 def load_jsonl(file_path):
     """
