@@ -33,6 +33,9 @@ def split_programs(
     # train, valid, test = 0.5, 0.25, 0.25
     pids = list(set(p.label for p in all_programs))
     sampled_pids = random.sample(pids, num_of_classes)
+    sampled_pids_maps = {}
+    for idx, pid in enumerate(sampled_pids):
+        sampled_pids_maps[pid] = str(idx)
 
     train_programs = []
     valid_programs = []
@@ -41,7 +44,8 @@ def split_programs(
     index = 0
     random.shuffle(all_programs)
     for p in all_programs:
-        if p.label in sampled_pids:
+        if p.label in sampled_pids_maps:
+            p.label = sampled_pids_maps[p.label]
             if index % 4 == 0:
                 valid_programs.append(p)
             elif index % 4 == 1:
