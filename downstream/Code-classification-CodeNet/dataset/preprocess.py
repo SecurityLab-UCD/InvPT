@@ -15,12 +15,12 @@ JSON_ENCODING = "utf-8"
 
 @dataclass
 class CodeNetProgram:
-    label: str  # problem id
+    label: int  # problem id
     index: str  # unique id
     code: str  # code content
 
 
-def get_problem_ids(all_programs: list[CodeNetProgram]) -> list[str]:
+def get_problem_ids(all_programs: list[CodeNetProgram]) -> list[int]:
     return list(set(p.label for p in all_programs))
 
 
@@ -35,7 +35,7 @@ def split_programs(
     sampled_pids = random.sample(pids, num_of_classes)
     sampled_pids_maps = {}
     for idx, pid in enumerate(sampled_pids):
-        sampled_pids_maps[pid] = str(idx)
+        sampled_pids_maps[pid] = int(idx)
 
     train_programs = []
     valid_programs = []
@@ -78,7 +78,7 @@ def main(subset: str, workdir: str = "./raw", seed: int = 0):
                 code = f.read()
                 all_programs.append(
                     CodeNetProgram(
-                        label=str(label),
+                        label=int(label),
                         index=str(index),
                         code=code,
                     )
