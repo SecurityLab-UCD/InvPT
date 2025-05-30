@@ -9,7 +9,7 @@ touch $output_dir/train.log
 
 python ./code/run.py \
     --output_dir=$output_dir \
-    --tokenizer_name=roberta-base \
+    --tokenizer_name=microsoft/codebert-base \
     --model_name_or_path=$model_path \
     --do_train \
     --train_data_file=./dataset/$subset/train.jsonl \
