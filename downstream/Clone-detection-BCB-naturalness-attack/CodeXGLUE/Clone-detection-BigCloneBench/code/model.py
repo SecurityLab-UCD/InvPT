@@ -57,7 +57,8 @@ class Model(nn.Module):
         '''Given a dataset, return probabilities and labels.'''
         self.query += len(dataset)
         eval_sampler = SequentialSampler(dataset)
-        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size,num_workers=4,pin_memory=False)
+        # No concurrency since this will be run in a subprocess
+        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size,num_workers=0,pin_memory=False)
 
         ## Evaluate Model
 

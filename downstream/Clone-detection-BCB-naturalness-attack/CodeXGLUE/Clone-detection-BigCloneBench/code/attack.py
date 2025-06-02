@@ -21,10 +21,13 @@ import copy
 import torch
 import time
 import numpy as np
+import torch.multiprocessing as mp
+from tqdm import tqdm
 
 from model import Model
 from utils import set_seed
 from utils import Recorder
+from utils import GreedyAtkResult
 from run import TextDataset
 from attacker import Attacker
 from transformers import RobertaForMaskedLM
@@ -32,10 +35,15 @@ from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter(action='ignore', category=FutureWarning) # Only report warning
+try:
+    mp.set_start_method('spawn')
+except RuntimeError:
+    pass
 
 MODEL_CLASSES = {
     'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer)
 }
+NPROC = torch.cuda.device_count()
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +55,65 @@ def get_code_pairs(file_path):
     with open(code_pairs_file_path, 'rb') as f:
         code_pairs = pickle.load(f)
     return code_pairs
+
+
+class ExampleProcessor():
+    """Attacks one example, intended to be used with multiprocessing
+
+    Class is for keeping state (attacker and program arguments).
+    """
+    def __init__(self, attacker, use_ga):
+        # Eric: I believe attacker does not change important state
+        self.attacker = attacker
+        self.use_ga = use_ga
+
+    def __call__(self, example_args) -> GreedyAtkResult:
+        """ Attacks one example
+
+        Args:
+        example_args - A tuple containing the following arguments in order
+            index - the index of the example
+            example - eval_dataset[index]
+            substitute - substitutes[index]
+            code_pair - source_codes[index]
+        """
+        index, example, substitute, code_pair = example_args
+        print(f"Processing {index}")
+
+        # Attack
+        code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, names_to_importance_score, nb_changed_var, nb_changed_pos, replaced_words = self.attacker.greedy_attack(example, substitute, code_pair)
+        attack_type = "Greedy"
+        if is_success == -1 and self.use_ga:
+            # 如果不成功，则使用gi_attack
+            code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, names_to_importance_score, nb_changed_var, nb_changed_pos, replaced_words = self.attacker.ga_attack(example, substitute, code, initial_replace=replaced_words)
+            attack_type = "GA"
+
+        # Process output
+        score_info = ''
+        if names_to_importance_score is not None:
+            for key in names_to_importance_score.keys():
+                score_info += key + ':' + str(names_to_importance_score[key]) + ','
+        replace_info = ''
+        if replaced_words is not None:
+            for key in replaced_words.keys():
+                replace_info += key + ':' + replaced_words[key] + ','
+
+        return GreedyAtkResult(
+            index,
+            code,
+            prog_length,
+            adv_code,
+            true_label,
+            orig_label,
+            temp_label,
+            is_success,
+            variable_names,
+            score_info,
+            nb_changed_var,
+            nb_changed_pos,
+            replace_info,
+            attack_type,
+        )
 
 def main():
     parser = argparse.ArgumentParser()
@@ -184,6 +251,24 @@ def main():
     attacker = Attacker(args, model, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0)
     start_time = time.time()
     query_times = 0
+
+    processor = ExampleProcessor(attacker, args.use_ga)
+
+    with mp.Pool(NPROC) as pool:
+        results = pool.imap(processor, zip(
+            range(len(eval_dataset)),
+            eval_dataset,
+            substitutes,
+            source_codes,
+        ))
+        tqdm(list(results),
+            desc="Attacking",
+            unit="examples",
+            total=len(eval_dataset)
+        )
+    exit(1)
+
+    # for loop waiting for parallelization
     for index, example in enumerate(eval_dataset):
         example_start_time = time.time()
         code_pair = source_codes[index]
