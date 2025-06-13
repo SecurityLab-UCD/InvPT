@@ -217,33 +217,47 @@ def evaluate(args, model, tokenizer):
 
 def test(args, model, tokenizer):
     # Note that DistributedSampler samples randomly
-    eval_dataset = TextDataset(tokenizer, args,args.test_data_file)
-    eval_sampler = SequentialSampler(eval_dataset)
-    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+    test_output_dir = args.output_dir
+
+    test_dataset = TextDataset(tokenizer, args,args.test_data_file)
+
+    if not os.path.exists(test_output_dir):
+        os.makedirs(test_output_dir)
+
+
+    eval_sampler = SequentialSampler(test_dataset)
+    eval_dataloader = DataLoader(test_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size,num_workers=4,pin_memory=True)
 
     # Eval!
-    logger.info("***** Running Test *****")
-    logger.info("  Num examples = %d", len(eval_dataset))
+    logger.info("***** Running testing *****")
+    logger.info("  Num examples = %d", len(test_dataset))
     logger.info("  Batch size = %d", args.eval_batch_size)
     eval_loss = 0.0
     nb_eval_steps = 0
     model.eval()
-    logits=[]   
+    logits=[] 
     labels=[]
-    for batch in tqdm(eval_dataloader,total=len(eval_dataloader)):
+    for batch in eval_dataloader:
         inputs = batch[0].to(args.device)        
         label=batch[1].to(args.device) 
         with torch.no_grad():
-            logit = model(inputs)
+            lm_loss,logit = model(inputs,label)
+            eval_loss += lm_loss.mean().item()
             logits.append(logit.cpu().numpy())
             labels.append(label.cpu().numpy())
-
+        nb_eval_steps += 1
     logits=np.concatenate(logits,0)
     labels=np.concatenate(labels,0)
     preds=logits.argmax(-1)
-    with open(os.path.join(args.output_dir,"predictions.txt"),'w') as f:
-        for example,pred in zip(eval_dataset.examples,preds):
-            f.write(str(pred)+'\n')
+    eval_acc=np.mean(labels==preds)
+    eval_loss = eval_loss / nb_eval_steps
+    perplexity = torch.tensor(eval_loss)
+            
+    result = {
+        "test_loss": float(perplexity),
+        "test_acc":round(eval_acc,4),
+    }
+    return result
  
     
                         
@@ -341,9 +355,12 @@ def main():
     if args.do_test:
         checkpoint_prefix = 'checkpoint-best-acc/model.bin'
         output_dir = os.path.join(args.output_dir, '{}'.format(checkpoint_prefix))  
-        model.load_state_dict(torch.load(output_dir))                  
+        model.load_state_dict(torch.load(output_dir))      
         model.to(args.device)
-        test(args, model, tokenizer)
+        result=test(args, model, tokenizer)
+        logger.info("***** Test results *****")
+        for key in sorted(result.keys()):
+            logger.info("  %s = %s", key, str(round(result[key],4)))
 
     return results
 
