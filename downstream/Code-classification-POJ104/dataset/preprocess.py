@@ -8,15 +8,15 @@ from dataclasses import dataclass
 from tqdm import tqdm
 import random
 
-from download import get_fullname
 
 JSON_ENCODING = "utf-8"
 
+
 def files(path):
-    g = os.walk(path) 
-    file=[]
-    for path,dir_list,file_list in g:  
-        for file_name in file_list:  
+    g = os.walk(path)
+    file = []
+    for path, dir_list, file_list in g:
+        for file_name in file_list:
             file.append(os.path.join(path, file_name))
     return file
 
@@ -33,8 +33,7 @@ def get_problem_ids(all_programs: list[CodeNetProgram]) -> list[int]:
 
 
 def split_programs(
-    all_programs: list[CodeNetProgram],
-    num_of_classes: int = 104
+    all_programs: list[CodeNetProgram], num_of_classes: int = 104
 ) -> tuple[list[CodeNetProgram], list[CodeNetProgram], list[CodeNetProgram]]:
     """split programs into train, valid, test sets by 50%, 25%, 25%"""
     # split the dataset by problems, not by programs
@@ -70,20 +69,20 @@ def main(seed: int = 0):
     logging.info("Loading programs")
     all_programs: list[CodeNetProgram] = []
     index = 0
-    for i in tqdm(range(1,105),total=104):
-        items=files("ProgramData/{}".format(i))
+    for i in tqdm(range(1, 105), total=104):
+        items = files("ProgramData/{}".format(i))
         for item in items:
-            js={}
-            js['label']=item.split('/')[1]
-            js['index']=str(index)
-            js['code']=open(item,encoding='latin-1').read()
+            js = {}
+            js["label"] = item.split("/")[1]
+            js["index"] = str(index)
+            js["code"] = open(item, encoding="latin-1").read()
             all_programs.append(
-                    CodeNetProgram(
-                        label=int(js['label']),
-                        index=str(js['index']),
-                        code=js['code'],
-                    )
+                CodeNetProgram(
+                    label=int(js["label"]),
+                    index=str(js["index"]),
+                    code=js["code"],
                 )
+            )
             index += 1
 
     random.seed(seed)
