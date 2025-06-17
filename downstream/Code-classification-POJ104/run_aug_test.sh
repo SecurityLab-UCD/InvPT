@@ -11,7 +11,6 @@ python ./code/run.py \
     --output_dir=$output_dir \
     --tokenizer_name=microsoft/codebert-base \
     --model_name_or_path=$model_path \
-    --do_train \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
     --eval_data_file=./dataset/$subset/valid.jsonl \
