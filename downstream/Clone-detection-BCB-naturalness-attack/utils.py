@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from dataclasses import dataclass
 import copy
 import random
 import sys
@@ -706,21 +705,3 @@ class Recorder():
                         attack_type,
                         query_times,
                         time_cost])
-
-@dataclass
-class GreedyAtkResult():
-    index: str
-    code: str
-    prog_length: str
-    adv_code: str
-    true_label: str
-    orig_label: str
-    temp_label: str
-    is_success: str
-    variable_names: str
-    score_info: str
-    nb_changed_var: str
-    nb_changed_pos: str
-    replace_info: str
-    attack_type: str
-    # Timing information is removed for easy multiprocessing
