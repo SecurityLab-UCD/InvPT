@@ -30,7 +30,7 @@ class RobertaClassificationHead(nn.Module):
         return x
         
 class Model(nn.Module):   
-    def __init__(self, encoder,config,tokenizer,args):
+    def __init__(self, encoder,config,tokenizer,args, device=None):
         super(Model, self).__init__()
         self.encoder = encoder
         self.config=config
@@ -38,6 +38,11 @@ class Model(nn.Module):
         self.classifier=RobertaClassificationHead(config)
         self.args=args
         self.query = 0
+        if device is None:
+            self.device = "cuda"
+        else:
+            self.device = device
+        self.to(self.device)
     
         
     def forward(self, input_ids=None,labels=None): 
@@ -66,8 +71,8 @@ class Model(nn.Module):
         logits=[] 
         labels=[]
         for batch in eval_dataloader:
-            inputs = batch[0].to("cuda")       
-            label=batch[1].to("cuda") 
+            inputs = batch[0].to(self.device)       
+            label=batch[1].to(self.device) 
             with torch.no_grad():
                 lm_loss,logit = self.forward(inputs,label)
                 # 调用这个模型. 重写了反前向传播模型.

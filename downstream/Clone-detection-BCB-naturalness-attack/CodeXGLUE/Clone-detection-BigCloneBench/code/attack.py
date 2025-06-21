@@ -12,6 +12,7 @@ sys.path.append('../../../')
 sys.path.append('../../../python_parser')
 retval = os.getcwd()
 
+from tqdm import tqdm
 import csv
 import logging
 import argparse
@@ -21,6 +22,9 @@ import copy
 import torch
 import time
 import numpy as np
+from dataclasses import dataclass
+from threading import Thread, Lock
+from queue import Queue
 
 from model import Model
 from utils import set_seed
@@ -47,6 +51,77 @@ def get_code_pairs(file_path):
     with open(code_pairs_file_path, 'rb') as f:
         code_pairs = pickle.load(f)
     return code_pairs
+
+example_thread_lock = Lock()
+
+@dataclass
+class ExampleResult():
+    """The output of an example after being attacked by ExampleThread. It
+    contains the attack result and relevant statistics related to the attack"""
+    index: str
+    code: str
+    prog_length: str
+    adv_code: str
+    true_label: str
+    orig_label: str
+    temp_label: str
+    is_success: str
+    variable_names: str
+    score_info: str
+    nb_changed_var: str
+    nb_changed_pos: str
+    replace_info: str
+    attack_type: str
+    example_end_time: str
+
+class ExampleThread(Thread):
+    """A thread that processes examples from the queue with a particular
+    attacker until the queue is empty"""
+    def __init__(self,
+                 attacker: Attacker,
+                 use_ga: bool,
+                 input: Queue,
+                 output: Queue,
+                 pbar: tqdm | None = None):
+        self.attacker = attacker
+        self.use_ga = use_ga
+        self.input = input
+        self.output = output
+        self.pbar = pbar
+        Thread.__init__(self)
+
+    def run(self) -> None:
+        while not self.input.empty():
+            index, example, code_pair, substitute = self.input.get()
+            example_start_time = time.time()
+            code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, names_to_importance_score, nb_changed_var, nb_changed_pos, replaced_words = self.attacker.greedy_attack(example,  substitute, code_pair)
+            attack_type = "Greedy"
+            if is_success == -1 and self.use_ga:
+                # 如果不成功，则使用gi_attack
+                code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, names_to_importance_score, nb_changed_var, nb_changed_pos, replaced_words = self.attacker.ga_attack(example, substitute, code, initial_replace=replaced_words)
+                attack_type = "GA"
+
+            # Statistics
+            example_end_time = (time.time()-example_start_time)/60
+            print("Example time cost: ", round(example_end_time, 2), "min")
+            score_info = ''
+            if names_to_importance_score is not None:
+                for key in names_to_importance_score.keys():
+                    score_info += key + ':' + str(names_to_importance_score[key]) + ','
+            replace_info = ''
+            if replaced_words is not None:
+                for key in replaced_words.keys():
+                    replace_info += key + ':' + replaced_words[key] + ','
+
+            # output
+            self.output.put(ExampleResult(index, code, prog_length, adv_code, true_label,
+                             orig_label, temp_label, str(is_success), variable_names,
+                             score_info, nb_changed_var, nb_changed_pos,
+                             replace_info, attack_type, str(example_end_time)))
+            if not self.pbar is None:
+                example_thread_lock.acquire()
+                self.pbar.update()
+                example_thread_lock.release()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -145,13 +220,12 @@ def main():
     else:
         model = model_class(config)
 
-    model=Model(model,config,tokenizer,args)
-
-
+    models = [Model(model,config,tokenizer,args,i) for i in range(torch.cuda.device_count())]
     checkpoint_prefix = 'checkpoint-best-f1/model.bin'
     output_dir = os.path.join(args.output_dir, '{}'.format(checkpoint_prefix))  
-    model.load_state_dict(torch.load(output_dir))
-    model.to(args.device)
+    for index, model in enumerate(models):
+        model.load_state_dict(torch.load(output_dir))
+        model.to(index)
 
 
     ## Load CodeBERT (MLM) model
@@ -173,13 +247,55 @@ def main():
         for line in f:
             js = json.loads(line.strip())
             substitutes.append(js["substitutes"])
-    assert len(source_codes) == len(eval_dataset) == len(substitutes)
-
+    assert len(source_codes) == len(eval_dataset) == len(substitutes), f"{len(source_codes)} == {len(eval_dataset)} == {len(substitutes)}"
 
     # 现在要尝试计算importance_score了.
     success_attack = 0
     total_cnt = 0
 
+    # This is the new parallelized logic
+    pbar = tqdm(total=len(eval_dataset), desc="Processing examples")
+    input_queue = Queue()
+    for i in range(len(eval_dataset)):
+        input_queue.put((i, eval_dataset[i], source_codes[i], substitutes[i]))
+    output_queue: Queue[ExampleResult] = Queue()
+    threads = []
+    for _ in range(torch.cuda.device_count()):
+        threads.append(ExampleThread(
+            Attacker(args, model, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0),
+            args.use_ga,
+            input_queue,
+            output_queue,
+            pbar,
+        ))
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    recorder = Recorder(args.csv_store_path)
+    while not output_queue.empty():
+        output = output_queue.get()
+        recorder.write(
+            output.index,
+            output.code,
+            output.prog_length,
+            output.adv_code,
+            output.true_label,
+            output.orig_label,
+            output.temp_label,
+            output.is_success,
+            output.variable_names,
+            output.score_info,
+            output.nb_changed_var,
+            output.nb_changed_pos,
+            output.replace_info,
+            output.attack_type,
+            None, # harder to calculate in threads
+            output.example_end_time
+        )
+    return
+
+    # This is the old logic
     recoder = Recorder(args.csv_store_path)
     attacker = Attacker(args, model, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0)
     start_time = time.time()
