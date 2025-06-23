@@ -25,6 +25,7 @@ import numpy as np
 from dataclasses import dataclass
 from threading import Thread, Lock
 from queue import Queue
+import copy
 
 from model import Model
 from utils import set_seed
@@ -213,19 +214,22 @@ def main():
         args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
     args.block_size = min(args.block_size, tokenizer.max_len_single_sentence)
     if args.model_name_or_path:
-        model = model_class.from_pretrained(args.model_name_or_path,
+        encoder = model_class.from_pretrained(args.model_name_or_path,
                                             from_tf=bool('.ckpt' in args.model_name_or_path),
                                             config=config,
                                             cache_dir=args.cache_dir if args.cache_dir else None)    
     else:
-        model = model_class(config)
+        encoder = model_class(config)
 
-    models = [Model(model,config,tokenizer,args,i) for i in range(torch.cuda.device_count())]
+    models = []
     checkpoint_prefix = 'checkpoint-best-f1/model.bin'
     output_dir = os.path.join(args.output_dir, '{}'.format(checkpoint_prefix))  
-    for index, model in enumerate(models):
+    for dev_idx in range(torch.cuda.device_count()):
+        device = torch.device(f"cuda:{dev_idx}")
+        model = Model(copy.deepcopy(encoder),config,tokenizer,args,device)
         model.load_state_dict(torch.load(output_dir))
-        model.to(index)
+        model.to(device)
+        models.append(model)
 
 
     ## Load CodeBERT (MLM) model
@@ -260,9 +264,9 @@ def main():
         input_queue.put((i, eval_dataset[i], source_codes[i], substitutes[i]))
     output_queue: Queue[ExampleResult] = Queue()
     threads = []
-    for _ in range(torch.cuda.device_count()):
+    for encoder in models:
         threads.append(ExampleThread(
-            Attacker(args, model, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0),
+            Attacker(args, encoder, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0),
             args.use_ga,
             input_queue,
             output_queue,
@@ -297,7 +301,7 @@ def main():
 
     # This is the old logic
     recoder = Recorder(args.csv_store_path)
-    attacker = Attacker(args, model, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0)
+    attacker = Attacker(args, encoder, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0)
     start_time = time.time()
     query_times = 0
     for index, example in enumerate(eval_dataset):
@@ -325,12 +329,12 @@ def main():
         if replaced_words is not None:
             for key in replaced_words.keys():
                 replace_info += key + ':' + replaced_words[key] + ','
-        print("Query times in this attack: ", model.query - query_times)
-        print("All Query times: ", model.query)
+        print("Query times in this attack: ", encoder.query - query_times)
+        print("All Query times: ", encoder.query)
 
-        recoder.write(index, code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, score_info, nb_changed_var, nb_changed_pos, replace_info, attack_type, model.query - query_times, example_end_time)
+        recoder.write(index, code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, score_info, nb_changed_var, nb_changed_pos, replace_info, attack_type, encoder.query - query_times, example_end_time)
         
-        query_times = model.query
+        query_times = encoder.query
 
         if is_success >= -1 :
             # 如果原来正确

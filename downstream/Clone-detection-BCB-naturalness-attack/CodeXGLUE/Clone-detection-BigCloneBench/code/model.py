@@ -72,7 +72,7 @@ class Model(nn.Module):
         labels=[]
         for batch in eval_dataloader:
             inputs = batch[0].to(self.device)       
-            label=batch[1].to(self.device) 
+            label = batch[1].to(self.device) 
             with torch.no_grad():
                 lm_loss,logit = self.forward(inputs,label)
                 # 调用这个模型. 重写了反前向传播模型.
