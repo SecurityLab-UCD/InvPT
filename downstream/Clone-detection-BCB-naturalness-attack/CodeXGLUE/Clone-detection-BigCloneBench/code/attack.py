@@ -12,20 +12,20 @@ sys.path.append('../../../')
 sys.path.append('../../../python_parser')
 retval = os.getcwd()
 
+from dataclasses import dataclass
+from queue import Queue
+from threading import Thread, Lock
 from tqdm import tqdm
+import argparse
+import copy
+import copy
 import csv
 import logging
-import argparse
-import warnings
-import pickle
-import copy
-import torch
-import time
 import numpy as np
-from dataclasses import dataclass
-from threading import Thread, Lock
-from queue import Queue
-import copy
+import pickle
+import time
+import torch
+import warnings
 
 from model import Model
 from utils import set_seed
@@ -35,14 +35,18 @@ from attacker import Attacker
 from transformers import RobertaForMaskedLM
 from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer)
 
+
+# Constants and globals
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter(action='ignore', category=FutureWarning) # Only report warning
-
 MODEL_CLASSES = {
     'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer)
 }
-
 logger = logging.getLogger(__name__)
+
+
+# Helpers
 
 def get_code_pairs(file_path):
     postfix=file_path.split('/')[-1].split('.txt')[0]
@@ -52,6 +56,9 @@ def get_code_pairs(file_path):
     with open(code_pairs_file_path, 'rb') as f:
         code_pairs = pickle.load(f)
     return code_pairs
+
+
+# Example processing
 
 example_thread_lock = Lock()
 
@@ -123,6 +130,9 @@ class ExampleThread(Thread):
                 example_thread_lock.acquire()
                 self.pbar.update()
                 example_thread_lock.release()
+
+
+# Main routine
 
 def main():
     parser = argparse.ArgumentParser()
@@ -253,10 +263,6 @@ def main():
             substitutes.append(js["substitutes"])
     assert len(source_codes) == len(eval_dataset) == len(substitutes), f"{len(source_codes)} == {len(eval_dataset)} == {len(substitutes)}"
 
-    # 现在要尝试计算importance_score了.
-    success_attack = 0
-    total_cnt = 0
-
     # This is the new parallelized logic
     pbar = tqdm(total=len(eval_dataset), desc="Processing examples")
     input_queue = Queue()
@@ -298,57 +304,6 @@ def main():
             output.example_end_time
         )
     return
-
-    # This is the old logic
-    recoder = Recorder(args.csv_store_path)
-    attacker = Attacker(args, encoder, tokenizer, codebert_mlm, tokenizer_mlm, use_bpe=1, threshold_pred_score=0)
-    start_time = time.time()
-    query_times = 0
-    for index, example in enumerate(eval_dataset):
-        example_start_time = time.time()
-        code_pair = source_codes[index]
-        substitute = substitutes[index]
-        code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, names_to_importance_score, nb_changed_var, nb_changed_pos, replaced_words = attacker.greedy_attack(example,  substitute, code_pair)
-        attack_type = "Greedy"
-        if is_success == -1 and args.use_ga:
-            # 如果不成功，则使用gi_attack
-            code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, names_to_importance_score, nb_changed_var, nb_changed_pos, replaced_words = attacker.ga_attack(example, substitute, code, initial_replace=replaced_words)
-            attack_type = "GA"
-
-        example_end_time = (time.time()-example_start_time)/60
-        
-        print("Example time cost: ", round(example_end_time, 2), "min")
-        print("ALL examples time cost: ", round((time.time()-start_time)/60, 2), "min")
-
-        score_info = ''
-        if names_to_importance_score is not None:
-            for key in names_to_importance_score.keys():
-                score_info += key + ':' + str(names_to_importance_score[key]) + ','
-
-        replace_info = ''
-        if replaced_words is not None:
-            for key in replaced_words.keys():
-                replace_info += key + ':' + replaced_words[key] + ','
-        print("Query times in this attack: ", encoder.query - query_times)
-        print("All Query times: ", encoder.query)
-
-        recoder.write(index, code, prog_length, adv_code, true_label, orig_label, temp_label, is_success, variable_names, score_info, nb_changed_var, nb_changed_pos, replace_info, attack_type, encoder.query - query_times, example_end_time)
-        
-        query_times = encoder.query
-
-        if is_success >= -1 :
-            # 如果原来正确
-            total_cnt += 1
-        if is_success == 1:
-            success_attack += 1
-        
-        if total_cnt == 0:
-            continue
-        print("Success rate: ", 1.0 * success_attack / total_cnt)
-        print("Successful items count: ", success_attack)
-        print("Total count: ", total_cnt)
-        print("Index: ", index)
-        print()
 
 
 if __name__ == '__main__':
