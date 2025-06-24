@@ -86,7 +86,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-outdir=${outdir:-"$PIA_HOME/downstream/Clone-detection-BCB-naturalness-attack/saved_models"}
+outdir=${outdir:-"$PIA_HOME/attack/Clone-detection-BCB-naturalness-attack/saved_models"}
 
 echo "Configuration:"
 echo "outdir: $outdir"
