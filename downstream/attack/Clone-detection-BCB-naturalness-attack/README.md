@@ -2,13 +2,6 @@
 
 This pipeline is modified from [](https://github.com/soarsmu/attack-pretrain-models-of-code). Here is how to run it.
 
-First, initialize the pipeline. This builds the tree-sitter parser, which is
-required for the attack.
-
-```bash
-uv run bash init.sh
-```
-
 Then, run the full pipeline. See usage for run.sh
 
 ```bash

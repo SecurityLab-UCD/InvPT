@@ -9,6 +9,10 @@ from parser_folder import (remove_comments_and_docstrings,
                            tree_to_token_index,
                            index_to_code_token,)
 from tree_sitter import Language, Parser
+import tree_sitter_c as tsc
+import tree_sitter_cpp as tscpp
+import tree_sitter_java as tsjava
+import tree_sitter_python as tspython
 import os
 sys.path.append('..')
 sys.path.append('../../../')
@@ -148,30 +152,21 @@ LANG_LIB_MAP = {
     'java': 'tree_sitter_assets/java.so',
 }
 
-LANG_REPO_MAP = {
-    'python': 'tree-sitter-python',
-    'c': 'tree-sitter-c',
-    'cpp': 'tree-sitter-cpp',
-    'java': 'tree-sitter-java',
+LANG_MAP = {
+    "c": tsc,
+    "cpp": tscpp,
+    "java": tsjava,
+    "python": tspython,
 }
-
-if not os.path.exists(path):
-    for lang in LANG_LIB_MAP:
-        print(f'Installing {lang} language library...')
-        if not os.path.exists(LANG_REPO_MAP[lang]):
-            os.popen(
-                f'git clone https://github.com/tree-sitter/{LANG_REPO_MAP[lang]}.git'
-            ).read()
-    Language.build_library(path, list(LANG_REPO_MAP.values()))
 
 
 
 # load parsers
 parsers = {}
 for lang in dfg_function:
-    LANGUAGE = Language(path, lang)
-    parser = Parser()
-    parser.set_language(LANGUAGE)
+    print(lang)
+    LANGUAGE = Language(LANG_MAP[lang].language())
+    parser = Parser(LANGUAGE)
     parser = [parser, dfg_function[lang]]
     parsers[lang] = parser
 
