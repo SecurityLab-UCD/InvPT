@@ -11,7 +11,6 @@ python ./code/run.py \
     --output_dir=$output_dir \
     --tokenizer_name=microsoft/codebert-base \
     --model_name_or_path=$model_path \
-    --do_train \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
     --eval_data_file=./dataset/$subset/valid.jsonl \
@@ -22,4 +21,4 @@ python ./code/run.py \
     --eval_batch_size 16 \
     --learning_rate 2e-5 \
     --max_grad_norm 1.0 \
-    --seed 123456  2>&1 | tee $output_dir/test_train.log
+    --seed 123456  2>&1 | tee $output_dir/aug_test.log
