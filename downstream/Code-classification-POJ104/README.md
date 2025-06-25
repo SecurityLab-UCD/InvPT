@@ -2,7 +2,7 @@
 
 ## Task Definition
 
-Given a code snipet, guess its label (problem number) as in the coding contest dataset.
+Given a code snippet, guess its label (problem number) as in the coding contest dataset.
 
 ## Dataset
 
