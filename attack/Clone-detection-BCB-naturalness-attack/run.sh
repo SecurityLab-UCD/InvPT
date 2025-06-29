@@ -13,7 +13,7 @@ ARGUMENTS
     outdir - the path of the stored model weights ("saved_models")
 
 OPTIONS
-    --do_all - Set all options
+    --do_all - Run full pipeline for our paper
     --do_finetune - Finetune the model for Clone detection, logs to train.log
     --do_baseline - Run baseline clone detection (without attacks), logs to test.log
     --do_substitute - Get substitutes for attacks
@@ -45,10 +45,10 @@ while [[ $# -gt 0 ]]; do
         --do_all)
             do_finetune=1
             do_baseline=1
+            do_substitute=1
             do_greedy_attack=1
             do_ga_attack=1
-            do_mhm_attack=1
-            do_substitute=1
+            do_mhm_attack=0
             shift 1
             ;;
         --do_substitute)
