@@ -2,8 +2,18 @@
 
 This pipeline is modified from [](https://github.com/soarsmu/attack-pretrain-models-of-code). Here is how to run it.
 
-Then, run the full pipeline. See usage for run.sh
+First, download the dataset with
+```bash
+uv run bash run.sh --get_dataset
+```
 
+Then, run the full pipeline.
+
+```bash
+uv run bash run.sh --do_all
+```
+
+The usage for run.sh can be shown with
 ```bash
 uv run bash run.sh -h
 ```

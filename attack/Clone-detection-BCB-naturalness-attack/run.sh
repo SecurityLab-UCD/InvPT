@@ -13,6 +13,7 @@ ARGUMENTS
     outdir - the path of the stored model weights ("saved_models")
 
 OPTIONS
+    --get_dataset - Download the dataset used in the pipeline. Only run once.
     --do_all - Run full pipeline for our paper
     --do_finetune - Finetune the model for Clone detection, logs to train.log
     --do_baseline - Run baseline clone detection (without attacks), logs to test.log
@@ -29,6 +30,7 @@ if [[ $# == 0 ]]; then
 fi
 
 outdir=""
+get_dataset=0
 do_finetune=0
 do_baseline=0
 do_greedy_attack=0
@@ -42,7 +44,12 @@ while [[ $# -gt 0 ]]; do
             echo "$USAGE"
             exit 0
             ;;
+        --get_dataset)
+            get_dataset=1
+            shift 1
+            ;;
         --do_all)
+            get_dataset=0
             do_finetune=1
             do_baseline=1
             do_substitute=1
@@ -104,7 +111,32 @@ mkdir -p $outdir
 cd ./CodeXGLUE/Clone-detection-BigCloneBench
 
 
-# Run the pipeline
+# Download dataset if option is set
+
+if (( $get_dataset )); then
+dataset_location='https://raw.githubusercontent.com/soarsmu/attack-pretrain-models-of-code/refs/heads/main/CodeXGLUE/Clone-detection-BigCloneBench/dataset/'
+cd dataset
+wget "$dataset_location/data.jsonl"
+wget "$dataset_location/test_sampled_0_500.txt"
+wget "$dataset_location/test_sampled_0_50.txt"
+wget "$dataset_location/test_sampled_1000_1500.txt"
+wget "$dataset_location/test_sampled_1500_2000.txt"
+wget "$dataset_location/test_sampled_2000_2500.txt"
+wget "$dataset_location/test_sampled_2500_3000.txt"
+wget "$dataset_location/test_sampled_3000_3500.txt"
+wget "$dataset_location/test_sampled_3500_4000.txt"
+wget "$dataset_location/test_sampled_500_1000.txt"
+wget "$dataset_location/test_sampled.txt"
+wget "$dataset_location/test.txt"
+wget "$dataset_location/train_sampled.txt"
+wget "$dataset_location/train.txt"
+wget "$dataset_location/valid_sampled.txt"
+wget "$dataset_location/valid.txt"
+cd ..
+fi
+
+
+# Run the configured pipeline
 
 if (( $do_finetune )); then
 cd code
