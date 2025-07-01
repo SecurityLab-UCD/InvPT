@@ -94,9 +94,15 @@ def main(
     # optional legend – one entry per class
     handles = [
         matplotlib.lines.Line2D(
-            [], [], marker="o", linestyle="", color=cmap(i), label=str(i), markersize=7
+            [],
+            [],
+            marker="o",
+            linestyle="",
+            color=cmap(i),
+            label=l,
+            markersize=7,
         )
-        for i in range(NUM_CLASSES)
+        for i, l in enumerate(target_labels)
     ]
     fig.legend(
         handles=handles, loc="lower center", ncol=NUM_CLASSES, title="Problem ID"
