@@ -52,12 +52,14 @@ def embed_batch(model, tok, texts, max_len=512, batch_size=32):
 def main(
     input_test_file: str = "dataset/aug_test.jsonl",
     output_file: str = "clusters.png",
+    pids: str | None = "82,85,91,95,100",
+    legend: bool = True,
 ):
     with open(input_test_file) as f:
         data = [json.loads(line) for line in f]
 
-    numbers = [1, 4, 10, 14, 17, 22]
-    target_labels = set(map(lambda x: 81 + x, numbers))
+    target_labels = set(map(int, pids.split(",")) if pids else range(81, 105))
+
     programs, labels = [], []
     for item in data:
         label = int(item["label"])
@@ -92,21 +94,22 @@ def main(
         ax.set_frame_on(False)
 
     # optional legend – one entry per class
-    handles = [
-        matplotlib.lines.Line2D(
-            [],
-            [],
-            marker="o",
-            linestyle="",
-            color=cmap(i),
-            label=l,
-            markersize=7,
+    if legend:
+        handles = [
+            matplotlib.lines.Line2D(
+                [],
+                [],
+                marker="o",
+                linestyle="",
+                color=cmap(i),
+                label=l,
+                markersize=7,
+            )
+            for i, l in enumerate(target_labels)
+        ]
+        fig.legend(
+            handles=handles, loc="lower center", ncol=NUM_CLASSES, title="Problem ID"
         )
-        for i, l in enumerate(target_labels)
-    ]
-    fig.legend(
-        handles=handles, loc="lower center", ncol=NUM_CLASSES, title="Problem ID"
-    )
 
     fig.tight_layout()
     plt.savefig(output_file, dpi=500, bbox_inches="tight")
