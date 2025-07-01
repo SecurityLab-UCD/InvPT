@@ -188,3 +188,7 @@ wandb/
 example.cpp
 cplus_transforms/example.cpp
 cplus_transforms/traverse.py
+
+*.png
+*.jpg
+*.pdf
