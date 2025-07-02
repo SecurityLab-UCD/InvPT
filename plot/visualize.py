@@ -58,7 +58,7 @@ def main(
     with open(input_test_file) as f:
         data = [json.loads(line) for line in f]
 
-    target_labels = set(map(int, pids.split(",")) if pids else range(81, 105))
+    target_labels = sorted(map(int, pids.split(",")) if pids else range(81, 105))
 
     programs, labels = [], []
     for item in data:
@@ -67,6 +67,12 @@ def main(
             continue
         programs.append(item["code"])
         labels.append(label)
+
+    # Check which labels actually exist in the data
+    actual_labels = sorted(set(labels))
+    print(f"Target labels: {target_labels}")
+    print(f"Labels found in data: {actual_labels}")
+    print(f"Missing labels: {set(target_labels) - set(actual_labels)}")
 
     tokenizer = AutoTokenizer.from_pretrained("microsoft/graphcodebert-base")
     encoders = {
@@ -80,20 +86,27 @@ def main(
 
     coords = {n: to_2d(v) for n, v in embeddings.items()}
 
-    NUM_CLASSES = len(set(labels))
+    # Use the number of target labels for consistent coloring
+    NUM_CLASSES = len(target_labels)
     cmap = plt.get_cmap("tab10", NUM_CLASSES)
+
+    # Create a mapping from label to color index
+    label_to_color_idx = {label: i for i, label in enumerate(target_labels)}
+
     fig, axes = plt.subplots(
         1, len(MODELS), figsize=(4.2 * len(MODELS), 4.2), sharex=False, sharey=False
     )
 
     for ax, (name, xy) in zip(axes, coords.items()):
-        sc = ax.scatter(xy[:, 0], xy[:, 1], c=labels, cmap=cmap, s=8, alpha=0.9)
+        # Map labels to color indices
+        colors = [label_to_color_idx[label] for label in labels]
+        sc = ax.scatter(xy[:, 0], xy[:, 1], c=colors, cmap=cmap, s=8, alpha=0.9)
         ax.set_title(name, fontsize=14)
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_frame_on(False)
 
-    # optional legend – one entry per class
+    # Create legend for all target labels (including missing ones)
     if legend:
         handles = [
             matplotlib.lines.Line2D(
@@ -102,10 +115,10 @@ def main(
                 marker="o",
                 linestyle="",
                 color=cmap(i),
-                label=l,
+                label=str(label),
                 markersize=7,
             )
-            for i, l in enumerate(target_labels)
+            for i, label in enumerate(target_labels)
         ]
         fig.legend(
             handles=handles, loc="lower center", ncol=NUM_CLASSES, title="Problem ID"
