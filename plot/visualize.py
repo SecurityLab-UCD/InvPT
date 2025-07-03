@@ -101,7 +101,8 @@ def main(
         # Map labels to color indices
         colors = [label_to_color_idx[label] for label in labels]
         sc = ax.scatter(xy[:, 0], xy[:, 1], c=colors, cmap=cmap, s=8, alpha=0.9)
-        ax.set_title(name, fontsize=14)
+        # ax.set_title(name, fontsize=14)
+        ax.set_xlabel(name, fontsize=14)
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_frame_on(False)
