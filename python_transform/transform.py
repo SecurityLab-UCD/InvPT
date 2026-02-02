@@ -38,7 +38,7 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
     """
     # lib2to3 is no longer in python 3.11; however, we can still use the 2to3 command line!
 
-    with tempfile.NamedTemporaryFile(mode="wb", suffix=".py", delete=True) as temp:
+    with tempfile.NamedTemporaryFile(mode="w+b", suffix=".py", delete=True) as temp:
         temp.write(source_code.encode())
         temp.flush()
         try:
@@ -66,7 +66,10 @@ def parse(source_code: str) -> Maybe[ast.Module]:
     try:
         original_ast_module = Some(ast.parse(source_code))
     except SyntaxError:
-        original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
+        try:
+            original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
+        except SyntaxError:
+            return Nothing
     except RecursionError:
         return Nothing
     return original_ast_module

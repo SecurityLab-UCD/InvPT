@@ -11,7 +11,6 @@ dependencies = [
     "clang==14.0",
     "dacite==1.8.1",
     "datasets==3.1.0",
-    "typer>=0.15",
     "gdown==5.2.0",
     "jsonlines==4.0.0",
     "libclang==14.0.1",
@@ -32,11 +31,19 @@ dependencies = [
     "tree-sitter-cpp>=0.23.4",
     "tree-sitter-java>=0.23.5",
     "tree-sitter-python>=0.23.6",
+    "typer-slim>=0.21.1",
     "wandb==0.18.7",
 ]
 
 [dependency-groups]
 dev = ["pytest>=9.0.2", "ruff>=0.14.14"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["modeling", "python_transform"]
 
 [tool.mypy]
 python_version = "3.11"
