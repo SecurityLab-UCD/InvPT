@@ -79,8 +79,8 @@ It writes the following files:
 After downloading the dataset, apply invariant code transformations:
 
 ```sh
-uv run python_transform/augment_pretrain.py -i data/raw_csn_py.jsonl -o data/aug_csn_py.jsonl
-uv run java_transform/augment_pretrain.py -i data/raw_csn_java.jsonl -o data/aug_csn_java.jsonl
+uv run python_transform/augment_pretrain.py data/raw_csn_py.jsonl data/aug_csn_py.jsonl
+uv run java_transform/augment_pretrain.py data/raw_csn_java.jsonl data/aug_csn_java.jsonl
 ```
 
 Then combine original and augmented data for pre-training:
