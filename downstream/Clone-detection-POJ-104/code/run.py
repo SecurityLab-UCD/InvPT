@@ -24,6 +24,7 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import glob
+import json
 import logging
 import os
 import pickle
@@ -36,30 +37,32 @@ import torch
 from torch.utils.data import (
     DataLoader,
     Dataset,
-    SequentialSampler,
     RandomSampler,
+    SequentialSampler,
     TensorDataset,
 )
 from torch.utils.data.distributed import DistributedSampler
-import json
 
 try:
     from torch.utils.tensorboard import SummaryWriter
 except:
     from tensorboardX import SummaryWriter
 
-from tqdm import tqdm, trange
 import multiprocessing
+
 from model import Model
+from tqdm import tqdm, trange
 
 cpu_cont = multiprocessing.cpu_count()
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
-    get_linear_schedule_with_warmup,
     BertConfig,
     BertModel,
     BertTokenizer,
+    DistilBertConfig,
+    DistilBertModel,
+    DistilBertTokenizer,
     GPT2Config,
     GPT2LMHeadModel,
     GPT2Tokenizer,
@@ -69,9 +72,7 @@ from transformers import (
     RobertaConfig,
     RobertaModel,
     RobertaTokenizer,
-    DistilBertConfig,
-    DistilBertModel,
-    DistilBertTokenizer,
+    get_linear_schedule_with_warmup,
 )
 
 logger = logging.getLogger(__name__)
@@ -169,7 +170,7 @@ class TextDataset(Dataset):
 
 def set_seed(seed=42):
     random.seed(seed)
-    os.environ["PYHTONHASHSEED"] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -338,7 +339,6 @@ def train(args, train_dataset, model, tokenizer):
                     and args.save_steps > 0
                     and global_step % args.save_steps == 0
                 ):
-
                     if (
                         args.local_rank == -1 and args.evaluate_during_training
                     ):  # Only evaluate when single GPU otherwise metrics may not average well
@@ -463,9 +463,9 @@ def get_n_retrieval(eval_dataset):
     # check all values are the same
     n_programs = list(label_examples.values())[0]
     for v in label_examples.values():
-        assert (
-            v == n_programs
-        ), "The number of examples for each label should be the same"
+        assert v == n_programs, (
+            "The number of examples for each label should be the same"
+        )
     return n_programs - 1
 
 
