@@ -1,24 +1,28 @@
 import os
 import json
-import fire
 from multiprocessing import cpu_count
-from java_transform.transform import TRANSFORMATION_MAP, process
-from modeling.dataloader import CodeSearchNetExample
 from pathos.multiprocessing import ProcessingPool as Pool
+import fire
+from java_transform import TRANSFORMATION_MAP
+from java_transform.transform import process
+from modeling.dataloader import CodeSearchNetExample
 
 
 def main(input_file_path: str, output_file_path: str):
+    """
+    Augment the Java pretraining dataset using various code transformations.
+    """
     nproc = cpu_count()
 
-    assert os.path.exists(input_file_path) and os.path.isfile(
-        input_file_path
-    ), "Invalid input file path"
+    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
+        "Invalid input file path"
+    )
     with open(input_file_path, "r") as f:
         lines = f.read().splitlines()
 
     with Pool(nproc) as pool:
         csn: list[CodeSearchNetExample] = pool.map(
-            lambda l: CodeSearchNetExample(**json.loads(l)), lines
+            lambda line: CodeSearchNetExample(**json.loads(line)), lines
         )
 
     transformed = []

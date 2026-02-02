@@ -1,14 +1,12 @@
 import sys
 
 sys.path.append("..")
-import ast
-import unittest
 
 from src import ReverseIfElser
-from tests.base_tranform_test import baseCodeTransformTest
+from tests.base_tranform_test import BaseCodeTransformTest
 
 
-
+class TestReverseIfElse(BaseCodeTransformTest):
     # TESTS
     def test_no_if_else(self):
         source_code = """
@@ -138,7 +136,3 @@ else:
         self.assert_code_equal(
             self.get_transformed_code(source_code, ReverseIfElser), expected_code
         )
-
-
-if __name__ == "main":
-    unittest.main()

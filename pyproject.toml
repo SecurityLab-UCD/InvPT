@@ -36,10 +36,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "pytest>=9.0.2",
-    "ruff>=0.14.14",
-]
+dev = ["pytest>=9.0.2", "ruff>=0.14.14"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -69,6 +66,8 @@ ignore = [
     "F811",
     "F841", # compatibility issue with returns
 ]
+
+exclude = ["downstream/*", "attack/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

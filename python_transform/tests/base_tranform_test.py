@@ -2,7 +2,7 @@ import ast
 import unittest
 
 
-class baseCodeTransformTest(unittest.TestCase):
+class BaseCodeTransformTest(unittest.TestCase):
     def get_transformed_code(self, code: str, code_transform_class) -> str:
         """
         Return the transformed code snippet based on a specific code transform rule

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
+from sklearn.manifold import TSNE
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -16,8 +17,6 @@ DEFAULT_MODELS = {
     "InvBERT": "../saved_models/InvBERT",
     "InvContraBERT": "../saved_models/InvContraBERT",
 }
-
-from sklearn.manifold import TSNE
 
 
 def to_2d(vectors, **tsne_kw):
