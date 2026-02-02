@@ -12,6 +12,7 @@ dependencies = [
     "dacite==1.8.1",
     "datasets==3.1.0",
     "gdown==5.2.0",
+    "hf-xet>=1.2.0",
     "jsonlines==4.0.0",
     "libclang==14.0.1",
     "matplotlib>=3.8.3",
