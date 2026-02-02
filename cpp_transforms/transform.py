@@ -5,10 +5,8 @@ from collections.abc import Callable
 from dataclasses import asdict, replace
 from functools import partial
 from multiprocessing import cpu_count
-from typing import Any, Protocol, Type
+from typing import Protocol
 
-import clang
-import clang.cindex
 from clang.cindex import Cursor
 from clang.cindex import Index as CursorIndex
 from pathos.multiprocessing import ProcessingPool as Pool

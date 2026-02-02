@@ -1,7 +1,5 @@
 import argparse
-import os
 import sys
-from os import replace
 
 import tree_sitter_c as tsc
 import tree_sitter_cpp as tscpp

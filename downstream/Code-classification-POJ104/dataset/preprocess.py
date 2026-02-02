@@ -89,13 +89,13 @@ def main(seed: int = 0):
     train_programs, valid_programs, test_programs = split_programs(all_programs)
 
     logging.info("Writing to JSONL")
-    with open(f"train.jsonl", "w") as f:
+    with open("train.jsonl", "w") as f:
         for p in train_programs:
             f.write(json.dumps(p.__dict__) + "\n")
-    with open(f"valid.jsonl", "w") as f:
+    with open("valid.jsonl", "w") as f:
         for p in valid_programs:
             f.write(json.dumps(p.__dict__) + "\n")
-    with open(f"test.jsonl", "w") as f:
+    with open("test.jsonl", "w") as f:
         for p in test_programs:
             f.write(json.dumps(p.__dict__) + "\n")
 

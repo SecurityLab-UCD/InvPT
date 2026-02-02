@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 import logging
-import sys, json
+import sys
+import json
 import numpy as np
-from tqdm import tqdm
 
 
 def read_answers(filename):

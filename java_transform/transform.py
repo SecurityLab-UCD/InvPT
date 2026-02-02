@@ -1,7 +1,6 @@
 import json
 import os
 from java_transform import TRANSFORMATION_MAP
-from java_transform.utils import spat_caller
 from modeling.dataloader import CodeSearchNetExample, AugType
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool

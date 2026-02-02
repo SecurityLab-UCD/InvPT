@@ -2,7 +2,6 @@ import random
 
 import numpy as np
 import torch
-from transformers import RobertaConfig, RobertaTokenizerFast
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

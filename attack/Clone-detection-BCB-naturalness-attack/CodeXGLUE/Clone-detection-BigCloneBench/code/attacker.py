@@ -4,15 +4,13 @@ sys.path.append('../../../')
 sys.path.append('../../../python_parser')
 
 import copy
-import torch
 import random
-from run import InputFeatures, convert_examples_to_features
-from utils import select_parents, crossover, map_chromesome, mutate, is_valid_variable_name, _tokenize, get_identifier_posistions_from_code, get_masked_code_by_position, get_substitues, is_valid_substitue, set_seed
+from run import convert_examples_to_features
+from utils import select_parents, crossover, map_chromesome, mutate, _tokenize, get_identifier_posistions_from_code, get_masked_code_by_position
 
 from utils import CodeDataset
-from utils import getUID, isUID, getTensor, build_vocab
+from utils import isUID
 from run_parser import get_identifiers, get_example
-from transformers import (RobertaForMaskedLM, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer)
 
 def compute_fitness(chromesome, words_2, codebert_tgt, tokenizer_tgt, orig_prob, orig_label, true_label ,code, names_positions_dict, args):
     # 计算fitness function.

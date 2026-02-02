@@ -1,11 +1,10 @@
 # type: ignore
 
 import argparse
-import os
 
 from common import DEVICE, set_seed
 from dataloader import contra_data_collator
-from datasets import DatasetDict, load_dataset
+from datasets import load_dataset
 from model import ContrastiveTrainer
 from torch.cuda import device_count
 from transformers import (

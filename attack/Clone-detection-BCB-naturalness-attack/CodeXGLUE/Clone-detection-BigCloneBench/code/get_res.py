@@ -1,7 +1,4 @@
 import csv
-import json
-import random
-from tqdm import tqdm
 csv.field_size_limit(100000000)
 
 def main():

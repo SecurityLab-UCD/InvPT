@@ -1,13 +1,11 @@
-import copy
 import csv
 import os
 import random
-import sys
 
 import numpy as np
 import torch
 import torch.nn as nn
-from python_parser.run_parser import get_example, get_example_batch
+from python_parser.run_parser import get_example_batch
 from torch.utils.data.dataset import Dataset
 from tqdm import tqdm
 
@@ -1125,11 +1123,11 @@ def getDecl(_seq="", _syms={}):
             _syms.add(_node.name)
         elif isinstance(_node.children()[0][1], pycparser.c_ast.Struct):
             _syms.add(_node.children()[0][1].name)
-            if not _node.name is None:
+            if _node.name is not None:
                 _syms.add(_node.name)
         elif isinstance(_node.children()[0][1], pycparser.c_ast.Union):
             _syms.add(_node.children()[0][1].name)
-            if not _node.name is None:
+            if _node.name is not None:
                 _syms.add(_node.name)
     try:
         for _child in _node.children():

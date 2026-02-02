@@ -6,7 +6,7 @@ from multiprocessing import cpu_count
 
 import fire
 from pathos.multiprocessing import ProcessingPool as Pool
-from returns.maybe import Nothing, Some
+from returns.maybe import Some
 from tqdm import tqdm
 
 from modeling.dataloader import AugType, CodeSearchNetExample

@@ -22,15 +22,10 @@ using a masked language modeling (MLM) loss.
 from __future__ import absolute_import, division, print_function
 
 import argparse
-import glob
 import json
 import logging
-import multiprocessing
 import os
-import pickle
 import random
-import re
-import shutil
 
 import numpy as np
 import torch
@@ -40,12 +35,9 @@ from torch.utils.data import (
     Dataset,
     RandomSampler,
     SequentialSampler,
-    TensorDataset,
 )
-from torch.utils.data.distributed import DistributedSampler
-from tqdm import tqdm, trange
+from tqdm import tqdm
 from transformers import (
-    WEIGHTS_NAME,
     AdamW,
     RobertaConfig,
     RobertaForSequenceClassification,
