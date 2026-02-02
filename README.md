@@ -65,8 +65,7 @@ and unload them when you leave the directory.
 We use CodeSearchNet for pre-training.
 
 ```sh
-cd data
-python get_code_search_net.py
+uv run data/get_code_search_net.py
 ```
 
 This script will download the CodeSearchNet dataset and convert it to JSONL format.
@@ -80,8 +79,8 @@ It writes the following files:
 After downloading the dataset, apply invariant code transformations:
 
 ```sh
-python python_transform/augment_pretrain.py -i data/raw_csn_py.jsonl -o data/aug_csn_py.jsonl
-python java_transform/augment_pretrain.py -i data/raw_csn_java.jsonl -o data/aug_csn_java.jsonl
+uv run python_transform/augment_pretrain.py -i data/raw_csn_py.jsonl -o data/aug_csn_py.jsonl
+uv run java_transform/augment_pretrain.py -i data/raw_csn_java.jsonl -o data/aug_csn_java.jsonl
 ```
 
 Then combine original and augmented data for pre-training:
@@ -148,8 +147,7 @@ To evaluate robustness, use the augmented test scripts:
 Generate t-SNE visualizations of code embeddings across models:
 
 ```sh
-cd plot
-python visualize.py --input_test_file dataset/aug_test.jsonl --output_file clusters.png
+uv run plot/visualize.py --input_test_file dataset/aug_test.jsonl --output_file clusters.png
 ```
 
 ## Invariant Code Transformations
