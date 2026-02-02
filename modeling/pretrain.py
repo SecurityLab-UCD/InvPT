@@ -3,7 +3,6 @@
 import argparse
 import os
 
-import fire
 from common import DEVICE, set_seed
 from dataloader import contra_data_collator
 from datasets import DatasetDict, load_dataset

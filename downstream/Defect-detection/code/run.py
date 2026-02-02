@@ -44,7 +44,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-except:
+except ImportError:
     from tensorboardX import SummaryWriter
 
 import multiprocessing

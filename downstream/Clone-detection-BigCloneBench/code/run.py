@@ -44,7 +44,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-except:
+except ImportError:
     from tensorboardX import SummaryWriter
 
 import multiprocessing
@@ -52,7 +52,7 @@ import multiprocessing
 from model import Model
 from tqdm import tqdm, trange
 
-cpu_cont = 16
+cpu_cont = multiprocessing.cpu_count()
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
@@ -92,7 +92,7 @@ def get_example(item):
     else:
         try:
             code = " ".join(url_to_code[url1].split())
-        except:
+        except (KeyError, AttributeError):
             code = ""
         code1 = tokenizer.tokenize(code)
     if url2 in cache:
@@ -100,7 +100,7 @@ def get_example(item):
     else:
         try:
             code = " ".join(url_to_code[url2].split())
-        except:
+        except (KeyError, AttributeError):
             code = ""
         code2 = tokenizer.tokenize(code)
 

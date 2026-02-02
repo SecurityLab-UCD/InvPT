@@ -577,7 +577,7 @@ def get_identifier_posistions_from_code(words_list: list, variable_names: list) 
             if name == token:
                 try:
                     positions[name].append(index)
-                except:
+                except KeyError:
                     positions[name] = [index]
 
     return positions
@@ -1134,7 +1134,7 @@ def getDecl(_seq="", _syms={}):
     try:
         for _child in _node.children():
             _syms = getDecl(_child[1], _syms)
-    except:
+    except Exception:
         _node.show()
     return _syms
 
