@@ -2,7 +2,7 @@ from enum import Enum
 
 import torch
 import torch.nn.functional as F
-from common import DEVICE
+from .common import DEVICE
 from transformers import Trainer
 
 

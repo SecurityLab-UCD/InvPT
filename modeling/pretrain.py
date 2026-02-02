@@ -2,10 +2,7 @@
 
 import argparse
 
-from common import DEVICE, set_seed
-from dataloader import contra_data_collator
 from datasets import load_dataset
-from model import ContrastiveTrainer
 from torch.cuda import device_count
 from transformers import (
     DataCollatorForLanguageModeling,
@@ -14,6 +11,9 @@ from transformers import (
     RobertaTokenizerFast,
     TrainingArguments,
 )
+from .common import DEVICE, set_seed
+from .dataloader import contra_data_collator
+from .model import ContrastiveTrainer
 
 
 def tokenize(tokenizer, example):
@@ -45,7 +45,7 @@ def main(
     dataset_path: str,
     model_name: str,
     batch_size: int,
-    max_steps: int,
+    num_epochs: int,
     gradient_accumulation_steps: int,
     num_proc: int,
     seed: int,
@@ -86,12 +86,11 @@ def main(
         overwrite_output_dir=True,
         per_device_train_batch_size=batch_size // device_count(),
         gradient_accumulation_steps=gradient_accumulation_steps,
-        max_steps=max_steps,
-        save_steps=10000,
-        warmup_steps=5000,
+        num_train_epochs=num_epochs,
+        save_strategy="epoch",
+        warmup_ratio=0.1,
         logging_steps=1000,
-        eval_strategy="steps",
-        eval_steps=1000,
+        eval_strategy="epoch",
         learning_rate=learning_rate,
         weight_decay=0.01,
         remove_unused_columns=False,
@@ -122,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_proc", type=int, default=80)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run_name", type=str, default="InvarientBERT")
-    parser.add_argument("--max_steps", type=int, default=500_000)
+    parser.add_argument("--num_epochs", type=int, default=10)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
     parser.add_argument("--resume", default=False, action="store_true")
@@ -142,7 +141,7 @@ if __name__ == "__main__":
         num_proc=args.num_proc,
         seed=args.seed,
         run_name=args.run_name,
-        max_steps=args.max_steps,
+        num_epochs=args.num_epochs,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
         resume=args.resume,
