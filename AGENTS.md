@@ -115,6 +115,28 @@ Metrics: MAP@R for clone detection, accuracy for defect detection and code class
 - CLI interfaces use `argparse` or `fire`.
 - Experiment tracking via Weights & Biases (`wandb`).
 
+## Development Guidelines
+
+### Developing
+
+- Before start working, refresh your knowledge from contents in `.agents` first.
+- Always update `README.md` and `CLAUDE.md` when you introduce new features or libraries.
+- Always write unit tests for integration testing and functional testing of new features.
+- Always test your code after your implementation.
+- Use `pre-commit install --install-hooks` (and optionally `--hook-type pre-push`) to enable local git hooks.
+- You should not commit anything and create pull request, let human do them. However, please suggest commit messages.
+
+### Scratch Space
+
+Do not create ad-hoc files at repo root.
+1. Use `.agents/sandbox/` for throwaway exploration that will not be committed.
+2. Use `.agents/notes/` for longer-term notes that may be useful later.
+Always write down your plans and reasoning for future reference when encountering major tasks,
+like adding a feature.
+3. Use `.agents/accomplished/` for recording completed tasks and the summary of what we did,
+this may be useful for future reference.
+
+
 ## Common Tasks
 
 - **Add a new transformation operator**: Implement it in the relevant `*_transform/` directory. For Python, subclass `ast.NodeTransformer`; for Java, use a SPAT rule ID; for C/C++, use libclang AST traversal. Register it in the corresponding `TRANSFORMATION_MAP`.
