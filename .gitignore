@@ -192,3 +192,5 @@ cplus_transforms/traverse.py
 *.png
 *.jpg
 *.pdf
+
+.references/*
