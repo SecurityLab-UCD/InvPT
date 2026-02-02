@@ -38,26 +38,27 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
     """
     # lib2to3 is no longer in python 3.11; however, we can still use the 2to3 command line!
 
-    temp = tempfile.TemporaryFile()
-    temp.write(source_code.encode())
-    try:
-        subprocess.run(
-            ["2to3", temp.name, "-w"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except subprocess.CalledProcessError as e:
-        return Nothing
-    except TypeError as e:
-        # while trying to convert the code from py2 to py3, it will throw an error if the code ifself has syntax error
-        # in this case, we skip this transformation
-        return Nothing
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=".py", delete=True) as temp:
+        temp.write(source_code.encode())
+        temp.flush()
+        try:
+            subprocess.run(
+                ["2to3", temp.name, "-w"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError:
+            return Nothing
+        except TypeError:
+            # while trying to convert the code from py2 to py3, it will throw an error if the code ifself has syntax error
+            # in this case, we skip this transformation
+            return Nothing
 
-    # Read the modified content from the file
-    modified_code = temp.read().decode()
-    temp.close()
-    return Some(modified_code)
+        # Read the modified content from the file
+        temp.seek(0)
+        modified_code = temp.read().decode()
+        return Some(modified_code)
 
 
 def parse(source_code: str) -> Maybe[ast.Module]:

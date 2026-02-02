@@ -124,7 +124,7 @@ Metrics: MAP@R for clone detection, accuracy for defect detection and code class
 - Always write unit tests for integration testing and functional testing of new features.
 - Always test your code after your implementation.
 - Use `pre-commit install --install-hooks` (and optionally `--hook-type pre-push`) to enable local git hooks.
-- You should not commit anything and create pull request, let human do them. However, please suggest commit messages.
+- You should not commit anything and create pull request, let human do them. However, please suggest commit messages after implementation.
 
 ### Scratch Space
 
