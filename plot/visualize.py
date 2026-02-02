@@ -1,11 +1,11 @@
-from transformers import AutoTokenizer, AutoModel
-import torch
-import pathlib
 import json
+
 import fire
-from tqdm import tqdm
 import matplotlib.lines
 import matplotlib.pyplot as plt
+import torch
+from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

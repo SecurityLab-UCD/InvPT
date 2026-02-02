@@ -1,23 +1,24 @@
-import os
-from dataclasses import asdict
-from python_transform.src import (
-    LocalVariableRenamer,
-    ReverseIfElser,
-    OpAssignment2EqualAssignment,
-)
-from modeling.dataloader import CodeSearchNetExample, AugType
+import argparse
 import ast
 import json
+import os
 import subprocess
+import tempfile
+from dataclasses import asdict
+from functools import partial
+from multiprocessing import cpu_count
+from typing import Type
+
+from pathos.multiprocessing import ProcessingPool as Pool
 from returns.maybe import Maybe, Nothing, Some
 from returns.pointfree import bind
-import tempfile
-import argparse
-from typing import Type
-from multiprocessing import cpu_count
-from pathos.multiprocessing import ProcessingPool as Pool
-from functools import partial
 
+from modeling.dataloader import AugType, CodeSearchNetExample
+from python_transform.src import (
+    LocalVariableRenamer,
+    OpAssignment2EqualAssignment,
+    ReverseIfElser,
+)
 
 TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
     AugType.LOCALVARRENAMING: LocalVariableRenamer,
@@ -137,9 +138,9 @@ def main(
 ):
     print(f"-------- Selected Transforming Method: {augtype} -------- ")
 
-    assert os.path.exists(input_file_path) and os.path.isfile(
-        input_file_path
-    ), "Invalid input file path"
+    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
+        "Invalid input file path"
+    )
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:

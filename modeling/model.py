@@ -1,8 +1,9 @@
+from enum import Enum
+
 import torch
 import torch.nn.functional as F
-from transformers import Trainer
 from common import DEVICE
-from enum import Enum
+from transformers import Trainer
 
 
 class ContraType(str, Enum):

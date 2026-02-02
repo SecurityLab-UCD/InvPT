@@ -1,13 +1,13 @@
 import sys
 
 sys.path.append("..")
+import ast
+import unittest
+
 from src import ReverseIfElser
 from tests.base_tranform_test import baseCodeTransformTest
-import unittest
-import ast
 
 
-class TestReverseIfElse(baseCodeTransformTest):
 
     # TESTS
     def test_no_if_else(self):
@@ -23,7 +23,7 @@ def greet(language):
 numbers = [1, 2, 3, 4, 5]
 even_numbers = [num for num in numbers if num % 2 == 0]
 
-print(even_numbers)  
+print(even_numbers)
 print(greet("es"))
         """
 
@@ -37,7 +37,7 @@ def greet(language):
     return greetings.get(language, "Hello")
 numbers = [1, 2, 3, 4, 5]
 even_numbers = [num for num in numbers if num % 2 == 0]
-print(even_numbers)  
+print(even_numbers)
 print(greet("es"))
         """
 
@@ -133,7 +133,7 @@ if not x < 3:
     else:
         print('bigger than or equal 3 AND smaller than 4')
 else:
-    print('smaller than 3')    
+    print('smaller than 3')
 """
         self.assert_code_equal(
             self.get_transformed_code(source_code, ReverseIfElser), expected_code

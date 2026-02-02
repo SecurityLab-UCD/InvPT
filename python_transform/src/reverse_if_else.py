@@ -2,7 +2,6 @@ import ast
 
 
 class ReverseIfElser(ast.NodeTransformer):
-
     def visit_If(self, node: ast.If):
         self.generic_visit(node)
 

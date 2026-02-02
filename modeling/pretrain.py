@@ -1,21 +1,21 @@
 # type: ignore
 
+import argparse
+import os
+
+import fire
+from common import DEVICE, set_seed
+from dataloader import contra_data_collator
+from datasets import DatasetDict, load_dataset
+from model import ContrastiveTrainer
+from torch.cuda import device_count
 from transformers import (
+    DataCollatorForLanguageModeling,
+    RobertaConfig,
     RobertaForMaskedLM,
     RobertaTokenizerFast,
-    RobertaConfig,
-    DataCollatorForLanguageModeling,
     TrainingArguments,
 )
-from datasets import load_dataset, DatasetDict
-import fire
-from model import ContrastiveTrainer
-from dataloader import contra_data_collator
-
-from common import DEVICE, set_seed
-import os
-import argparse
-from torch.cuda import device_count
 
 
 def tokenize(tokenizer, example):
@@ -56,7 +56,6 @@ def main(
     resume: bool,
     checkpoint: str | None = None,
 ):
-
     set_seed(seed)
 
     tokenizer = RobertaTokenizerFast.from_pretrained(model_name)
