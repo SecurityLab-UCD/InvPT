@@ -6,7 +6,7 @@ from multiprocessing import cpu_count
 
 import fire
 from pathos.multiprocessing import ProcessingPool as Pool
-from returns.maybe import Some
+from returns.maybe import Nothing, Some
 from tqdm import tqdm
 
 from modeling.dataloader import AugType, CodeSearchNetExample
@@ -49,7 +49,7 @@ def main(input_file_path: str, output_file_path: str):
             results.extend(transformed_data)
 
     with open(output_file_path, "w") as f:
-        for transformed_csn in transformed_data:
+        for transformed_csn in results:
             match transformed_csn:
                 case Some(csn):
                     f.write(json.dumps(asdict(csn)) + "\n")
