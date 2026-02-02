@@ -4,7 +4,7 @@ from dataclasses import asdict
 from functools import partial
 from multiprocessing import cpu_count
 
-import fire
+import typer
 from pathos.multiprocessing import ProcessingPool as Pool
 from returns.maybe import Some
 from tqdm import tqdm
@@ -60,4 +60,4 @@ def main(input_file_path: str, output_file_path: str):
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

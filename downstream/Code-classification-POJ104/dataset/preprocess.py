@@ -1,6 +1,6 @@
 """preprocess CodeNet datasets to POJ-104 format JSONL"""
 
-import fire
+import typer
 import os
 import json
 import logging
@@ -102,4 +102,4 @@ def main(seed: int = 0):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    fire.Fire(main)
+    typer.run(main)

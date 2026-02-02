@@ -1,4 +1,4 @@
-import fire
+import typer
 import json
 from dataclasses import asdict
 from multiprocessing import cpu_count
@@ -48,4 +48,4 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

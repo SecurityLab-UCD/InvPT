@@ -1,4 +1,4 @@
-import fire
+import typer
 import requests
 import json
 import logging
@@ -65,4 +65,4 @@ def main():
             f.write(aj + "\n")
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

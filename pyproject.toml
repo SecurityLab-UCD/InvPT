@@ -11,7 +11,7 @@ dependencies = [
     "clang==14.0",
     "dacite==1.8.1",
     "datasets==3.1.0",
-    "fire==0.5.0",
+    "typer>=0.15",
     "gdown==5.2.0",
     "jsonlines==4.0.0",
     "libclang==14.0.1",

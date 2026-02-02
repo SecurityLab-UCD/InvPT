@@ -2,7 +2,7 @@ from python_transform.transform import apply_code_transformation, TRANSFORMATION
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from dataclasses import asdict
-import fire
+import typer
 import json
 import os
 from preprocess import CodeNetProgram
@@ -44,4 +44,4 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

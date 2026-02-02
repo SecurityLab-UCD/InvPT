@@ -1,6 +1,6 @@
 import json
 
-import fire
+import typer
 import matplotlib.lines
 import matplotlib.pyplot as plt
 import torch
@@ -53,9 +53,8 @@ def main(
     output_file: str = "clusters.png",
     pids: str | None = "82,85,91,95,100",
     legend: bool = True,
-    models: dict[str, str] | None = None,
 ):
-    models = models or DEFAULT_MODELS
+    models = DEFAULT_MODELS
     with open(input_test_file) as f:
         data = [json.loads(line) for line in f]
 
@@ -131,4 +130,4 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

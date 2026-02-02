@@ -1,6 +1,6 @@
 from download import main as download
 from preprocess import main as preprocess
-import fire
+import typer
 import tempfile
 import logging
 import os
@@ -49,4 +49,4 @@ def main(subset: str):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    fire.Fire(main)
+    typer.run(main)
