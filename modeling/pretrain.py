@@ -2,7 +2,7 @@
 
 import argparse
 
-from datasets import load_dataset
+from datasets import Features, Value, load_dataset
 from torch.cuda import device_count
 from transformers import (
     DataCollatorForLanguageModeling,
@@ -66,7 +66,19 @@ def main(
     )  # load weights from stage 1
     model.to(DEVICE)
 
-    dataset = load_dataset("json", data_files=dataset_path)["train"]
+    features = Features(
+        {
+            "repo": Value("string"),
+            "func_name": Value("string"),
+            "language": Value("string"),
+            "code": Value("string"),
+            "docstring": Value("string"),
+            "transformed": Value("string"),
+            "aug_type": Value("string"),
+        }
+    )
+    dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
+    dataset = dataset.filter(lambda x: x["transformed"] is not None)
 
     tokenized_datasets = dataset.shuffle(seed=seed).map(
         lambda example: tokenize(tokenizer, example),
