@@ -1,4 +1,6 @@
-# export CUDA_VISIBLE_DEVICES=4,5,6,7 
+#!/bin/bash
+
+# export CUDA_VISIBLE_DEVICES=4,5,6,7
 export WANDB_PROJECT="PIA"
 
 RUN_NAME="InvGraphCodeBERT"
@@ -11,4 +13,3 @@ python -m modeling.pretrain \
     --seed=0 \
     --gradient_accumulation_steps=4 \
     --learning_rate=2e-5
-
