@@ -2,8 +2,9 @@ from enum import Enum
 
 import torch
 import torch.nn.functional as F
-from .common import DEVICE
 from transformers import Trainer
+
+from .common import DEVICE
 
 
 class ContraType(str, Enum):
@@ -83,10 +84,12 @@ class ContrastiveTrainer(Trainer):
         aug_hidden_states = aug_outputs.hidden_states[-1]
         aug_embeddings = aug_hidden_states[:, 0, :]
 
-        # compute MLM loss for code and augmentation separately
+        # Average MLM losses so the combined MLM term is on the same scale
+        # as the single contrastive term (~3-8 each), letting alpha express
+        # a genuine preference rather than compensating for a 2x scale artifact.
         code_mlm_loss = code_outputs.loss
         aug_mlm_loss = aug_outputs.loss
-        mlm_loss = code_mlm_loss + aug_mlm_loss
+        mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
 
         # Compute contrastive loss between code and its augmentation
         contrastive_loss = info_nce_loss(

@@ -149,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=10)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
-    parser.add_argument("--alpha", type=float, default=0.7)
+    parser.add_argument("--alpha", type=float, default=1.0)
     parser.add_argument("--temperature", type=float, default=0.07)
     parser.add_argument("--max_seq_length", type=int, default=256)
     parser.add_argument("--sample_rate", type=float, default=1.0)

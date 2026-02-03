@@ -13,7 +13,7 @@ python -m modeling.pretrain \
     --seed=0 \
     --gradient_accumulation_steps=4 \
     --learning_rate=2e-5 \
-    --alpha=0.7 \
+    --alpha=1.0 \
     --temperature=0.1 \
     --max_seq_length=512 \
     --sample_rate=0.1
