@@ -1,6 +1,7 @@
 # type: ignore
 
 import argparse
+import os
 
 from datasets import Features, Value, load_dataset
 from torch.cuda import device_count
@@ -11,24 +12,25 @@ from transformers import (
     RobertaTokenizerFast,
     TrainingArguments,
 )
+
 from .common import DEVICE, set_seed
 from .dataloader import contra_data_collator
 from .model import ContrastiveTrainer
 
 
-def tokenize(tokenizer, example):
+def tokenize(tokenizer, example, max_seq_length=256):
     code_inputs = tokenizer(
         example["code"],
         padding="max_length",
         truncation=True,
-        max_length=256,
+        max_length=max_seq_length,
         return_special_tokens_mask=True,
     )
     aug_inputs = tokenizer(
         example["transformed"],
         padding="max_length",
         truncation=True,
-        max_length=256,
+        max_length=max_seq_length,
         return_special_tokens_mask=True,
     )
     return {
@@ -52,6 +54,10 @@ def main(
     run_name: str,
     learning_rate: float,
     resume: bool,
+    alpha: float,
+    temperature: float,
+    max_seq_length: int,
+    sample_rate: float,
     checkpoint: str | None = None,
 ):
     set_seed(seed)
@@ -80,8 +86,13 @@ def main(
     dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
     dataset = dataset.filter(lambda x: x["transformed"] is not None)
 
+    if sample_rate < 1.0:
+        dataset = dataset.shuffle(seed=seed).select(
+            range(int(len(dataset) * sample_rate))
+        )
+
     tokenized_datasets = dataset.shuffle(seed=seed).map(
-        lambda example: tokenize(tokenizer, example),
+        lambda example: tokenize(tokenizer, example, max_seq_length=max_seq_length),
         batched=True,
         num_proc=num_proc,
     )
@@ -110,6 +121,7 @@ def main(
         run_name=run_name,
         save_total_limit=3,
         load_best_model_at_end=True,
+        dataloader_num_workers=os.cpu_count(),
     )
 
     trainer = ContrastiveTrainer(
@@ -118,7 +130,8 @@ def main(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=lambda features: contra_data_collator(mlm_collator, features),
-        alpha=0.7,
+        alpha=alpha,
+        temperature=temperature,
     )
 
     trainer.train(resume_from_checkpoint=resume)
@@ -136,6 +149,10 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=10)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
+    parser.add_argument("--alpha", type=float, default=0.7)
+    parser.add_argument("--temperature", type=float, default=0.07)
+    parser.add_argument("--max_seq_length", type=int, default=256)
+    parser.add_argument("--sample_rate", type=float, default=1.0)
     parser.add_argument("--resume", default=False, action="store_true")
     parser.add_argument(
         "--checkpoint",
@@ -157,5 +174,9 @@ if __name__ == "__main__":
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
         resume=args.resume,
+        alpha=args.alpha,
+        temperature=args.temperature,
+        max_seq_length=args.max_seq_length,
+        sample_rate=args.sample_rate,
         checkpoint=args.checkpoint,
     )
