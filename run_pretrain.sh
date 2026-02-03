@@ -16,4 +16,4 @@ python -m modeling.pretrain \
     --alpha=1.0 \
     --temperature=0.1 \
     --max_seq_length=512 \
-    --sample_rate=0.1
+    --sample_rate=0.2
