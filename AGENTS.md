@@ -126,9 +126,6 @@ Metrics: MAP@R for clone detection, accuracy for defect detection and code class
 - Use `pre-commit install --install-hooks` (and optionally `--hook-type pre-push`) to enable local git hooks.
 - You should not commit anything and create pull request, let human do them. However, please suggest commit messages after implementation.
 
-### Scratch Space
-
-Do not create ad-hoc files at repo root.
 1. Use `.agents/sandbox/` for throwaway exploration that will not be committed.
 2. Use `.agents/notes/` for longer-term notes that may be useful later.
 Always write down your plans and reasoning for future reference when encountering major tasks,
