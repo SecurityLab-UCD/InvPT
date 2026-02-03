@@ -58,7 +58,7 @@ docker run --name=codebert-attack --gpus all -it --mount type=bind,src=<codebase
 
 We only use 10% training data to fine-tune and 10% valid data to evaluate during training. The training cost is 3 hours on 8*P100-16G. 
 
-```shell
+```bash
 cd code
 python run.py \
     --output_dir=./saved_models \
@@ -84,7 +84,7 @@ python run.py \
 
 We use full test data for inference. 
 
-```shell
+```bash
 cd code
 CUDA_VISIBLE_DEVICES=4 python run.py \
     --output_dir=./saved_models \
@@ -111,7 +111,7 @@ CUDA_VISIBLE_DEVICES=4 python run.py \
 
 If you don't want to be bothered by fine-tuning models, you can download the victim model into `code/saved_models/checkpoint-best-f1` by [this link](https://drive.google.com/file/d/1CR3SWBlyMZLnctZklAHMFf0Jq1U7YdsZ/view?usp=sharing).
 
-```shell
+```bash
 pip install gdown
 mkdir -p code/saved_models/checkpoint-best-f1
 gdown https://drive.google.com/uc?id=1CR3SWBlyMZLnctZklAHMFf0Jq1U7YdsZ
@@ -192,7 +192,7 @@ CUDA_VISIBLE_DEVICES=6 python get_substitutes.py \
 
 We use full test data for attacking. 
 
-```shell
+```bash
 cd code
 python attack.py \
     --output_dir=./saved_models \
@@ -212,7 +212,7 @@ python attack.py \
 
 #### GA-ATTACK
 
-```shell
+```bash
 cd code
 python attack.py \
     --output_dir=./saved_models \
@@ -233,7 +233,7 @@ python attack.py \
 
 
 #### MHM-Attack
-```shell
+```bash
 cd code
 CUDA_VISIBLE_DEVICES=0 python mhm_attack.py \
     --output_dir=./saved_models \
@@ -251,7 +251,7 @@ CUDA_VISIBLE_DEVICES=0 python mhm_attack.py \
 ```
 
 #### Original MHM-Attack
-```shell
+```bash
 cd code
 CUDA_VISIBLE_DEVICES=0 python mhm_attack.py \
     --output_dir=./saved_models \

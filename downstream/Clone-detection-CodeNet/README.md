@@ -16,7 +16,7 @@ We use [CodeNet](https://github.com/IBM/Project_CodeNet) dataset on this task.
 
 ### Download and Preprocess
 
-```shell
+```bash
 cd dataset
 python get_codenet.py <dataset>
 
@@ -58,7 +58,7 @@ please refer to the documentation there.
 
 ## Running the Pipelines
 
-```shell
+```bash
 CUDA_VISIBLE_DEVICES=0,1 ./run.sh <model_path_or_name> <save_path> <subset>
 
 # for example,

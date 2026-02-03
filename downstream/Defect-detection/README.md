@@ -12,7 +12,7 @@ The dataset we use comes from the paper [*Devign*: Effective Vulnerability Ident
 
 1.Download dataset from [website](https://drive.google.com/file/d/1x6hoF7G-tSYxg8AFybggypLZgMGDNHfF/view?usp=sharing) to "dataset" folder or run the following command:
 
-```shell
+```bash
 cd dataset
 pip install gdown
 gdown https://drive.google.com/uc?id=1x6hoF7G-tSYxg8AFybggypLZgMGDNHfF
@@ -31,7 +31,7 @@ For each file, each line in the uncompressed file represents one function.  One 
    - **idx:** the index of example
 
 ### Preprocess CodeXClue Dataset
-```shell
+```bash
 cd dataset
 python preprocess.py
 cd ..
@@ -58,14 +58,14 @@ $ gzcat CVEfixes_v1.0.8.sql.gz | sqlite3 CVEfixes.db
 ```
 
 Lastly, run the following command to get the dataset for fine-tunning and evaluation.
-```shell
+```bash
 python get_CVEfixes.py --data_path_sql [Path to the CVEfixes.db] --languages [Languages, such as Python, Java, C++, etc]
 ```
 
 
 For example, to generate a dataset specifically for Python and Java, run the following command. You can optionally add the `--split_by_repo` flag to ensure that the train, eval, and test sets do not contain code samples from the same repositories.
 
-```shell
+```bash
 python get_CVEfixes.py --data_path_sql dataset/CVEfixes.db --languages Python Java --split_by_repo
 ```
 
@@ -75,7 +75,7 @@ We provide a script to evaluate predictions for this task, and report accuracy s
 
 ### Example
 
-```shell
+```bash
 python evaluator/evaluator.py -a evaluator/test.jsonl -p evaluator/predictions.txt
 ```
 
@@ -85,7 +85,7 @@ python evaluator/evaluator.py -a evaluator/test.jsonl -p evaluator/predictions.t
 
 A predications file that has predictions in TXT format, such as evaluator/predictions.txt. For example:
 
-```shell
+```bash
 0	0
 1	1
 2	1
@@ -99,7 +99,7 @@ We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002
 
 ### Fine-tune
 
-```shell
+```bash
 cd code
 python run.py \
     --output_dir=./saved_models \
@@ -123,7 +123,7 @@ python run.py \
 
 ### Inference
 
-```shell
+```bash
 cd code
 python run.py \
     --output_dir=./saved_models \
@@ -153,7 +153,7 @@ python run.py \
 
 ### Evaluation
 
-```shell
+```bash
 python ../evaluator/evaluator.py -a ../dataset/test.jsonl -p saved_models/predictions.txt
 ```
 
