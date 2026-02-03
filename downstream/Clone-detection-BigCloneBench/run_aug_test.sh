@@ -1,3 +1,4 @@
+#!/bin/bash
 # Run augmented tests
 model_path=$1
 output_dir=$2

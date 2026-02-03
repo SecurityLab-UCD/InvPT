@@ -1,3 +1,4 @@
+#!/bin/bash
 model_path=$1
 output_dir=$2
 mkdir -p $output_dir
@@ -33,4 +34,4 @@ python evaluator/evaluator.py \
 
 
 echo "Running evaluation for augmented test set..."
-./run_aug_test.sh $model_path $output_dir 
+./run_aug_test.sh $model_path $output_dir

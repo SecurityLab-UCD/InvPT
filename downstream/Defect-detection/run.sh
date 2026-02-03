@@ -1,3 +1,4 @@
+#!/bin/bash
 model_path=$1
 output_dir=$2
 dataset_path=dataset/

@@ -1,3 +1,4 @@
+#!/bin/bash
 model_path=$1
 save_path=$2
 subset=$3
