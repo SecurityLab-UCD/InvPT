@@ -24,7 +24,7 @@ def validate_jsonl_path(path: str):
 
 def main(
     input_file_path: str,
-    ouput_file_path: str = "augmented_Python800_test.jsonl",
+    ouput_file_path: str,
     nproc: int = cpu_count(),
 ):
     validate_jsonl_path(input_file_path)

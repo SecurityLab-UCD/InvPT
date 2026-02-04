@@ -17,7 +17,7 @@ def validate_jsonl_path(path: str):
 
 def main(
     input_file_path: str,
-    output_file_path: str = "augmented_C++1000_test.jsonl",
+    output_file_path: str,
     nproc: int = cpu_count(),
 ):
     validate_jsonl_path(input_file_path)

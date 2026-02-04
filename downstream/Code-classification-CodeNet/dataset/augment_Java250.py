@@ -28,7 +28,7 @@ def process(dataset: list[CodeNetProgram]) -> list[CodeNetProgram]:
 
 def main(
     input_file_path: str,
-    output_file_path: str = "augmented_Java250_test.jsonl",
+    output_file_path: str,
     nproc: int = cpu_count(),
 ):
 

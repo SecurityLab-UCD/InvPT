@@ -28,10 +28,9 @@ def process(dataset: list[CodeNetProgram]) -> list[CodeNetProgram]:
 
 def main(
     input_file_path: str,
-    output_file_path: str = "augmented_Java250_test.jsonl",
+    output_file_path: str,
     nproc: int = cpu_count(),
 ):
-
     with open(input_file_path, "r", encoding=JSON_ENCODING) as f:
         all_test_json = [CodeNetProgram(**json.loads(json_line)) for json_line in f]
 

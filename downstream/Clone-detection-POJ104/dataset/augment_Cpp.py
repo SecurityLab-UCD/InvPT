@@ -17,6 +17,7 @@ class CodeNetProgram:
 
 JSON_ENCODING = "utf-8"
 
+
 def validate_jsonl_path(path: str):
     assert os.path.isfile(path), f"The path {path} does not refer to a file."
     assert path.endswith(".jsonl"), f"The file {path} is not a JSONL file."
@@ -24,7 +25,7 @@ def validate_jsonl_path(path: str):
 
 def main(
     input_file_path: str,
-    output_file_path: str = "augmented_C++1000_test.jsonl",
+    output_file_path: str,
     nproc: int = cpu_count(),
 ):
     validate_jsonl_path(input_file_path)

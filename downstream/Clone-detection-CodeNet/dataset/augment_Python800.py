@@ -24,7 +24,7 @@ def validate_jsonl_path(path: str):
 
 def main(
     input_file_path: str,
-    ouput_file_path: str = "augmented_Python800_test.jsonl",
+    output_file_path: str,
     nproc: int = cpu_count(),
 ):
     validate_jsonl_path(input_file_path)
@@ -36,11 +36,11 @@ def main(
         augmented_dataset = pool.map(augment_accumulatively, all_test_json)
         augmented_jsonl = pool.map(lambda j: json.dumps(asdict(j)), augmented_dataset)
 
-    with open(ouput_file_path, "w", encoding=JSON_ENCODING) as f:
+    with open(output_file_path, "w", encoding=JSON_ENCODING) as f:
         for aj in augmented_jsonl:
             f.write(aj + "\n")
 
-    print(f"Successfully added transformed data to {ouput_file_path}")
+    print(f"Successfully added transformed data to {output_file_path}")
 
 
 if __name__ == "__main__":
