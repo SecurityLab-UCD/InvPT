@@ -1,23 +1,22 @@
-from transformers import AutoTokenizer, AutoModel
-import torch
-import pathlib
 import json
-import fire
-from tqdm import tqdm
+
+import typer
 import matplotlib.lines
 import matplotlib.pyplot as plt
+import torch
+from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer
+from sklearn.manifold import TSNE
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# put the models you want to compare into a dict
-MODELS = {
+# Default models to compare; override via --models flag
+DEFAULT_MODELS = {
     "GraphCodeBERT": "microsoft/graphcodebert-base",
     "ContraBERT_G": "../saved_models/ContraBERT_G",
     "InvBERT": "../saved_models/InvBERT",
     "InvContraBERT": "../saved_models/InvContraBERT",
 }
-
-from sklearn.manifold import TSNE
 
 
 def to_2d(vectors, **tsne_kw):
@@ -55,6 +54,7 @@ def main(
     pids: str | None = "82,85,91,95,100",
     legend: bool = True,
 ):
+    models = DEFAULT_MODELS
     with open(input_test_file) as f:
         data = [json.loads(line) for line in f]
 
@@ -76,12 +76,12 @@ def main(
 
     tokenizer = AutoTokenizer.from_pretrained("microsoft/graphcodebert-base")
     encoders = {
-        n: AutoModel.from_pretrained(p).to(DEVICE).eval() for n, p in MODELS.items()
+        n: AutoModel.from_pretrained(p).to(DEVICE).eval() for n, p in models.items()
     }
 
     embeddings = {}  # model name → [N, H]
 
-    for name in MODELS:
+    for name in models:
         embeddings[name] = embed_batch(encoders[name], tokenizer, programs)
 
     coords = {n: to_2d(v) for n, v in embeddings.items()}
@@ -94,7 +94,7 @@ def main(
     label_to_color_idx = {label: i for i, label in enumerate(target_labels)}
 
     fig, axes = plt.subplots(
-        1, len(MODELS), figsize=(4.2 * len(MODELS), 4.2), sharex=False, sharey=False
+        1, len(models), figsize=(4.2 * len(models), 4.2), sharex=False, sharey=False
     )
 
     for ax, (name, xy) in zip(axes, coords.items()):
@@ -130,4 +130,4 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

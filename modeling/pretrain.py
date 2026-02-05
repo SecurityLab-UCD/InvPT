@@ -1,36 +1,36 @@
 # type: ignore
 
+import argparse
+import os
+
+from datasets import Features, Value, load_dataset
+from torch.cuda import device_count
 from transformers import (
+    DataCollatorForLanguageModeling,
+    RobertaConfig,
     RobertaForMaskedLM,
     RobertaTokenizerFast,
-    RobertaConfig,
-    DataCollatorForLanguageModeling,
     TrainingArguments,
 )
-from datasets import load_dataset, DatasetDict
-import fire
-from model import ContrastiveTrainer
-from dataloader import contra_data_collator
 
-from common import DEVICE, set_seed
-import os
-import argparse
-from torch.cuda import device_count
+from .common import DEVICE, set_seed
+from .dataloader import contra_data_collator
+from .model import ContrastiveTrainer
 
 
-def tokenize(tokenizer, example):
+def tokenize(tokenizer, example, max_seq_length=256):
     code_inputs = tokenizer(
         example["code"],
         padding="max_length",
         truncation=True,
-        max_length=256,
+        max_length=max_seq_length,
         return_special_tokens_mask=True,
     )
     aug_inputs = tokenizer(
         example["transformed"],
         padding="max_length",
         truncation=True,
-        max_length=256,
+        max_length=max_seq_length,
         return_special_tokens_mask=True,
     )
     return {
@@ -47,20 +47,25 @@ def main(
     dataset_path: str,
     model_name: str,
     batch_size: int,
-    max_steps: int,
+    num_epochs: int,
     gradient_accumulation_steps: int,
     num_proc: int,
     seed: int,
     run_name: str,
     learning_rate: float,
     resume: bool,
+    alpha: float,
+    temperature: float,
+    max_seq_length: int,
+    sample_rate: float,
     checkpoint: str | None = None,
+    tokenizer_name: str | None = None,
 ):
-
     set_seed(seed)
 
-    tokenizer = RobertaTokenizerFast.from_pretrained(model_name)
-    config = RobertaConfig.from_pretrained(model_name)
+    tokenizer_name = tokenizer_name or model_name
+    tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_name)
+    config = RobertaConfig.from_pretrained(tokenizer_name)
     # model = RobertaForMaskedLM.from_pretrained(model_name)
 
     model = RobertaForMaskedLM.from_pretrained(
@@ -69,10 +74,27 @@ def main(
     )  # load weights from stage 1
     model.to(DEVICE)
 
-    dataset = load_dataset("json", data_files=dataset_path)["train"]
+    features = Features(
+        {
+            "repo": Value("string"),
+            "func_name": Value("string"),
+            "language": Value("string"),
+            "code": Value("string"),
+            "docstring": Value("string"),
+            "transformed": Value("string"),
+            "aug_type": Value("string"),
+        }
+    )
+    dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
+    dataset = dataset.filter(lambda x: x["transformed"] is not None)
+
+    if sample_rate < 1.0:
+        dataset = dataset.shuffle(seed=seed).select(
+            range(int(len(dataset) * sample_rate))
+        )
 
     tokenized_datasets = dataset.shuffle(seed=seed).map(
-        lambda example: tokenize(tokenizer, example),
+        lambda example: tokenize(tokenizer, example, max_seq_length=max_seq_length),
         batched=True,
         num_proc=num_proc,
     )
@@ -89,12 +111,11 @@ def main(
         overwrite_output_dir=True,
         per_device_train_batch_size=batch_size // device_count(),
         gradient_accumulation_steps=gradient_accumulation_steps,
-        max_steps=max_steps,
-        save_steps=10000,
-        warmup_steps=5000,
+        num_train_epochs=num_epochs,
+        save_strategy="epoch",
+        warmup_ratio=0.1,
         logging_steps=1000,
-        eval_strategy="steps",
-        eval_steps=1000,
+        eval_strategy="epoch",
         learning_rate=learning_rate,
         weight_decay=0.01,
         remove_unused_columns=False,
@@ -102,6 +123,7 @@ def main(
         run_name=run_name,
         save_total_limit=3,
         load_best_model_at_end=True,
+        dataloader_num_workers=os.cpu_count(),
     )
 
     trainer = ContrastiveTrainer(
@@ -110,7 +132,8 @@ def main(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=lambda features: contra_data_collator(mlm_collator, features),
-        alpha=0.7,
+        alpha=alpha,
+        temperature=temperature,
     )
 
     trainer.train(resume_from_checkpoint=resume)
@@ -125,15 +148,25 @@ if __name__ == "__main__":
     parser.add_argument("--num_proc", type=int, default=80)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run_name", type=str, default="InvarientBERT")
-    parser.add_argument("--max_steps", type=int, default=500_000)
+    parser.add_argument("--num_epochs", type=int, default=10)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
+    parser.add_argument("--alpha", type=float, default=1.0)
+    parser.add_argument("--temperature", type=float, default=0.07)
+    parser.add_argument("--max_seq_length", type=int, default=256)
+    parser.add_argument("--sample_rate", type=float, default=1.0)
     parser.add_argument("--resume", default=False, action="store_true")
     parser.add_argument(
         "--checkpoint",
         type=str,
         default=None,
         help="Path to a checkpoint file to load model weights from. Use this to resume training from a previous state.",
+    )
+    parser.add_argument(
+        "--tokenizer_name",
+        type=str,
+        default=None,
+        help="Tokenizer model name. Defaults to --model_name if not specified. Useful when the model only provides weights and reuses the tokenizer from its base model.",
     )
 
     args = parser.parse_args()
@@ -145,9 +178,14 @@ if __name__ == "__main__":
         num_proc=args.num_proc,
         seed=args.seed,
         run_name=args.run_name,
-        max_steps=args.max_steps,
+        num_epochs=args.num_epochs,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
         resume=args.resume,
+        alpha=args.alpha,
+        temperature=args.temperature,
+        max_seq_length=args.max_seq_length,
+        sample_rate=args.sample_rate,
         checkpoint=args.checkpoint,
+        tokenizer_name=args.tokenizer_name,
     )

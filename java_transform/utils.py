@@ -1,16 +1,22 @@
-from tqdm import tqdm
-from pathlib import Path
-import pandas as pd
 import os
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Callable
+
+import pandas as pd
+from tqdm import tqdm
 
 DIR_PATH = Path(__file__).resolve().parent
 
-PIA_HOME = os.environ.get("PIA_HOME", ".")
+PIA_HOME = os.environ.get("PIA_HOME")
+if PIA_HOME is None:
+    raise EnvironmentError("PIA_HOME environment variable is not set")
 SPAT_JAR = os.path.join(PIA_HOME, "java_transform", "SPAT-linux.jar")
-JDK_LIB = os.environ.get("JDK_LIB", "/usr/lib/jvm/java-11-openjdk-amd64/lib")
+
+JDK_LIB = os.environ.get("JDK_LIB")
+if JDK_LIB is None:
+    raise EnvironmentError("JDK_LIB environment variable is not set")
 
 id_to_name = [
     "LocalVarRenaming",

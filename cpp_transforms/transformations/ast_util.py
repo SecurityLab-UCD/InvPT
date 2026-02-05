@@ -1,6 +1,4 @@
-from clang.cindex import Index, Cursor, CursorKind
-from returns.maybe import Maybe, Nothing, Some
-from typing import no_type_check
+from clang.cindex import Cursor
 
 
 # Generates a unique hidden name to be replaced later

@@ -1,7 +1,6 @@
 import json
 import os
 from java_transform import TRANSFORMATION_MAP
-from java_transform.utils import spat_caller
 from modeling.dataloader import CodeSearchNetExample, AugType
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -14,7 +13,6 @@ def process(
     augtype: AugType,
     dataset: list[CodeSearchNetExample],
 ) -> list[CodeSearchNetExample]:
-
     logging.info("Preparing data for transformation")
     id_map = {i: entry for i, entry in enumerate(dataset)}
     programs = [(i, entry.code) for i, entry in id_map.items()]
@@ -39,9 +37,9 @@ def main(
 ):
     print(f"-------- Selected Transforming Method: {augtype} -------- ")
 
-    assert os.path.exists(input_file_path) and os.path.isfile(
-        input_file_path
-    ), "Invalid input file path"
+    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
+        "Invalid input file path"
+    )
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:
@@ -49,7 +47,7 @@ def main(
 
     with Pool(num_cpus) as pool:
         csn: list[CodeSearchNetExample] = pool.map(
-            lambda l: CodeSearchNetExample(**json.loads(l)), lines
+            lambda line: CodeSearchNetExample(**json.loads(line)), lines
         )
 
     transformed = process(augtype, csn)

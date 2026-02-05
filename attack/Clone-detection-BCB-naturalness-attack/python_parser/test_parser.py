@@ -1,16 +1,9 @@
 import argparse
 import csv
-from parser_folder.DFG import DFG_python, DFG_java, DFG_c
-from parser_folder import (remove_comments_and_docstrings,
-                           tree_to_token_index,
-                           index_to_code_token,
-                           tree_to_variable_index)
-from tree_sitter import Language, Parser
 import sys
 sys.path.append('.')
 sys.path.append('../')
-from utils import is_valid_variable_name
-from run_parser import extract_dataflow, unique, get_identifiers
+from run_parser import get_identifiers
 path = 'parser_folder/my-languages.so'
 
 def main():
@@ -30,7 +23,7 @@ def main():
                 writer.writerow(write_data)
                 line_count += 1
             elif line_count == 50:
-                break;
+                break
             else:
                 data, _ = get_identifiers(row[0], args.lang)
                 write_data = [row[0], data]

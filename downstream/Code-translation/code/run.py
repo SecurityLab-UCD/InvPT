@@ -21,10 +21,7 @@ using a masked language modeling (MLM) loss.
 
 from __future__ import absolute_import
 import os
-import sys
-import pickle
 import torch
-import json
 import random
 import logging
 import argparse
@@ -33,11 +30,11 @@ from io import open
 from itertools import cycle
 import torch.nn as nn
 from model import Seq2Seq
-from tqdm import tqdm, trange
+from tqdm import tqdm
 from bleu import _bleu
-from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler,TensorDataset
+from torch.utils.data import DataLoader, SequentialSampler, RandomSampler,TensorDataset
 from torch.utils.data.distributed import DistributedSampler
-from transformers import (WEIGHTS_NAME, AdamW, get_linear_schedule_with_warmup,
+from transformers import (AdamW, get_linear_schedule_with_warmup,
                           RobertaConfig, RobertaModel, RobertaTokenizer)
 MODEL_CLASSES = {'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer)}
 

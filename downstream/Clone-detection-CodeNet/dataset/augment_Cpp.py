@@ -1,13 +1,10 @@
 from cpp_transforms.transform import augment_accumulatively
-from modeling.dataloader import AugType
-from returns.maybe import Maybe, Nothing, Some
 from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from dataclasses import asdict
-import fire
+import typer
 import json
 import os
-import clang
 from preprocess import CodeNetProgram
 
 JSON_ENCODING = "utf-8"
@@ -20,7 +17,7 @@ def validate_jsonl_path(path: str):
 
 def main(
     input_file_path: str,
-    output_file_path: str = "augmented_C++1000_test.jsonl",
+    output_file_path: str,
     nproc: int = cpu_count(),
 ):
     validate_jsonl_path(input_file_path)
@@ -40,4 +37,4 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    typer.run(main)

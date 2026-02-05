@@ -34,7 +34,7 @@ A predications file that has predictions in TXT format, such as evaluator/predic
 
 ## Running the pipelines
 
-```shell
+```bash
 CUDA_VISIBLE_DEVICES=0,1 ./run.sh <model_path_or_name> <save_path>
 
 # for example,

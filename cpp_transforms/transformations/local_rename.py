@@ -1,9 +1,8 @@
 import clang.cindex
-from clang.cindex import Index, CursorKind, Cursor
+from clang.cindex import Cursor
 import clang
 from collections import deque
 import random
-import sys
 from cpp_transforms.transformations.ast_util import (
     generate_hidden_name,
     get_character_offset,

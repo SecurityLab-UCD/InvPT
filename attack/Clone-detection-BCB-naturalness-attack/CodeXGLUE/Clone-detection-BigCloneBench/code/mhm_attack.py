@@ -1,4 +1,3 @@
-from pickle import NONE
 import torch
 import sys
 import os
@@ -12,11 +11,10 @@ import torch
 from model import Model
 from utils import set_seed
 from utils import Recorder
-from run import TextDataset ,convert_examples_to_features
-from utils import CodeDataset
+from run import TextDataset
 from attacker import MHM_Attacker
 from attack import get_code_pairs
-from run_parser import get_identifiers, get_example
+from run_parser import get_identifiers
 from transformers import RobertaForMaskedLM
 from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer)
 
@@ -32,7 +30,6 @@ from utils import build_vocab
 if __name__ == "__main__":
     
     import json
-    import pickle
     import time
     import os
     

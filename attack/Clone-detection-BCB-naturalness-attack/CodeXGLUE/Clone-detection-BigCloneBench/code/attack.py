@@ -19,9 +19,7 @@ from tqdm import tqdm
 import argparse
 import copy
 import copy
-import csv
 import logging
-import numpy as np
 import pickle
 import time
 import torch
@@ -173,7 +171,7 @@ class ExampleThread(Thread):
                     str(example_end_time),
                 )
             )
-            if not self.pbar is None:
+            if self.pbar is not None:
                 example_thread_lock.acquire()
                 self.pbar.update()
                 example_thread_lock.release()

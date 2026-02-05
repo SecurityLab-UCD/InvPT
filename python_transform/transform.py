@@ -1,23 +1,24 @@
-import os
-from dataclasses import asdict
-from python_transform.src import (
-    LocalVariableRenamer,
-    ReverseIfElser,
-    OpAssignment2EqualAssignment,
-)
-from modeling.dataloader import CodeSearchNetExample, AugType
+import argparse
 import ast
 import json
+import os
 import subprocess
+import tempfile
+from dataclasses import asdict
+from functools import partial
+from multiprocessing import cpu_count
+from typing import Type
+
+from pathos.multiprocessing import ProcessingPool as Pool
 from returns.maybe import Maybe, Nothing, Some
 from returns.pointfree import bind
-import tempfile
-import argparse
-from typing import Type
-from multiprocessing import cpu_count
-from pathos.multiprocessing import ProcessingPool as Pool
-from functools import partial
 
+from modeling.dataloader import AugType, CodeSearchNetExample
+from python_transform.src import (
+    LocalVariableRenamer,
+    OpAssignment2EqualAssignment,
+    ReverseIfElser,
+)
 
 TRANSFORMATION_MAP: dict[AugType, Type[ast.NodeTransformer]] = {
     AugType.LOCALVARRENAMING: LocalVariableRenamer,
@@ -37,26 +38,27 @@ def convert_python2_to_python3(source_code: str) -> Maybe[str]:
     """
     # lib2to3 is no longer in python 3.11; however, we can still use the 2to3 command line!
 
-    temp = tempfile.TemporaryFile()
-    temp.write(source_code.encode())
-    try:
-        subprocess.run(
-            ["2to3", temp.name, "-w"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except subprocess.CalledProcessError as e:
-        return Nothing
-    except TypeError as e:
-        # while trying to convert the code from py2 to py3, it will throw an error if the code ifself has syntax error
-        # in this case, we skip this transformation
-        return Nothing
+    with tempfile.NamedTemporaryFile(mode="w+b", suffix=".py", delete=True) as temp:
+        temp.write(source_code.encode())
+        temp.flush()
+        try:
+            subprocess.run(
+                ["2to3", temp.name, "-w"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError:
+            return Nothing
+        except TypeError:
+            # while trying to convert the code from py2 to py3, it will throw an error if the code ifself has syntax error
+            # in this case, we skip this transformation
+            return Nothing
 
-    # Read the modified content from the file
-    modified_code = temp.read().decode()
-    temp.close()
-    return Some(modified_code)
+        # Read the modified content from the file
+        temp.seek(0)
+        modified_code = temp.read().decode()
+        return Some(modified_code)
 
 
 def parse(source_code: str) -> Maybe[ast.Module]:
@@ -64,7 +66,10 @@ def parse(source_code: str) -> Maybe[ast.Module]:
     try:
         original_ast_module = Some(ast.parse(source_code))
     except SyntaxError:
-        original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
+        try:
+            original_ast_module = convert_python2_to_python3(source_code).map(ast.parse)
+        except SyntaxError:
+            return Nothing
     except RecursionError:
         return Nothing
     return original_ast_module
@@ -137,9 +142,9 @@ def main(
 ):
     print(f"-------- Selected Transforming Method: {augtype} -------- ")
 
-    assert os.path.exists(input_file_path) and os.path.isfile(
-        input_file_path
-    ), "Invalid input file path"
+    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
+        "Invalid input file path"
+    )
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:

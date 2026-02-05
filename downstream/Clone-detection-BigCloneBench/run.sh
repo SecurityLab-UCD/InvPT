@@ -1,3 +1,4 @@
+#!/bin/bash
 # Run full pipeline (finetune, normal test, augmented test)
 model_path=$1
 output_dir=$2

@@ -1,4 +1,4 @@
-import fire
+import typer
 import os
 import logging
 import requests
@@ -74,4 +74,4 @@ def main(subset: str, workdir: str = "./raw"):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    fire.Fire(main)
+    typer.run(main)

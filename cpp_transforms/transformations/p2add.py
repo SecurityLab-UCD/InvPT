@@ -1,16 +1,13 @@
 import clang.cindex
-from clang.cindex import Index, CursorKind, Cursor
+from clang.cindex import Cursor
 from collections import deque
-import sys
 from cpp_transforms.transformations.ast_util import (
     extract_source_code,
     generate_hidden_name,
 )
 from cpp_transforms.transformations.cursor_util import (
-    is_comp_assign,
     is_output_using_expr,
     is_unary_op,
-    is_decl_stmt,
 )
 
 

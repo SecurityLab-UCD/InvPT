@@ -1,34 +1,36 @@
-import os
-from dataclasses import asdict
-from modeling.dataloader import CodeSearchNetExample, AugType
-from cpp_transforms.transformations import (
-    local_renamer,
-    for_while_reverser,
-    while_for_reverser,
-    if_else_reverser,
-    add_assignmenter,
-    replace_short_adder,
-)
-import json
-from returns.result import ResultE, safe, Success, Failure
-from returns.pointfree import bind
 import argparse
-from typing import Type, Any
-from multiprocessing import cpu_count
-from pathos.multiprocessing import ProcessingPool as Pool
-from functools import partial
-import clang
-import clang.cindex
-from clang.cindex import Index as CursorIndex, Cursor
+import json
+import os
 from collections.abc import Callable
-from dataclasses import replace
+from dataclasses import asdict, replace
+from functools import partial
+from multiprocessing import cpu_count
 from typing import Protocol
+
+from clang.cindex import Cursor
+from clang.cindex import Index as CursorIndex
+from pathos.multiprocessing import ProcessingPool as Pool
+from returns.pointfree import bind
+from returns.result import Failure, ResultE, Success, safe
+
+from cpp_transforms.transformations import (
+    add_assignmenter,
+    for_while_reverser,
+    if_else_reverser,
+    local_renamer,
+    replace_short_adder,
+    while_for_reverser,
+)
+from modeling.dataloader import AugType, CodeSearchNetExample
+
 
 class HasCode(Protocol):
     code: str
 
+
 class HasFunc(Protocol):
     func: str
+
 
 TRANSFORMATION_MAP: dict[AugType, Callable[[Cursor, str], str]] = {
     AugType.LOCALVARRENAMING: local_renamer,
@@ -52,22 +54,23 @@ def apply_code_transformation(aug_type: AugType, code: str) -> str:
     )
     return ast_transformer(translation_unit.cursor, code)
 
+
 def augment_accumulatively(j: HasCode | HasFunc) -> HasCode | HasFunc:
     # Check what type of object
-    if hasattr(j, 'code'):
+    if hasattr(j, "code"):
         code = j.code
-    elif hasattr(j, 'func'):
+    elif hasattr(j, "func"):
         code = j.func
     # Run the transformations on the code
     for aug_type in TRANSFORMATION_MAP.keys():
         code = apply_code_transformation(aug_type, code).value_or(code)
     # Create the return object
-    ret_obj = replace(j)
-    if hasattr(j, 'code'):
-        ret_obj.code = code
-    elif hasattr(j, 'func'):
-        ret_obj.func = code
-    return ret_obj
+    if hasattr(j, "code"):
+        return replace(j, code=code)
+    elif hasattr(j, "func"):
+        return replace(j, func=code)
+    return j
+
 
 def transform(csn_example: CodeSearchNetExample) -> ResultE[CodeSearchNetExample]:
     """
@@ -106,9 +109,9 @@ def main(
 ):
     print(f"-------- Selected Transforming Method: {augtype} -------- ")
 
-    assert os.path.exists(input_file_path) and os.path.isfile(
-        input_file_path
-    ), "Invalid input file path"
+    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
+        "Invalid input file path"
+    )
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:

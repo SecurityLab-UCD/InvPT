@@ -1,5 +1,5 @@
 import clang.cindex
-from clang.cindex import Index, CursorKind, Cursor
+from clang.cindex import Cursor
 from collections import deque
 from cpp_transforms.transformations.ast_util import (
     extract_source_code,
@@ -7,7 +7,6 @@ from cpp_transforms.transformations.ast_util import (
     generate_hidden_name,
 )
 from .cursor_util import is_comp_assign, is_decl_stmt
-import sys
 
 
 def add_assignmenter(root_node: Cursor, file_code: str) -> str:

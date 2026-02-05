@@ -51,7 +51,7 @@ We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002
 ### Fine-tune
 Taking Java to C# translation as example:
 
-```shell
+```bash
 cd code
 $pretrained_model = the place where you download CodeBERT models e.g. microsoft/codebert-base
 $output_dir = the place where you want to save the fine-tuned models and predictions
@@ -80,7 +80,7 @@ python run.py \
 
 We use full test data for inference. 
 
-```shell
+```bash
 cd code
 $output_dir = the place where you want to save the fine-tuned models and predictions
 python run.py \
@@ -102,13 +102,13 @@ python run.py \
 ### Evaluation
 
 (1) Java to C#
-```shell
+```bash
 python evaluator/evaluator.py -ref data/test.java-cs.txt.cs -pre code/saved_models/java-cs-model1.output
 ```
 BLEU: 77.46 ; Acc: 56.1
 
 (2) C# to Java
-```shell
+```bash
 python evaluator/evaluator.py -ref data/test.java-cs.txt.java -pre code/saved_models/cs-java-model1.output
 ```
 BLEU: 71.99 ; Acc: 57.9

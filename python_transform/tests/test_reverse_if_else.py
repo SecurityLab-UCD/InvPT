@@ -1,13 +1,33 @@
-import sys
-
-sys.path.append("..")
-from src import ReverseIfElser
-from tests.base_tranform_test import baseCodeTransformTest
-import unittest
 import ast
+import unittest
+
+import ast
+import unittest
+
+from python_transform.src import ReverseIfElser
 
 
-class TestReverseIfElse(baseCodeTransformTest):
+class BaseCodeTransformTest(unittest.TestCase):
+    def get_transformed_code(self, code: str, code_transform_class) -> str:
+        """
+        Return the transformed code snippet based on a specific code transform rule
+        """
+        tree = ast.parse(code)
+        transformer = code_transform_class()
+        transformed_tree = transformer.visit(tree)
+        return ast.unparse(transformed_tree)
+
+    def assert_code_equal(self, code1: str, code2: str):
+        """
+        Compares two codes in AST format.
+
+        Helper Functons from the AST module
+        ast.parse(): Parse the source code into AST node
+        ast.dump(): Return a formatted dump of the tree in node.
+        """
+        tree1 = ast.parse(code1)
+        tree2 = ast.parse(code2)
+        self.assertEqual(ast.dump(tree1), ast.dump(tree2))
 
     # TESTS
     def test_no_if_else(self):
@@ -23,7 +43,7 @@ def greet(language):
 numbers = [1, 2, 3, 4, 5]
 even_numbers = [num for num in numbers if num % 2 == 0]
 
-print(even_numbers)  
+print(even_numbers)
 print(greet("es"))
         """
 
@@ -37,7 +57,7 @@ def greet(language):
     return greetings.get(language, "Hello")
 numbers = [1, 2, 3, 4, 5]
 even_numbers = [num for num in numbers if num % 2 == 0]
-print(even_numbers)  
+print(even_numbers)
 print(greet("es"))
         """
 
@@ -133,12 +153,8 @@ if not x < 3:
     else:
         print('bigger than or equal 3 AND smaller than 4')
 else:
-    print('smaller than 3')    
+    print('smaller than 3')
 """
         self.assert_code_equal(
             self.get_transformed_code(source_code, ReverseIfElser), expected_code
         )
-
-
-if __name__ == "main":
-    unittest.main()

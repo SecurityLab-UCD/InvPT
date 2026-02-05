@@ -12,7 +12,7 @@ We use [POJ-104](https://arxiv.org/pdf/1409.5718.pdf) dataset on this task.
 
 1.Download dataset from [website](https://drive.google.com/file/d/0B2i-vWnOu7MxVlJwQXN6eVNONUU/view?usp=sharing) or run the following command:
 
-```shell
+```bash
 cd dataset
 pip install gdown
 gdown https://drive.google.com/uc?id=0B2i-vWnOu7MxVlJwQXN6eVNONUU
@@ -22,7 +22,7 @@ cd ..
 
 2.Preprocess data
 
-```shell
+```bash
 cd dataset
 python preprocess.py
 python augment_Cpp.py -i test.jsonl -o aug_test.jsonl
@@ -86,7 +86,7 @@ cat evaluator/answers.jsonl
 
 Report MAP@R score
 
-```shell
+```bash
 python evaluator/evaluator.py -a evaluator/answers.jsonl  -p evaluator/predictions.jsonl
 ```
 
@@ -96,7 +96,7 @@ python evaluator/evaluator.py -a evaluator/answers.jsonl  -p evaluator/predictio
 
 For each index, return Top K (K=2 for this example, but K=499 in the task) codes. For example:
 
-```shell
+```bash
 cat evaluator/predictions.jsonl
 {"index": "0", "answers": ["3", "2"]}
 {"index": "1", "answers": ["0", "4"]}
@@ -112,7 +112,7 @@ We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002
 
 ### Fine-tune
 
-```shell
+```bash
 cd code
 python run.py \
     --output_dir=./saved_models \
@@ -136,7 +136,7 @@ python run.py \
 
 ### Inference
 
-```shell
+```bash
 cd code
 python run.py \
     --output_dir=./saved_models \
@@ -161,7 +161,7 @@ python run.py \
 
 ### Evaluation
 
-```shell
+```bash
 python ../evaluator/extract_answers.py -c ../dataset/test.jsonl -o saved_models/answers.jsonl
 python ../evaluator/evaluator.py -a saved_models/answers.jsonl   -p saved_models/predictions.jsonl
 ```

@@ -1,7 +1,6 @@
 import clang.cindex
 from clang.cindex import Cursor
 from collections import deque
-import sys
 from cpp_transforms.transformations.ast_util import (
     extract_source_code,
     get_node_char_positions,
