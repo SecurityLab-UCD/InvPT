@@ -59,11 +59,13 @@ def main(
     max_seq_length: int,
     sample_rate: float,
     checkpoint: str | None = None,
+    tokenizer_name: str | None = None,
 ):
     set_seed(seed)
 
-    tokenizer = RobertaTokenizerFast.from_pretrained(model_name)
-    config = RobertaConfig.from_pretrained(model_name)
+    tokenizer_name = tokenizer_name or model_name
+    tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_name)
+    config = RobertaConfig.from_pretrained(tokenizer_name)
     # model = RobertaForMaskedLM.from_pretrained(model_name)
 
     model = RobertaForMaskedLM.from_pretrained(
@@ -160,6 +162,12 @@ if __name__ == "__main__":
         default=None,
         help="Path to a checkpoint file to load model weights from. Use this to resume training from a previous state.",
     )
+    parser.add_argument(
+        "--tokenizer_name",
+        type=str,
+        default=None,
+        help="Tokenizer model name. Defaults to --model_name if not specified. Useful when the model only provides weights and reuses the tokenizer from its base model.",
+    )
 
     args = parser.parse_args()
 
@@ -179,4 +187,5 @@ if __name__ == "__main__":
         max_seq_length=args.max_seq_length,
         sample_rate=args.sample_rate,
         checkpoint=args.checkpoint,
+        tokenizer_name=args.tokenizer_name,
     )
