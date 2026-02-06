@@ -15,7 +15,9 @@ Paper: *Invariant Pre-training for Robust Code Representation Learning* (ICSE 20
 ```
 InvPT/
 ├── modeling/              # Core training pipeline
-│   ├── pretrain.py        # Entry point for pre-training
+│   ├── cli.py             # Typer CLI entry point (run / pretrain subcommands)
+│   ├── config.py          # PretrainConfig dataclass, YAML config loading
+│   ├── pretrain.py        # Pre-training logic (main function)
 │   ├── model.py           # ContrastiveTrainer (MLM + InfoNCE loss)
 │   ├── dataloader.py      # Data collation, AugType enum, CodeSearchNetExample
 │   └── common.py          # Device setup, seed utilities
@@ -44,6 +46,9 @@ InvPT/
 │   └── Code-translation/
 ├── plot/                  # t-SNE visualization of embeddings
 │   └── visualize.py
+├── experiments/            # YAML experiment configurations
+│   ├── base.yaml          # Base supcon config (matches original run_pretrain.sh)
+│   └── grouped_example.yaml # Grouped contrastive mode example
 ├── saved_models/          # Pre-trained model checkpoints
 ├── run_pretrain.sh        # Pre-training launch script
 ├── clang.sh               # LLVM 14 installation script
@@ -58,6 +63,7 @@ InvPT/
 - **Curriculum learning**: Self-contrast (easy, same code with different MLM masks) and invariant-contrast (hard, transformed code) are trained simultaneously with low learning rate.
 - **PL-only**: Unlike prior work (CodeBERT, ContraBERT), InvPT removes natural language docstrings during pre-training.
 - **No MoCo**: Uses a single shared encoder for original and transformed code, unlike ContraBERT which uses momentum contrast.
+- **Contrastive modes**: `info_nce` (diagonal positives), `supcon` (multi-positive by function_id mask), `grouped` (grouped multi-key contrast with explicit aug grouping via `--max_num_augs`).
 
 ## Transformation Operators
 
@@ -92,9 +98,32 @@ pytest python_transform/tests/
 2. Augment Python: `python python_transform/augment_pretrain.py -i data/raw_csn_py.jsonl -o data/aug_csn_py.jsonl`
 3. Augment Java: `python java_transform/augment_pretrain.py -i data/raw_csn_java.jsonl -o data/aug_csn_java.jsonl`
 4. Combine: `cat data/raw_csn.jsonl data/aug_csn_py.jsonl data/aug_csn_java.jsonl > data/csn.jsonl`
-5. Train: `./run_pretrain.sh`
+5. Train: `./run_pretrain.sh` or `python modeling/cli.py run experiments/base.yaml`
 
 Pre-training runs for 50k steps on 4 GPUs with batch size 256, learning rate 5e-5, and 5000 warmup steps.
+
+### Experiment Configuration
+
+The CLI (`modeling/cli.py`) has two subcommands:
+
+- **`run`** — load a YAML config from `experiments/`, with optional CLI overrides
+- **`pretrain`** — pass all parameters directly as CLI options (backward compatible)
+
+```sh
+# From a YAML config (recommended)
+python modeling/cli.py run experiments/base.yaml
+python modeling/cli.py run experiments/base.yaml --seed 42 --run-name "seed42-test"
+
+# Direct CLI options (backward compatible)
+python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
+
+# See available subcommands / options
+python modeling/cli.py --help
+python modeling/cli.py run --help
+python modeling/cli.py pretrain --help
+```
+
+To create a new experiment, copy an existing YAML file in `experiments/` and modify the parameters.
 
 ## Downstream Evaluation
 
@@ -112,7 +141,7 @@ Metrics: MAP@R for clone detection, accuracy for defect detection and code class
 - Type annotations are used throughout; checked with mypy (strict mode, see `mypy.ini`).
 - Functional error handling via `returns` library (`Maybe`, `Some`, `Nothing`).
 - Parallel processing via `pathos` (serializable lambdas).
-- CLI interfaces use `argparse` or `fire`.
+- CLI interfaces use `typer`. Pre-training uses YAML configs via `modeling/config.py`.
 - Experiment tracking via Weights & Biases (`wandb`).
 
 ## Development Guidelines

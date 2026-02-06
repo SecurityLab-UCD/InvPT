@@ -1,0 +1,22 @@
+# Grouped multi-key contrastive pre-training
+# Usage: python -m modeling.pretrain --config experiments/grouped_example.yaml
+
+dataset_path: "data/aug_csn.jsonl"
+model_name: "./saved_models/ContraBERT_G"
+tokenizer_name: "microsoft/graphcodebert-base"
+
+batch_size: 32
+num_epochs: 3
+gradient_accumulation_steps: 8
+learning_rate: 2.0e-5
+
+seed: 42
+run_name: "InvContraBERT_G-grouped-k6"
+
+alpha: 1.0
+temperature: 0.1
+max_seq_length: 512
+sample_rate: 0.2
+
+contra_mode: "grouped"
+max_num_augs: 6
