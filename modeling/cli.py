@@ -8,6 +8,7 @@ import typer
 
 from modeling._types import ContraMode
 from modeling.config import PretrainConfig, load_config
+from modeling.pretrain import main
 
 app = typer.Typer(
     help="InvPT: Invariant Pre-training for Robust Code Representation Learning."
@@ -103,8 +104,6 @@ def run(
         if value is not None:
             setattr(cfg, key, value)
 
-    from modeling.pretrain import main
-
     main(**asdict(cfg))
 
 
@@ -157,7 +156,6 @@ def pretrain(
 
     Example: python -m modeling pretrain --batch-size 64 --num-epochs 3
     """
-    from modeling.pretrain import main
 
     main(
         dataset_path=dataset_path,
