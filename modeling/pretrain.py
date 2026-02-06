@@ -243,6 +243,7 @@ def main(
             "docstring": Value("string"),
             "transformed": Value("string"),
             "aug_type": Value("string"),
+            "function_id": Value("int64"),
         }
     )
     dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
