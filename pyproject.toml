@@ -76,6 +76,7 @@ target-version = "py311"
 [tool.ruff.lint]
 ignore = [
     "E501", # line too long
+    "E731", # allow lambda assignments
     "F811",
     "F841", # compatibility issue with returns
 ]

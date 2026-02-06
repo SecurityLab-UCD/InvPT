@@ -267,6 +267,7 @@ def main(
             batched=True,
             num_proc=num_proc,
         )
+
         collator_fn = lambda features: grouped_contra_data_collator(
             mlm_collator, features, max_num_augs
         )
@@ -276,6 +277,7 @@ def main(
             batched=True,
             num_proc=num_proc,
         )
+
         collator_fn = lambda features: contra_data_collator(mlm_collator, features)
 
     split_dataset = tokenized_datasets.train_test_split(test_size=0.1)
