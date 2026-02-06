@@ -1,6 +1,5 @@
 # type: ignore
 
-import argparse
 import hashlib
 import os
 from collections import defaultdict
@@ -316,59 +315,3 @@ def main(
 
     trainer.train(resume_from_checkpoint=resume)
     trainer.save_model(f"saved_models/{run_name}/final")
-
-
-if __name__ == "__main__":
-    from dataclasses import asdict
-
-    import dacite
-
-    from .config import _DACITE_CONFIG, PretrainConfig, load_config, merge_cli_overrides
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        type=str,
-        default=None,
-        help="Path to a YAML experiment config file. CLI args override config values.",
-    )
-    parser.add_argument("--dataset_path", type=str, default=None)
-    parser.add_argument("--model_name", type=str, default=None)
-    parser.add_argument("--batch_size", type=int, default=None)
-    parser.add_argument("--num_proc", type=int, default=None)
-    parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--run_name", type=str, default=None)
-    parser.add_argument("--num_epochs", type=int, default=None)
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=None)
-    parser.add_argument("--learning_rate", type=float, default=None)
-    parser.add_argument("--alpha", type=float, default=None)
-    parser.add_argument("--temperature", type=float, default=None)
-    parser.add_argument("--max_seq_length", type=int, default=None)
-    parser.add_argument("--sample_rate", type=float, default=None)
-    parser.add_argument("--resume", default=None, action="store_true")
-    parser.add_argument("--checkpoint", type=str, default=None)
-    parser.add_argument("--tokenizer_name", type=str, default=None)
-    parser.add_argument(
-        "--contra_mode",
-        type=str,
-        default=None,
-        choices=["info_nce", "supcon", "grouped"],
-    )
-    parser.add_argument("--max_num_augs", type=int, default=None)
-
-    args = parser.parse_args()
-
-    if args.config is not None:
-        config = load_config(args.config)
-        config = merge_cli_overrides(config, vars(args))
-    else:
-        cli_data = {
-            k: v for k, v in vars(args).items() if k != "config" and v is not None
-        }
-        config = dacite.from_dict(
-            data_class=PretrainConfig,
-            data=cli_data,
-            config=_DACITE_CONFIG,
-        )
-
-    main(**asdict(config))

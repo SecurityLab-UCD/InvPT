@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
 
 import pytest
 import yaml
+from typer.testing import CliRunner
 
 from modeling._types import ContraMode
-from modeling.config import PretrainConfig, load_config, merge_cli_overrides
+from modeling.cli import app
+from modeling.config import PretrainConfig, load_config
+
+runner = CliRunner()
 
 
 def _write_yaml(data: dict | None, suffix: str = ".yaml") -> str:
@@ -67,22 +70,25 @@ class TestLoadConfig:
             assert isinstance(config.contra_mode, ContraMode)
 
 
-class TestMergeCliOverrides:
-    def test_overrides_applied(self) -> None:
-        config = PretrainConfig(seed=0, batch_size=64)
-        merged = merge_cli_overrides(config, {"seed": 42, "batch_size": None})
-        assert merged.seed == 42
-        assert merged.batch_size == 64  # None means not provided
+class TestCli:
+    def test_top_level_help(self) -> None:
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        assert "run" in result.output
+        assert "pretrain" in result.output
 
-    def test_config_key_ignored(self) -> None:
-        config = PretrainConfig()
-        merged = merge_cli_overrides(
-            config, {"config": "experiments/base.yaml", "seed": 99}
-        )
-        assert merged.seed == 99
-        assert not hasattr(merged, "config")
+    def test_run_help(self) -> None:
+        result = runner.invoke(app, ["run", "--help"])
+        assert result.exit_code == 0
+        assert "CONFIG" in result.output
+        assert "--seed" in result.output
 
-    def test_no_overrides(self) -> None:
-        config = PretrainConfig(seed=7)
-        merged = merge_cli_overrides(config, {"config": None})
-        assert merged.seed == 7
+    def test_run_missing_config(self) -> None:
+        result = runner.invoke(app, ["run"])
+        assert result.exit_code != 0
+
+    def test_pretrain_help(self) -> None:
+        result = runner.invoke(app, ["pretrain", "--help"])
+        assert result.exit_code == 0
+        assert "--batch-size" in result.output
+        assert "--contra-mode" in result.output

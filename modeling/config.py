@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 import dacite
@@ -57,27 +57,5 @@ def load_config(path: str | Path) -> PretrainConfig:
     return dacite.from_dict(
         data_class=PretrainConfig,
         data=data,
-        config=_DACITE_CONFIG,
-    )
-
-
-def merge_cli_overrides(
-    config: PretrainConfig, overrides: dict[str, object]
-) -> PretrainConfig:
-    """Apply CLI argument overrides on top of a loaded config.
-
-    Only keys whose values are not None (i.e., explicitly provided) are merged.
-    The special key ``config`` is ignored.
-    """
-    base = asdict(config)
-    for key, value in overrides.items():
-        if key == "config":
-            continue
-        if value is not None:
-            base[key] = value
-
-    return dacite.from_dict(
-        data_class=PretrainConfig,
-        data=base,
         config=_DACITE_CONFIG,
     )
