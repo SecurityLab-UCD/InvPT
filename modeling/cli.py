@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated, Optional
@@ -7,7 +5,7 @@ from typing import Annotated, Optional
 import typer
 
 from modeling._types import ContraMode
-from modeling.config import PretrainConfig, load_config
+from modeling.config import load_config
 from modeling.pretrain import main
 
 app = typer.Typer(
