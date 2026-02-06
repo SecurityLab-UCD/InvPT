@@ -4,8 +4,9 @@ import argparse
 import hashlib
 import os
 from collections import defaultdict
+from typing import Literal
 
-from datasets import Dataset, Features, Sequence, Value, load_dataset
+from datasets import Dataset, Features, Value, load_dataset
 from torch.cuda import device_count
 from transformers import (
     DataCollatorForLanguageModeling,
@@ -18,6 +19,8 @@ from transformers import (
 from .common import DEVICE, set_seed
 from .dataloader import contra_data_collator, grouped_contra_data_collator
 from .model import ContrastiveTrainer
+
+ContraMode = Literal["info_nce", "supcon", "grouped"]
 
 
 def compute_function_id(code: str) -> int:
@@ -217,7 +220,7 @@ def main(
     sample_rate: float,
     checkpoint: str | None = None,
     tokenizer_name: str | None = None,
-    contra_mode: str = "info_nce",
+    contra_mode: ContraMode = "info_nce",
     max_num_augs: int = 6,
 ):
     set_seed(seed)
