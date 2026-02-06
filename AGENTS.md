@@ -135,7 +135,7 @@ Metrics: MAP@R for clone detection, accuracy for defect detection and code class
 - Type annotations are used throughout; checked with mypy (strict mode, see `mypy.ini`).
 - Functional error handling via `returns` library (`Maybe`, `Some`, `Nothing`).
 - Parallel processing via `pathos` (serializable lambdas).
-- CLI interfaces use `argparse` or `fire`. Pre-training uses YAML configs via `modeling/config.py`.
+- CLI interfaces use `typer`. Pre-training uses YAML configs via `modeling/config.py`.
 - Experiment tracking via Weights & Biases (`wandb`).
 
 ## Development Guidelines
