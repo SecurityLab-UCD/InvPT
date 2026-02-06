@@ -106,13 +106,12 @@ Pre-training runs for 50k steps on 4 GPUs with batch size 256, learning rate 5e-
 
 The CLI (`modeling/cli.py`) has two subcommands:
 
-- **`run`** — load a YAML config from `experiments/`, with optional CLI overrides
+- **`run`** — load a YAML config from `experiments/` (no CLI overrides; edit the YAML to change parameters)
 - **`pretrain`** — pass all parameters directly as CLI options (backward compatible)
 
 ```sh
 # From a YAML config (recommended)
 python modeling/cli.py run experiments/base.yaml
-python modeling/cli.py run experiments/base.yaml --seed 42 --run-name "seed42-test"
 
 # Direct CLI options (backward compatible)
 python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
