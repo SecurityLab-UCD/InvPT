@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import dacite
 import yaml
 
 from ._types import ContraMode
+from .common import default_num_proc
 
 _DACITE_CONFIG = dacite.Config(cast=[ContraMode])
 
@@ -18,7 +19,7 @@ class PretrainConfig:
     batch_size: int = 256
     num_epochs: int = 10
     gradient_accumulation_steps: int = 1
-    num_proc: int = 80
+    num_proc: int = field(default_factory=default_num_proc)
     seed: int = 0
     run_name: str = "InvarientBERT"
     learning_rate: float = 2e-4

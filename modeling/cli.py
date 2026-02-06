@@ -5,6 +5,7 @@ from typing import Annotated, Optional
 import typer
 
 from modeling._types import ContraMode
+from modeling.common import default_num_proc
 from modeling.config import load_config
 from modeling.pretrain import main
 
@@ -136,7 +137,9 @@ def pretrain(
     sample_rate: Annotated[
         float, typer.Option(help="Fraction of dataset to sample.")
     ] = 1.0,
-    num_proc: Annotated[int, typer.Option(help="Number of dataloader workers.")] = 80,
+    num_proc: Annotated[
+        int, typer.Option(help="Number of dataloader workers.")
+    ] = default_num_proc(),
     resume: Annotated[
         bool, typer.Option(help="Resume from latest checkpoint.")
     ] = False,

@@ -15,7 +15,7 @@ from transformers import (
 )
 
 from ._types import ContraMode
-from .common import DEVICE, set_seed
+from .common import DEVICE, default_num_proc, set_seed
 from .dataloader import contra_data_collator, grouped_contra_data_collator
 from .model import ContrastiveTrainer
 
@@ -221,6 +221,9 @@ def main(
     max_num_augs: int = 6,
 ):
     set_seed(seed)
+
+    # Cap num_proc to available CPU cores to avoid broken-pipe errors.
+    num_proc = min(num_proc, default_num_proc())
 
     tokenizer_name = tokenizer_name or model_name
     tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_name)
