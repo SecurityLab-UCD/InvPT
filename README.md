@@ -123,6 +123,7 @@ The `--contra_mode` flag selects the contrastive loss function:
 
 - **`info_nce`** (default): Standard InfoNCE with diagonal positives only. Each code sample is paired with its single augmentation; all other batch items are negatives.
 - **`supcon`**: Supervised Contrastive loss ([Khosla et al., 2020](https://arxiv.org/abs/2004.11362)). Uses a `function_id` (hash of the original code) to identify all augmentations of the same function within a batch as positives. Code and augmented embeddings are concatenated into a single pool of size `2B`, and a positive mask marks all pairs sharing the same `function_id`.
+- **`grouped`**: Grouped Multi-Key Contrast. Regroups flat `(code, transformed)` rows by `function_id` at dataset load time so each batch item bundles an anchor with all of its augmentations. Positives are the anchor's own augmentations; negatives are all other anchors and their augmentations. Uses per-positive log-prob averaging with log-sum-exp stabilization. The `--max_num_augs` flag (default 6) caps the number of augmentations per anchor group.
 
 ```sh
 # Standard InfoNCE (default)
@@ -130,9 +131,12 @@ The `--contra_mode` flag selects the contrastive loss function:
 
 # SupCon multi-positive
 python -m modeling.pretrain --contra_mode supcon ...
+
+# Grouped multi-key contrast
+python -m modeling.pretrain --contra_mode grouped --max_num_augs 6 ...
 ```
 
-SupCon benefits from larger per-GPU batch sizes since it needs multiple augmentations of the same function to co-occur in a batch for the multi-positive signal to activate.
+SupCon benefits from larger per-GPU batch sizes since it needs multiple augmentations of the same function to co-occur in a batch for the multi-positive signal to activate. Grouped mode guarantees all augmentations are co-located but requires more memory per batch item (each item encodes up to `max_num_augs` augmentation views); use reduced batch size with higher gradient accumulation steps.
 
 ### Downstream Evaluation
 

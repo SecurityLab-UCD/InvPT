@@ -3,8 +3,9 @@
 import argparse
 import hashlib
 import os
+from collections import defaultdict
 
-from datasets import Features, Value, load_dataset
+from datasets import Dataset, Features, Sequence, Value, load_dataset
 from torch.cuda import device_count
 from transformers import (
     DataCollatorForLanguageModeling,
@@ -15,7 +16,7 @@ from transformers import (
 )
 
 from .common import DEVICE, set_seed
-from .dataloader import contra_data_collator
+from .dataloader import contra_data_collator, grouped_contra_data_collator
 from .model import ContrastiveTrainer
 
 
@@ -57,6 +58,148 @@ def tokenize(tokenizer, example, max_seq_length=256):
     return result
 
 
+def regroup_dataset(dataset, max_num_augs: int = 6) -> Dataset:
+    """Regroup flat (code, transformed) rows by function_id into grouped records.
+
+    Each output record contains one anchor code and a list of its augmentations,
+    padded to ``max_num_augs`` with empty strings. Groups with zero successful
+    augmentations are filtered out.
+
+    Returns:
+        A ``datasets.Dataset`` with columns: repo, func_name, language, code,
+        docstring, transformed_list, aug_type_list, num_augs, function_id.
+    """
+    groups: dict[int, dict] = defaultdict(
+        lambda: {
+            "repo": None,
+            "func_name": None,
+            "language": None,
+            "code": None,
+            "docstring": None,
+            "transformed_list": [],
+            "aug_type_list": [],
+        }
+    )
+
+    for i in range(len(dataset)):
+        row = dataset[i]
+        fid = compute_function_id(row["code"])
+        g = groups[fid]
+        if g["code"] is None:
+            g["repo"] = row["repo"]
+            g["func_name"] = row["func_name"]
+            g["language"] = row["language"]
+            g["code"] = row["code"]
+            g["docstring"] = row["docstring"]
+        g["transformed_list"].append(row["transformed"])
+        g["aug_type_list"].append(row["aug_type"])
+
+    # Build columnar dict, pad to max_num_augs
+    result: dict[str, list] = {
+        "repo": [],
+        "func_name": [],
+        "language": [],
+        "code": [],
+        "docstring": [],
+        "transformed_list": [],
+        "aug_type_list": [],
+        "num_augs": [],
+        "function_id": [],
+    }
+    for fid, g in groups.items():
+        real_k = len(g["transformed_list"])
+        if real_k == 0:
+            continue
+        truncated = g["transformed_list"][:max_num_augs]
+        aug_types = g["aug_type_list"][:max_num_augs]
+        num_augs = len(truncated)
+        # Pad to max_num_augs
+        padded_transforms = truncated + [""] * (max_num_augs - num_augs)
+        padded_aug_types = aug_types + [""] * (max_num_augs - num_augs)
+
+        result["repo"].append(g["repo"])
+        result["func_name"].append(g["func_name"])
+        result["language"].append(g["language"])
+        result["code"].append(g["code"])
+        result["docstring"].append(g["docstring"])
+        result["transformed_list"].append(padded_transforms)
+        result["aug_type_list"].append(padded_aug_types)
+        result["num_augs"].append(num_augs)
+        result["function_id"].append(fid)
+
+    return Dataset.from_dict(result)
+
+
+def tokenize_grouped(tokenizer, example, max_seq_length=256, max_num_augs=6):
+    """Tokenize a grouped example: one anchor + list of augmentations.
+
+    Works with both single examples and batched examples (HF ``.map(batched=True)``).
+    """
+    code_inputs = tokenizer(
+        example["code"],
+        padding="max_length",
+        truncation=True,
+        max_length=max_seq_length,
+        return_special_tokens_mask=True,
+    )
+    result = {
+        "code_input_ids": code_inputs["input_ids"],
+        "code_attention_mask": code_inputs["attention_mask"],
+        "code_special_tokens_mask": code_inputs["special_tokens_mask"],
+        "function_id": example["function_id"],
+        "num_augs": example["num_augs"],
+    }
+
+    if isinstance(example["code"], list):
+        # Batched mode: each element of transformed_list is a list of strings
+        all_aug_ids = []
+        all_aug_masks = []
+        all_aug_special = []
+        for i, transforms in enumerate(example["transformed_list"]):
+            num = example["num_augs"][i]
+            # Only tokenize real augmentations (non-empty)
+            real_transforms = transforms[:num]
+            if real_transforms:
+                aug_inputs = tokenizer(
+                    real_transforms,
+                    padding="max_length",
+                    truncation=True,
+                    max_length=max_seq_length,
+                    return_special_tokens_mask=True,
+                )
+                all_aug_ids.append(aug_inputs["input_ids"])
+                all_aug_masks.append(aug_inputs["attention_mask"])
+                all_aug_special.append(aug_inputs["special_tokens_mask"])
+            else:
+                all_aug_ids.append([])
+                all_aug_masks.append([])
+                all_aug_special.append([])
+        result["aug_input_ids_list"] = all_aug_ids
+        result["aug_attention_mask_list"] = all_aug_masks
+        result["aug_special_tokens_mask_list"] = all_aug_special
+    else:
+        # Single mode
+        num = example["num_augs"]
+        real_transforms = example["transformed_list"][:num]
+        if real_transforms:
+            aug_inputs = tokenizer(
+                real_transforms,
+                padding="max_length",
+                truncation=True,
+                max_length=max_seq_length,
+                return_special_tokens_mask=True,
+            )
+            result["aug_input_ids_list"] = aug_inputs["input_ids"]
+            result["aug_attention_mask_list"] = aug_inputs["attention_mask"]
+            result["aug_special_tokens_mask_list"] = aug_inputs["special_tokens_mask"]
+        else:
+            result["aug_input_ids_list"] = []
+            result["aug_attention_mask_list"] = []
+            result["aug_special_tokens_mask_list"] = []
+
+    return result
+
+
 def main(
     dataset_path: str,
     model_name: str,
@@ -75,6 +218,7 @@ def main(
     checkpoint: str | None = None,
     tokenizer_name: str | None = None,
     contra_mode: str = "info_nce",
+    max_num_augs: int = 6,
 ):
     set_seed(seed)
 
@@ -108,18 +252,34 @@ def main(
             range(int(len(dataset) * sample_rate))
         )
 
-    tokenized_datasets = dataset.shuffle(seed=seed).map(
-        lambda example: tokenize(tokenizer, example, max_seq_length=max_seq_length),
-        batched=True,
-        num_proc=num_proc,
-    )
-    split_dataset = tokenized_datasets.train_test_split(test_size=0.1)
-    train_dataset = split_dataset["train"]
-    eval_dataset = split_dataset["test"]
-
     mlm_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=0.15
     )
+
+    if contra_mode == "grouped":
+        # Regroup flat rows by function_id into {code, [aug_1, ..., aug_K]}
+        grouped_dataset = regroup_dataset(dataset, max_num_augs=max_num_augs)
+        tokenized_datasets = grouped_dataset.shuffle(seed=seed).map(
+            lambda example: tokenize_grouped(
+                tokenizer, example, max_seq_length, max_num_augs
+            ),
+            batched=True,
+            num_proc=num_proc,
+        )
+        collator_fn = lambda features: grouped_contra_data_collator(
+            mlm_collator, features, max_num_augs
+        )
+    else:
+        tokenized_datasets = dataset.shuffle(seed=seed).map(
+            lambda example: tokenize(tokenizer, example, max_seq_length=max_seq_length),
+            batched=True,
+            num_proc=num_proc,
+        )
+        collator_fn = lambda features: contra_data_collator(mlm_collator, features)
+
+    split_dataset = tokenized_datasets.train_test_split(test_size=0.1)
+    train_dataset = split_dataset["train"]
+    eval_dataset = split_dataset["test"]
 
     training_args = TrainingArguments(
         output_dir=f"./saved_models/{run_name}",
@@ -146,7 +306,7 @@ def main(
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        data_collator=lambda features: contra_data_collator(mlm_collator, features),
+        data_collator=collator_fn,
         alpha=alpha,
         temperature=temperature,
         contra_mode=contra_mode,
@@ -188,8 +348,16 @@ if __name__ == "__main__":
         "--contra_mode",
         type=str,
         default="info_nce",
-        choices=["info_nce", "supcon"],
-        help="Contrastive loss mode: 'info_nce' (diagonal positives only) or 'supcon' (multi-positive by function_id).",
+        choices=["info_nce", "supcon", "grouped"],
+        help="Contrastive loss mode: 'info_nce' (diagonal positives only), "
+        "'supcon' (multi-positive by function_id mask), or "
+        "'grouped' (grouped multi-key contrast with explicit aug grouping).",
+    )
+    parser.add_argument(
+        "--max_num_augs",
+        type=int,
+        default=6,
+        help="Maximum augmentations per anchor group (only used with --contra_mode grouped).",
     )
 
     args = parser.parse_args()
@@ -212,4 +380,5 @@ if __name__ == "__main__":
         checkpoint=args.checkpoint,
         tokenizer_name=args.tokenizer_name,
         contra_mode=args.contra_mode,
+        max_num_augs=args.max_num_augs,
     )

@@ -58,6 +58,7 @@ InvPT/
 - **Curriculum learning**: Self-contrast (easy, same code with different MLM masks) and invariant-contrast (hard, transformed code) are trained simultaneously with low learning rate.
 - **PL-only**: Unlike prior work (CodeBERT, ContraBERT), InvPT removes natural language docstrings during pre-training.
 - **No MoCo**: Uses a single shared encoder for original and transformed code, unlike ContraBERT which uses momentum contrast.
+- **Contrastive modes**: `info_nce` (diagonal positives), `supcon` (multi-positive by function_id mask), `grouped` (grouped multi-key contrast with explicit aug grouping via `--max_num_augs`).
 
 ## Transformation Operators
 
