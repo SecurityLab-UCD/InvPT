@@ -96,11 +96,59 @@ The resulting file `data/csn.jsonl` will be used for pre-training.
 
 ### Pre-training
 
+The CLI entry point is `modeling/cli.py`, which provides two subcommands:
+
+- **`run`** -- load a YAML experiment config, with optional CLI overrides (recommended)
+- **`pretrain`** -- pass all parameters directly as CLI options
+
+```sh
+# From a YAML config (recommended)
+python modeling/cli.py run experiments/base.yaml
+
+# Override specific values for quick experiments
+python modeling/cli.py run experiments/base.yaml --seed 42 --run-name "seed42-test"
+
+# Or pass all parameters directly
+python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
+
+# See all options
+python modeling/cli.py run --help
+python modeling/cli.py pretrain --help
+```
+
+There is also a convenience script:
+
 ```sh
 ./run_pretrain.sh
 ```
 
-This script continues pre-training a RoBERTa-based model (e.g., GraphCodeBERT, ContraBERT) with InvPT on 4 GPUs. Key hyperparameters:
+#### Experiment Configs
+
+YAML experiment configs live in `experiments/`. To create a new experiment, copy an existing file and modify the parameters:
+
+```yaml
+# experiments/base.yaml
+dataset_path: "data/aug_csn.jsonl"
+model_name: "./saved_models/ContraBERT_G"
+tokenizer_name: "microsoft/graphcodebert-base"
+
+batch_size: 64
+num_epochs: 3
+gradient_accumulation_steps: 4
+learning_rate: 2.0e-5
+
+seed: 0
+run_name: "InvContraBERT_G-aug02-supcon"
+
+alpha: 1.0
+temperature: 0.1
+max_seq_length: 512
+sample_rate: 0.2
+
+contra_mode: "supcon"
+```
+
+Key hyperparameters:
 
 | Parameter                       | Value      |
 | ------------------------------- | ---------- |
@@ -118,80 +166,48 @@ This script continues pre-training a RoBERTa-based model (e.g., GraphCodeBERT, C
 
 Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weights & Biases](https://wandb.ai).
 
-#### CLI Arguments
+#### CLI Options
 
-- `--dataset_path`
-    - default: `data/csn_jp.jsonl`
-    - Path to the pre-training JSONL dataset.
-- `--model_name`
-    - default: `microsoft/codebert-base`
-    - Pre-trained model name or path.
-- `--tokenizer_name`
-    - default: (same as `--model_name`)
-    - Tokenizer name; useful when model only provides weights.
-- `--checkpoint`
-    - default: None
-    - Path to a checkpoint to resume weights from.
-- `--batch_size`
-    - default: `256`
-    - Total batch size across all GPUs.
-- `--num_epochs`
-    - default: `10`
-    - Number of training epochs.
-- `--gradient_accumulation_steps`
-    - default: `1`
-    - Gradient accumulation steps.
-- `--learning_rate`
-    - default: `2e-4`
-    - Learning rate.
-- `--alpha`
-    - default: `1.0`
-    - Contrastive loss weight.
-- `--temperature`
-    - default: `0.07`
-    - Contrastive loss temperature.
-- `--max_seq_length`
-    - default: `256`
-    - Maximum token sequence length.
-- `--sample_rate`
-    - default: `1.0`
-    - Fraction of dataset to use (for quick experiments).
-- `--seed`
-    - default: `0`
-    - Random seed.
-- `--run_name`
-    - default: `InvarientBERT`
-    - W&B run name and output directory name.
-- `--num_proc`
-    - default: `80`
-    - Number of processes for dataset tokenization.
-- `--resume`
-    - default: False
-    - Resume training from the latest checkpoint.
-- `--contra_mode`
-    - default: `info_nce`
-    - Contrastive loss mode: `info_nce`, `supcon`, or `grouped`.
-- `--max_num_augs`
-    - default: `6`
-    - Maximum augmentations per anchor group. Only used with `--contra_mode grouped`.
+Both subcommands accept the same training parameters. With `run`, they override YAML values; with `pretrain`, they provide all values directly.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--dataset-path` | `data/csn_jp.jsonl` | Path to the pre-training JSONL dataset |
+| `--model-name` | `microsoft/codebert-base` | Pre-trained model name or path |
+| `--tokenizer-name` | (same as model) | Tokenizer name; useful when model only provides weights |
+| `--checkpoint` | None | Path to a checkpoint to resume weights from |
+| `--batch-size` | `256` | Total batch size across all GPUs |
+| `--num-epochs` | `10` | Number of training epochs |
+| `--gradient-accumulation-steps` | `1` | Gradient accumulation steps |
+| `--learning-rate` | `2e-4` | Peak learning rate |
+| `--alpha` | `1.0` | Contrastive loss weight |
+| `--temperature` | `0.07` | Contrastive loss temperature |
+| `--max-seq-length` | `256` | Maximum token sequence length |
+| `--sample-rate` | `1.0` | Fraction of dataset to use (for quick experiments) |
+| `--seed` | `0` | Random seed |
+| `--run-name` | `InvarientBERT` | W&B run name and output directory name |
+| `--num-proc` | `80` | Number of processes for dataset tokenization |
+| `--resume / --no-resume` | `False` | Resume training from the latest checkpoint |
+| `--contra-mode` | `info_nce` | Contrastive loss mode: `info_nce`, `supcon`, or `grouped` |
+| `--max-num-augs` | `6` | Max augmentations per anchor group (`grouped` mode only) |
 
 #### Contrastive Loss Modes
 
-The `--contra_mode` flag selects the contrastive loss function:
+The `--contra-mode` option selects the contrastive loss function:
 
 - **`info_nce`** (default): Standard InfoNCE with diagonal positives only. Each code sample is paired with its single augmentation; all other batch items are negatives.
 - **`supcon`**: Supervised Contrastive loss ([Khosla et al., 2020](https://arxiv.org/abs/2004.11362)). Uses a `function_id` (hash of the original code) to identify all augmentations of the same function within a batch as positives. Code and augmented embeddings are concatenated into a single pool of size `2B`, and a positive mask marks all pairs sharing the same `function_id`.
-- **`grouped`**: Grouped Multi-Key Contrast. Regroups flat `(code, transformed)` rows by `function_id` at dataset load time so each batch item bundles an anchor with all of its augmentations. Positives are the anchor's own augmentations; negatives are all other anchors and their augmentations. Uses per-positive log-prob averaging with log-sum-exp stabilization. The `--max_num_augs` flag (default 6) caps the number of augmentations per anchor group.
+- **`grouped`**: Grouped Multi-Key Contrast. Regroups flat `(code, transformed)` rows by `function_id` at dataset load time so each batch item bundles an anchor with all of its augmentations. Positives are the anchor's own augmentations; negatives are all other anchors and their augmentations. Uses per-positive log-prob averaging with log-sum-exp stabilization. The `--max-num-augs` option (default 6) caps the number of augmentations per anchor group.
 
 ```sh
 # Standard InfoNCE (default)
-./run_pretrain.sh
+python modeling/cli.py run experiments/base.yaml --contra-mode info_nce
 
 # SupCon multi-positive
-python -m modeling.pretrain --contra_mode supcon ...
+python modeling/cli.py run experiments/base.yaml --contra-mode supcon
 
 # Grouped multi-key contrast
-python -m modeling.pretrain --contra_mode grouped --max_num_augs 6 ...
+python modeling/cli.py run experiments/base.yaml --contra-mode grouped --max-num-augs 6
 ```
 
 SupCon benefits from larger per-GPU batch sizes since it needs multiple augmentations of the same function to co-occur in a batch for the multi-positive signal to activate. Grouped mode guarantees all augmentations are co-located but requires more memory per batch item (each item encodes up to `max_num_augs` augmentation views); use reduced batch size with higher gradient accumulation steps.
