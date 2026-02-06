@@ -1,17 +1,9 @@
-from enum import Enum
-
 import torch
 import torch.nn.functional as F
 from transformers import Trainer
 
+from ._types import ContraMode
 from .common import DEVICE
-
-
-class ContraType(str, Enum):
-    INFO_NCE = "info_nce"
-    SUPCON = "supcon"
-    BARLOW_TWINS = "barlow_twins"
-    GROUPED = "grouped"
 
 
 def info_nce_loss(query, key, temperature=0.07):
@@ -227,12 +219,12 @@ class ContrastiveTrainer(Trainer):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
         self.temperature = temperature
-        self.contra_mode = ContraType(contra_mode)
+        self.contra_mode = ContraMode(contra_mode)
 
     def compute_loss(
         self, model, inputs, return_outputs=False, num_items_in_batch=None
     ):
-        if self.contra_mode == ContraType.GROUPED:
+        if self.contra_mode == ContraMode.GROUPED:
             return self._compute_grouped_loss(model, inputs, return_outputs)
 
         # Move inputs to device
@@ -273,7 +265,7 @@ class ContrastiveTrainer(Trainer):
         mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
 
         # Compute contrastive loss between code and its augmentation
-        if self.contra_mode == ContraType.SUPCON:
+        if self.contra_mode == ContraMode.SUPCON:
             all_embeddings = torch.cat([code_embeddings, aug_embeddings], dim=0)
             function_ids = inputs["function_id"].to(DEVICE)
             all_function_ids = torch.cat([function_ids, function_ids], dim=0)

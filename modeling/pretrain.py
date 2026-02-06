@@ -4,7 +4,6 @@ import argparse
 import hashlib
 import os
 from collections import defaultdict
-from typing import Literal
 
 from datasets import Dataset, Features, Value, load_dataset
 from torch.cuda import device_count
@@ -16,11 +15,10 @@ from transformers import (
     TrainingArguments,
 )
 
+from ._types import ContraMode
 from .common import DEVICE, set_seed
 from .dataloader import contra_data_collator, grouped_contra_data_collator
 from .model import ContrastiveTrainer
-
-ContraMode = Literal["info_nce", "supcon", "grouped"]
 
 
 def compute_function_id(code: str) -> int:
