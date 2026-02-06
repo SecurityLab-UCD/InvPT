@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated, Optional
@@ -7,7 +5,9 @@ from typing import Annotated, Optional
 import typer
 
 from modeling._types import ContraMode
-from modeling.config import PretrainConfig, load_config
+from modeling.common import default_num_proc
+from modeling.config import load_config
+from modeling.pretrain import main
 
 app = typer.Typer(
     help="InvPT: Invariant Pre-training for Robust Code Representation Learning."
@@ -20,91 +20,14 @@ def run(
         Path,
         typer.Argument(help="Path to a YAML experiment config file."),
     ],
-    dataset_path: Annotated[
-        Optional[str], typer.Option(help="Path to the JSONL dataset.")
-    ] = None,
-    model_name: Annotated[
-        Optional[str], typer.Option(help="Model name or path.")
-    ] = None,
-    tokenizer_name: Annotated[
-        Optional[str], typer.Option(help="Tokenizer name (defaults to model_name).")
-    ] = None,
-    batch_size: Annotated[
-        Optional[int], typer.Option(help="Total batch size across GPUs.")
-    ] = None,
-    num_epochs: Annotated[
-        Optional[int], typer.Option(help="Number of training epochs.")
-    ] = None,
-    gradient_accumulation_steps: Annotated[
-        Optional[int], typer.Option(help="Gradient accumulation steps.")
-    ] = None,
-    learning_rate: Annotated[
-        Optional[float], typer.Option(help="Peak learning rate.")
-    ] = None,
-    seed: Annotated[Optional[int], typer.Option(help="Random seed.")] = None,
-    run_name: Annotated[
-        Optional[str], typer.Option(help="W&B run name and output directory.")
-    ] = None,
-    alpha: Annotated[
-        Optional[float], typer.Option(help="Weight for contrastive loss.")
-    ] = None,
-    temperature: Annotated[
-        Optional[float], typer.Option(help="Contrastive temperature.")
-    ] = None,
-    max_seq_length: Annotated[
-        Optional[int], typer.Option(help="Max tokenizer sequence length.")
-    ] = None,
-    sample_rate: Annotated[
-        Optional[float], typer.Option(help="Fraction of dataset to sample.")
-    ] = None,
-    num_proc: Annotated[
-        Optional[int], typer.Option(help="Number of dataloader workers.")
-    ] = None,
-    resume: Annotated[
-        Optional[bool], typer.Option(help="Resume from latest checkpoint.")
-    ] = None,
-    checkpoint: Annotated[
-        Optional[str], typer.Option(help="Path to checkpoint for weight loading.")
-    ] = None,
-    contra_mode: Annotated[
-        Optional[ContraMode], typer.Option(help="Contrastive loss mode.")
-    ] = None,
-    max_num_augs: Annotated[
-        Optional[int], typer.Option(help="Max augmentations per anchor (grouped mode).")
-    ] = None,
 ) -> None:
-    """Run pre-training from a YAML config file, with optional CLI overrides.
+    """Run pre-training from a YAML config file.
 
-    Example: python -m modeling run experiments/base.yaml --seed 42
+    All parameters are read from the config file to ensure full reproducibility.
+
+    Example: python -m modeling run experiments/base.yaml
     """
     cfg = load_config(config)
-
-    overrides = {
-        "dataset_path": dataset_path,
-        "model_name": model_name,
-        "tokenizer_name": tokenizer_name,
-        "batch_size": batch_size,
-        "num_epochs": num_epochs,
-        "gradient_accumulation_steps": gradient_accumulation_steps,
-        "learning_rate": learning_rate,
-        "seed": seed,
-        "run_name": run_name,
-        "alpha": alpha,
-        "temperature": temperature,
-        "max_seq_length": max_seq_length,
-        "sample_rate": sample_rate,
-        "num_proc": num_proc,
-        "resume": resume,
-        "checkpoint": checkpoint,
-        "contra_mode": contra_mode,
-        "max_num_augs": max_num_augs,
-    }
-    for key, value in overrides.items():
-        if value is not None:
-            setattr(cfg, key, value)
-
-    from modeling.pretrain import main
-
     main(**asdict(cfg))
 
 
@@ -130,7 +53,7 @@ def pretrain(
     seed: Annotated[int, typer.Option(help="Random seed.")] = 0,
     run_name: Annotated[
         str, typer.Option(help="W&B run name and output directory.")
-    ] = "InvarientBERT",
+    ] = "InvariantBERT",
     alpha: Annotated[float, typer.Option(help="Weight for contrastive loss.")] = 1.0,
     temperature: Annotated[float, typer.Option(help="Contrastive temperature.")] = 0.07,
     max_seq_length: Annotated[
@@ -139,7 +62,9 @@ def pretrain(
     sample_rate: Annotated[
         float, typer.Option(help="Fraction of dataset to sample.")
     ] = 1.0,
-    num_proc: Annotated[int, typer.Option(help="Number of dataloader workers.")] = 80,
+    num_proc: Annotated[
+        int, typer.Option(help="Number of dataloader workers.")
+    ] = default_num_proc(),
     resume: Annotated[
         bool, typer.Option(help="Resume from latest checkpoint.")
     ] = False,
@@ -157,7 +82,6 @@ def pretrain(
 
     Example: python -m modeling pretrain --batch-size 64 --num-epochs 3
     """
-    from modeling.pretrain import main
 
     main(
         dataset_path=dataset_path,

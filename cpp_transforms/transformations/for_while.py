@@ -80,7 +80,10 @@ def for_while_reverse(
 def main(code: str) -> None:
     index = clang.cindex.Index.create()
     translation_unit = index.parse(
-        "example.cpp", unsaved_files=[("example.cpp", code)], options=0, args=["-std=c++17"]
+        "example.cpp",
+        unsaved_files=[("example.cpp", code)],
+        options=0,
+        args=["-std=c++17"],
     )
     print(for_while_reverser(translation_unit.cursor, code))
 

@@ -14,9 +14,10 @@ if PIA_HOME is None:
     raise EnvironmentError("PIA_HOME environment variable is not set")
 SPAT_JAR = os.path.join(PIA_HOME, "java_transform", "SPAT-linux.jar")
 
-JDK_LIB = os.environ.get("JDK_LIB")
-if JDK_LIB is None:
+_JDK_LIB = os.environ.get("JDK_LIB")
+if _JDK_LIB is None:
     raise EnvironmentError("JDK_LIB environment variable is not set")
+JDK_LIB: str = _JDK_LIB
 
 id_to_name = [
     "LocalVarRenaming",
@@ -86,7 +87,9 @@ def read_programs(src_path: str) -> list[Program]:
 
 
 def spat_caller(
-    rule_id: int, spat_path: str = SPAT_JAR, lib_path: str = JDK_LIB
+    rule_id: int,
+    spat_path: str = SPAT_JAR,
+    lib_path: str = JDK_LIB,
 ) -> Callable[[list[Program]], list[Program]]:
     def transform_dir(input_path: str, output_path: str):
         """Transforms all files in a directory using SPAT.

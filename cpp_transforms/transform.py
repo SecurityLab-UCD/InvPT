@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import asdict, replace
 from functools import partial
 from multiprocessing import cpu_count
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from clang.cindex import Cursor
 from clang.cindex import Index as CursorIndex
@@ -64,11 +64,11 @@ def augment_accumulatively(j: HasCode | HasFunc) -> HasCode | HasFunc:
     # Run the transformations on the code
     for aug_type in TRANSFORMATION_MAP.keys():
         code = apply_code_transformation(aug_type, code).value_or(code)
-    # Create the return object
+    # Create the return object (cast needed: j is a dataclass at runtime, but typed as Protocol)
     if hasattr(j, "code"):
-        return replace(j, code=code)
+        return cast(HasCode, replace(cast(Any, j), code=code))
     elif hasattr(j, "func"):
-        return replace(j, func=code)
+        return cast(HasFunc, replace(cast(Any, j), func=code))
     return j
 
 
@@ -109,9 +109,9 @@ def main(
 ):
     print(f"-------- Selected Transforming Method: {augtype} -------- ")
 
-    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
-        "Invalid input file path"
-    )
+    assert os.path.exists(input_file_path) and os.path.isfile(
+        input_file_path
+    ), "Invalid input file path"
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:

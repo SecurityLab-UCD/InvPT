@@ -65,7 +65,6 @@ def split_programs(
 
 
 def main(seed: int = 0):
-
     logging.info("Loading programs")
     all_programs: list[CodeNetProgram] = []
     index = 0

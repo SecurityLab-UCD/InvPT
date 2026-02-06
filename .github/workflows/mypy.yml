@@ -1,0 +1,27 @@
+name: MyPy Type Checking
+
+on: [pull_request]
+
+jobs:
+    type-check:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  fetch-depth: 1
+
+            - name: Install uv
+              uses: astral-sh/setup-uv@v5
+
+            - name: Set up Python
+              run: uv sync --all-extras
+
+            - name: Type Check Python Transformations
+              run: uv run mypy python_transform
+
+            - name: Type Check Java Transformations
+              run: uv run mypy java_transform
+
+            - name: Type Check C++ Transformations
+              run: uv run mypy cpp_transforms

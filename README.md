@@ -98,15 +98,12 @@ The resulting file `data/csn.jsonl` will be used for pre-training.
 
 The CLI entry point is `modeling/cli.py`, which provides two subcommands:
 
-- **`run`** -- load a YAML experiment config, with optional CLI overrides (recommended)
+- **`run`** -- load a YAML experiment config (recommended; all parameters come from the config file to ensure full reproducibility)
 - **`pretrain`** -- pass all parameters directly as CLI options
 
 ```sh
 # From a YAML config (recommended)
 python modeling/cli.py run experiments/base.yaml
-
-# Override specific values for quick experiments
-python modeling/cli.py run experiments/base.yaml --seed 42 --run-name "seed42-test"
 
 # Or pass all parameters directly
 python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
@@ -166,9 +163,9 @@ Key hyperparameters:
 
 Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weights & Biases](https://wandb.ai).
 
-#### CLI Options
+#### CLI Options (`pretrain` subcommand)
 
-Both subcommands accept the same training parameters. With `run`, they override YAML values; with `pretrain`, they provide all values directly.
+The `pretrain` subcommand accepts all training parameters directly as CLI options. The `run` subcommand only takes a config file path -- edit the YAML file to change parameters.
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -185,7 +182,7 @@ Both subcommands accept the same training parameters. With `run`, they override 
 | `--max-seq-length` | `256` | Maximum token sequence length |
 | `--sample-rate` | `1.0` | Fraction of dataset to use (for quick experiments) |
 | `--seed` | `0` | Random seed |
-| `--run-name` | `InvarientBERT` | W&B run name and output directory name |
+| `--run-name` | `InvariantBERT` | W&B run name and output directory name |
 | `--num-proc` | `80` | Number of processes for dataset tokenization |
 | `--resume / --no-resume` | `False` | Resume training from the latest checkpoint |
 | `--contra-mode` | `info_nce` | Contrastive loss mode: `info_nce`, `supcon`, or `grouped` |
@@ -197,17 +194,20 @@ The `--contra-mode` option selects the contrastive loss function:
 
 - **`info_nce`** (default): Standard InfoNCE with diagonal positives only. Each code sample is paired with its single augmentation; all other batch items are negatives.
 - **`supcon`**: Supervised Contrastive loss ([Khosla et al., 2020](https://arxiv.org/abs/2004.11362)). Uses a `function_id` (hash of the original code) to identify all augmentations of the same function within a batch as positives. Code and augmented embeddings are concatenated into a single pool of size `2B`, and a positive mask marks all pairs sharing the same `function_id`.
-- **`grouped`**: Grouped Multi-Key Contrast. Regroups flat `(code, transformed)` rows by `function_id` at dataset load time so each batch item bundles an anchor with all of its augmentations. Positives are the anchor's own augmentations; negatives are all other anchors and their augmentations. Uses per-positive log-prob averaging with log-sum-exp stabilization. The `--max-num-augs` option (default 6) caps the number of augmentations per anchor group.
+- **`grouped`**: Grouped Multi-Key Contrast. Regroups flat `(code, transformed)` rows by `function_id` at dataset load time so each batch item bundles an anchor with all of its augmentations. Positives are the anchor's own augmentations; negatives are all other anchors and their augmentations. Uses per-positive log-prob averaging with log-sum-exp stabilization. The `max_num_augs` config option (default 6) caps the number of augmentations per anchor group.
 
-```sh
+To switch contrastive modes, set the `contra_mode` field in the YAML config:
+
+```yaml
 # Standard InfoNCE (default)
-python modeling/cli.py run experiments/base.yaml --contra-mode info_nce
+contra_mode: "info_nce"
 
 # SupCon multi-positive
-python modeling/cli.py run experiments/base.yaml --contra-mode supcon
+contra_mode: "supcon"
 
 # Grouped multi-key contrast
-python modeling/cli.py run experiments/base.yaml --contra-mode grouped --max-num-augs 6
+contra_mode: "grouped"
+max_num_augs: 6
 ```
 
 SupCon benefits from larger per-GPU batch sizes since it needs multiple augmentations of the same function to co-occur in a batch for the multi-positive signal to activate. Grouped mode guarantees all augmentations are co-located but requires more memory per batch item (each item encodes up to `max_num_augs` augmentation views); use reduced batch size with higher gradient accumulation steps.

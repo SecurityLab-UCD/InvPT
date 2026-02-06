@@ -15,7 +15,7 @@ from transformers import (
 )
 
 from ._types import ContraMode
-from .common import DEVICE, set_seed
+from .common import DEVICE, default_num_proc, set_seed
 from .dataloader import contra_data_collator, grouped_contra_data_collator
 from .model import ContrastiveTrainer
 
@@ -222,6 +222,9 @@ def main(
 ):
     set_seed(seed)
 
+    # Cap num_proc to available CPU cores to avoid broken-pipe errors.
+    num_proc = min(num_proc, default_num_proc())
+
     tokenizer_name = tokenizer_name or model_name
     tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_name)
     config = RobertaConfig.from_pretrained(tokenizer_name)
@@ -267,6 +270,7 @@ def main(
             batched=True,
             num_proc=num_proc,
         )
+
         collator_fn = lambda features: grouped_contra_data_collator(
             mlm_collator, features, max_num_augs
         )
@@ -276,6 +280,7 @@ def main(
             batched=True,
             num_proc=num_proc,
         )
+
         collator_fn = lambda features: contra_data_collator(mlm_collator, features)
 
     split_dataset = tokenized_datasets.train_test_split(test_size=0.1)

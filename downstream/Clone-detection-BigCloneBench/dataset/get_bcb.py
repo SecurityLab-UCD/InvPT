@@ -6,6 +6,7 @@ from multiprocessing import cpu_count
 from pathos.multiprocessing import ProcessingPool as Pool
 from dataclasses import dataclass, asdict
 from java_transform import augment_accumulatively
+
 logging.basicConfig(level=logging.DEBUG)
 
 RESOURCE_URL = "https://raw.githubusercontent.com/microsoft/CodeXGLUE/refs/heads/main/Code-Code/Clone-detection-BigCloneBench/dataset/data.jsonl"
@@ -18,6 +19,7 @@ NPROC = cpu_count()
 class BCBProgram:
     idx: str
     func: str
+
 
 def preprocess(raw: bytes) -> list[BCBProgram]:
     # Preprocess
@@ -43,7 +45,7 @@ def process(dataset: list[BCBProgram]) -> list[BCBProgram]:
         succeed.append(entry)
 
     return succeed
- 
+
 
 def main():
     logging.info("Fetching original dataset")
@@ -63,6 +65,7 @@ def main():
     with open(AUG_PATH, "w") as f:
         for aj in augmented_jsonl:
             f.write(aj + "\n")
+
 
 if __name__ == "__main__":
     typer.run(main)

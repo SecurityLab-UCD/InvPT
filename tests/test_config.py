@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import tempfile
 
 import pytest
@@ -81,7 +79,6 @@ class TestCli:
         result = runner.invoke(app, ["run", "--help"])
         assert result.exit_code == 0
         assert "CONFIG" in result.output
-        assert "--seed" in result.output
 
     def test_run_missing_config(self) -> None:
         result = runner.invoke(app, ["run"])

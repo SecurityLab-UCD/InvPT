@@ -46,7 +46,7 @@ Then, create a container using this docker image. An example is:
 docker run --name=codebert-attack --gpus all -it --mount type=bind,src=<codebase_path>,dst=/workspace zhouyang996/codebert-attack:v1
 ```
 
-All the following scripts should run inside the docker container. 
+All the following scripts should run inside the docker container.
 
 ❕**Notes:** This docker works fine with RTX 2080Ti GPUs and Tesla P100 GPUs. But if on RTX 30XX GPUs, it may take very long time to load the models to cuda. We think it's related to the CUDA version. Users can use the following command for a lower version:
 
@@ -56,7 +56,7 @@ docker run --name=codebert-attack --gpus all -it --mount type=bind,src=<codebase
 
 ### Fine-tune
 
-We only use 10% training data to fine-tune and 10% valid data to evaluate during training. The training cost is 3 hours on 8*P100-16G. 
+We only use 10% training data to fine-tune and 10% valid data to evaluate during training. The training cost is 3 hours on 8*P100-16G.
 
 ```bash
 cd code
@@ -82,7 +82,7 @@ python run.py \
 
 ### Inference
 
-We use full test data for inference. 
+We use full test data for inference.
 
 ```bash
 cd code
@@ -190,7 +190,7 @@ CUDA_VISIBLE_DEVICES=6 python get_substitutes.py \
     --block_size 512 \
     --index 3500 4000
 
-We use full test data for attacking. 
+We use full test data for attacking.
 
 ```bash
 cd code
@@ -275,5 +275,5 @@ CUDA_VISIBLE_DEVICES=0 python mhm_attack.py \
 The results on the test set are shown as below:
 
 | Method        | Precision |  Precision (attacked)   |    Recall     |  Recall (attacked)   |    F1     |  F1 (attacked)   |
-| ------------- | :-------: | :---------------------: | :-----------: | :------------------: | :-------: |:---------------: | 
+| ------------- | :-------: | :---------------------: | :-----------: | :------------------: | :-------: |:---------------: |
 | CodeBERT | **0.9697** |  | **0.9687** |  | **0.9688** |  |

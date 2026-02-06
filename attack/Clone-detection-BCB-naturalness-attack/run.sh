@@ -1,5 +1,5 @@
 #!/bin/bash
-# uv run bash run.sh 
+# uv run bash run.sh
 
 
 # Argument processing

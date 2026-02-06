@@ -71,13 +71,13 @@ Given a codes file evaluator/test.jsonl:
 We first extract answers from codes file.
 
 ```she
-python evaluator/extract_answers.py -c evaluator/test.jsonl -o evaluator/answers.jsonl 
+python evaluator/extract_answers.py -c evaluator/test.jsonl -o evaluator/answers.jsonl
 ```
 
 The answers is:
 
 ```bash
-cat evaluator/answers.jsonl 
+cat evaluator/answers.jsonl
 {"index": "0", "answers": ["1", "2"]}
 {"index": "1", "answers": ["0", "2"]}
 {"index": "2", "answers": ["0", "1"]}
@@ -89,7 +89,7 @@ cat evaluator/answers.jsonl
 Report MAP@R score
 
 ```bash
-python evaluator/evaluator.py -a evaluator/answers.jsonl  -p evaluator/predictions.jsonl 
+python evaluator/evaluator.py -a evaluator/answers.jsonl  -p evaluator/predictions.jsonl
 ```
 
 {'MAP@R': 0.5833}
@@ -99,7 +99,7 @@ python evaluator/evaluator.py -a evaluator/answers.jsonl  -p evaluator/predictio
 For each index, return Top K (K=2 for this example, but K=499 in the task) codes. For example:
 
 ```bash
-cat evaluator/predictions.jsonl 
+cat evaluator/predictions.jsonl
 {"index": "0", "answers": ["3", "2"]}
 {"index": "1", "answers": ["0", "4"]}
 {"index": "2", "answers": ["0", "1"]}
@@ -110,7 +110,7 @@ cat evaluator/predictions.jsonl
 
 ## Pipeline-CodeBERT
 
-We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002.08155.pdf) on this task. 
+We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002.08155.pdf) on this task.
 
 ### Fine-tune
 
@@ -165,8 +165,8 @@ python run.py \
 ### Evaluation
 
 ```bash
-python ../evaluator/extract_answers.py -c ../dataset/test.jsonl -o saved_models/answers.jsonl 
-python ../evaluator/evaluator.py -a saved_models/answers.jsonl   -p saved_models/predictions.jsonl 
+python ../evaluator/extract_answers.py -c ../dataset/test.jsonl -o saved_models/answers.jsonl
+python ../evaluator/evaluator.py -a saved_models/answers.jsonl   -p saved_models/predictions.jsonl
 ```
 
 {'MAP@R': 0.8267}
@@ -194,4 +194,3 @@ The results on the test set are shown as below:
   pages={1287--1293},
   year={2016}
 }</code></pre>
-
