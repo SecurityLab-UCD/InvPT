@@ -1,6 +1,7 @@
 # type: ignore
 
 import argparse
+import hashlib
 import os
 
 from datasets import Features, Value, load_dataset
@@ -18,6 +19,12 @@ from .dataloader import contra_data_collator
 from .model import ContrastiveTrainer
 
 
+def compute_function_id(code: str) -> int:
+    """Deterministic 63-bit hash of the code string (positive, fits int64)."""
+    digest = hashlib.sha256(code.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") & 0x7FFFFFFFFFFFFFFF
+
+
 def tokenize(tokenizer, example, max_seq_length=256):
     code_inputs = tokenizer(
         example["code"],
@@ -33,7 +40,7 @@ def tokenize(tokenizer, example, max_seq_length=256):
         max_length=max_seq_length,
         return_special_tokens_mask=True,
     )
-    return {
+    result = {
         "code_input_ids": code_inputs["input_ids"],
         "code_attention_mask": code_inputs["attention_mask"],
         "code_special_tokens_mask": code_inputs["special_tokens_mask"],
@@ -41,6 +48,13 @@ def tokenize(tokenizer, example, max_seq_length=256):
         "aug_attention_mask": aug_inputs["attention_mask"],
         "aug_special_tokens_mask": aug_inputs["special_tokens_mask"],
     }
+    # Compute function_id from original code for SupCon multi-positive masking
+    codes = example["code"]
+    if isinstance(codes, list):
+        result["function_id"] = [compute_function_id(c) for c in codes]
+    else:
+        result["function_id"] = compute_function_id(codes)
+    return result
 
 
 def main(
@@ -60,6 +74,7 @@ def main(
     sample_rate: float,
     checkpoint: str | None = None,
     tokenizer_name: str | None = None,
+    contra_mode: str = "info_nce",
 ):
     set_seed(seed)
 
@@ -134,6 +149,7 @@ def main(
         data_collator=lambda features: contra_data_collator(mlm_collator, features),
         alpha=alpha,
         temperature=temperature,
+        contra_mode=contra_mode,
     )
 
     trainer.train(resume_from_checkpoint=resume)
@@ -168,6 +184,13 @@ if __name__ == "__main__":
         default=None,
         help="Tokenizer model name. Defaults to --model_name if not specified. Useful when the model only provides weights and reuses the tokenizer from its base model.",
     )
+    parser.add_argument(
+        "--contra_mode",
+        type=str,
+        default="info_nce",
+        choices=["info_nce", "supcon"],
+        help="Contrastive loss mode: 'info_nce' (diagonal positives only) or 'supcon' (multi-positive by function_id).",
+    )
 
     args = parser.parse_args()
 
@@ -188,4 +211,5 @@ if __name__ == "__main__":
         sample_rate=args.sample_rate,
         checkpoint=args.checkpoint,
         tokenizer_name=args.tokenizer_name,
+        contra_mode=args.contra_mode,
     )

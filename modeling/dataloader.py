@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+import torch
+
 
 class AugType(str, Enum):
     LOCALVARRENAMING = "LocalVarRenaming"
@@ -20,6 +22,7 @@ class CodeSearchNetExample:
     docstring: str
     transformed: str | None = None  # This is added after code transformation
     aug_type: AugType | None = None
+    function_id: int | None = None  # Deterministic hash of canonical code string
 
 
 def contra_data_collator(mlm_collator, features):
@@ -53,4 +56,11 @@ def contra_data_collator(mlm_collator, features):
         "aug_attention_mask": aug_batch["attention_mask"],
         "aug_labels": aug_batch["labels"],
     }
+
+    # Pass through function_ids for SupCon loss (when present)
+    if "function_id" in features[0]:
+        batch["function_id"] = torch.tensor(
+            [f["function_id"] for f in features], dtype=torch.long
+        )
+
     return batch
