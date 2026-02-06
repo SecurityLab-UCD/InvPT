@@ -114,8 +114,32 @@ This script continues pre-training a RoBERTa-based model (e.g., GraphCodeBERT, C
 | Contrastive loss weight (alpha) | 0.7        |
 | Temperature                     | 0.07       |
 | Contrastive mode                | `info_nce` |
+| Max augs per anchor (grouped)   | 6          |
 
 Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weights & Biases](https://wandb.ai).
+
+#### CLI Arguments
+
+| Argument                        | Type  | Default                   | Description                                                                     |
+| ------------------------------- | ----- | ------------------------- | ------------------------------------------------------------------------------- |
+| `--dataset_path`                | str   | `data/csn_jp.jsonl`       | Path to the pre-training JSONL dataset                                          |
+| `--model_name`                  | str   | `microsoft/codebert-base` | Pre-trained model name or path                                                  |
+| `--tokenizer_name`              | str   | (same as `--model_name`)  | Tokenizer name; useful when model only provides weights                         |
+| `--checkpoint`                  | str   | None                      | Path to a checkpoint to resume weights from                                     |
+| `--batch_size`                  | int   | 256                       | Total batch size across all GPUs                                                |
+| `--num_epochs`                  | int   | 10                        | Number of training epochs                                                       |
+| `--gradient_accumulation_steps` | int   | 1                         | Gradient accumulation steps                                                     |
+| `--learning_rate`               | float | 2e-4                      | Learning rate                                                                   |
+| `--alpha`                       | float | 1.0                       | Contrastive loss weight                                                         |
+| `--temperature`                 | float | 0.07                      | Contrastive loss temperature                                                    |
+| `--max_seq_length`              | int   | 256                       | Maximum token sequence length                                                   |
+| `--sample_rate`                 | float | 1.0                       | Fraction of dataset to use (for quick experiments)                              |
+| `--seed`                        | int   | 0                         | Random seed                                                                     |
+| `--run_name`                    | str   | `InvarientBERT`           | W&B run name and output directory name                                          |
+| `--num_proc`                    | int   | 80                        | Number of processes for dataset tokenization                                    |
+| `--resume`                      | flag  | False                     | Resume training from the latest checkpoint                                      |
+| `--contra_mode`                 | str   | `info_nce`                | Contrastive loss mode: `info_nce`, `supcon`, or `grouped`                       |
+| `--max_num_augs`                | int   | 6                         | Maximum augmentations per anchor group (only used with `--contra_mode grouped`) |
 
 #### Contrastive Loss Modes
 
