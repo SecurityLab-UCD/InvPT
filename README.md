@@ -3,6 +3,7 @@
 InvPT is a novel pre-training method that improves both the performance and robustness of code representation models against semantically equivalent but syntactically different programs (invariant programs). InvPT applies semantic-preserving code transformations to the pre-training corpus, then continues pre-training state-of-the-art encoder models using a combination of masked language modeling and invariant contrastive learning.
 
 Key design choices:
+
 - **PL-only pre-training**: Removes natural language docstrings, focusing solely on programming language data.
 - **Invariant contrastive learning**: Uses InfoNCE loss between original code and its semantic-preserving transformations with a single shared encoder (no momentum contrast).
 - **Indirect curriculum learning**: Simultaneously trains on self-contrast (easy) and invariant-contrast (hard) examples with dynamic learning rate scheduling.
@@ -101,17 +102,17 @@ The resulting file `data/csn.jsonl` will be used for pre-training.
 
 This script continues pre-training a RoBERTa-based model (e.g., GraphCodeBERT, ContraBERT) with InvPT on 4 GPUs. Key hyperparameters:
 
-| Parameter | Value |
-|-----------|-------|
-| Batch size | 256 |
-| Max steps | 50,000 |
-| Learning rate | 5e-5 |
-| Warmup steps | 5,000 |
-| Max sequence length | 256 |
-| Weight decay | 0.01 |
-| MLM mask probability | 15% |
-| Contrastive loss weight (alpha) | 0.7 |
-| Temperature (InfoNCE) | 0.07 |
+| Parameter                       | Value  |
+| ------------------------------- | ------ |
+| Batch size                      | 256    |
+| Max steps                       | 50,000 |
+| Learning rate                   | 5e-5   |
+| Warmup steps                    | 5,000  |
+| Max sequence length             | 256    |
+| Weight decay                    | 0.01   |
+| MLM mask probability            | 15%    |
+| Contrastive loss weight (alpha) | 0.7    |
+| Temperature (InfoNCE)           | 0.07   |
 
 Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weights & Biases](https://wandb.ai).
 
@@ -119,15 +120,15 @@ Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weig
 
 We evaluate on 7 downstream tasks from the [CodeXGLUE](https://github.com/microsoft/CodeXGLUE) benchmark:
 
-| Task | Dataset | Metric | Language |
-|------|---------|--------|----------|
-| Clone Detection | POJ-104 | MAP@R | C/C++ |
-| Clone Detection | CodeNet (Java250, Python800, C++1400) | MAP@R | Java, Python, C++ |
-| Clone Detection | BigCloneBench | F1 | Java |
-| Defect Detection | Devign | Accuracy | C |
-| Code Classification | POJ-104 | Accuracy | C/C++ |
+| Task                | Dataset                               | Metric   | Language          |
+| ------------------- | ------------------------------------- | -------- | ----------------- |
+| Clone Detection     | POJ-104                               | MAP@R    | C/C++             |
+| Clone Detection     | CodeNet (Java250, Python800, C++1400) | MAP@R    | Java, Python, C++ |
+| Clone Detection     | BigCloneBench                         | F1       | Java              |
+| Defect Detection    | Devign                                | Accuracy | C                 |
+| Code Classification | POJ-104                               | Accuracy | C/C++             |
 | Code Classification | CodeNet (Java250, Python800, C++1400) | Accuracy | Java, Python, C++ |
-| Code Translation | CodeXGLUE | BLEU | Java, C# |
+| Code Translation    | CodeXGLUE                             | BLEU     | Java, C#          |
 
 Each task has its own directory under `downstream/` with a `run.sh` script:
 
@@ -154,59 +155,17 @@ uv run plot/visualize.py --input_test_file dataset/aug_test.jsonl --output_file 
 
 InvPT uses six semantic-preserving transformation operators:
 
-| Operator | Description | Python | Java | C/C++ |
-|----------|-------------|--------|------|-------|
-| **VarRe** | Rename local variables to random strings | Yes | Yes | Yes |
-| **F2W** | Convert for-loop to while-loop | No | Yes | Yes |
-| **W2F** | Convert while-loop to for-loop | No | Yes | Yes |
-| **PP2AA** | Convert `x++` to `x += 1` | No | Yes | Yes |
-| **AA2EA** | Convert `x += 1` to `x = x + 1` | Yes | Yes | Yes |
-| **RevIf** | Negate condition, swap if/else branches | Yes | Yes | Yes |
+| Operator  | Description                              | Python | Java | C/C++ |
+| --------- | ---------------------------------------- | ------ | ---- | ----- |
+| **VarRe** | Rename local variables to random strings | Yes    | Yes  | Yes   |
+| **F2W**   | Convert for-loop to while-loop           | No     | Yes  | Yes   |
+| **W2F**   | Convert while-loop to for-loop           | No     | Yes  | Yes   |
+| **PP2AA** | Convert `x++` to `x += 1`                | No     | Yes  | Yes   |
+| **AA2EA** | Convert `x += 1` to `x = x + 1`          | Yes    | Yes  | Yes   |
+| **RevIf** | Negate condition, swap if/else branches  | Yes    | Yes  | Yes   |
 
 Transformations are implemented at the AST level:
+
 - **Python**: Uses the `ast` module (`ast.NodeTransformer` subclasses) in `python_transform/src/`.
 - **Java**: Uses [SPAT](https://doi.org/10.1016/j.jss.2022.111304) (bundled as `SPAT-linux.jar`) in `java_transform/`.
 - **C/C++**: Uses `libclang` for AST parsing in `cpp_transforms/transformations/`.
-
-## Project Structure
-
-```
-InvPT/
-├── modeling/                  # Pre-training pipeline
-│   ├── pretrain.py            # Training entry point
-│   ├── model.py               # ContrastiveTrainer (MLM + InfoNCE)
-│   ├── dataloader.py          # Data collation and schema definitions
-│   └── common.py              # Device/seed utilities
-├── python_transform/          # Python code transformations
-│   ├── transform.py           # Transformation orchestrator
-│   ├── augment_pretrain.py    # Batch augmentation script
-│   ├── src/                   # Transformer implementations
-│   └── tests/                 # Unit tests
-├── java_transform/            # Java code transformations (SPAT)
-│   ├── transform.py           # Transformation orchestrator
-│   ├── augment_pretrain.py    # Batch augmentation script
-│   ├── utils.py               # SPAT JAR interface
-│   └── SPAT-linux.jar         # Bundled transformation tool
-├── cpp_transforms/            # C/C++ code transformations (libclang)
-│   ├── transform.py           # Transformation orchestrator
-│   └── transformations/       # Transformation modules
-├── data/                      # Dataset download scripts
-├── downstream/                # Fine-tuning & evaluation (7 tasks)
-├── plot/                      # Embedding visualization
-├── saved_models/              # Model checkpoints
-├── run_pretrain.sh            # Pre-training launch script
-├── clang.sh                   # LLVM 14 installer
-├── pyproject.toml             # Python dependencies (uv)
-└── .envrc                     # Environment variables
-```
-
-## Citation
-
-```bibtex
-@inproceedings{he2026invpt,
-  title={Invariant Pre-training for Robust Code Representation Learning},
-  author={He, Yifeng and Xu, Yundi and Gonzalo, Christopher Castro Gaw and Wang, Zili and Chen, Hao},
-  booktitle={Proceedings of the 48th IEEE/ACM International Conference on Software Engineering (ICSE)},
-  year={2026}
-}
-```
