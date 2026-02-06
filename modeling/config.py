@@ -21,7 +21,7 @@ class PretrainConfig:
     gradient_accumulation_steps: int = 1
     num_proc: int = field(default_factory=default_num_proc)
     seed: int = 0
-    run_name: str = "InvarientBERT"
+    run_name: str = "InvariantBERT"
     learning_rate: float = 2e-4
     resume: bool = False
     alpha: float = 1.0

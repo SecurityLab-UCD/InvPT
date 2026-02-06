@@ -182,7 +182,7 @@ The `pretrain` subcommand accepts all training parameters directly as CLI option
 | `--max-seq-length` | `256` | Maximum token sequence length |
 | `--sample-rate` | `1.0` | Fraction of dataset to use (for quick experiments) |
 | `--seed` | `0` | Random seed |
-| `--run-name` | `InvarientBERT` | W&B run name and output directory name |
+| `--run-name` | `InvariantBERT` | W&B run name and output directory name |
 | `--num-proc` | `80` | Number of processes for dataset tokenization |
 | `--resume / --no-resume` | `False` | Resume training from the latest checkpoint |
 | `--contra-mode` | `info_nce` | Contrastive loss mode: `info_nce`, `supcon`, or `grouped` |

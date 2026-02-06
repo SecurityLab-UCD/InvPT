@@ -53,7 +53,7 @@ def pretrain(
     seed: Annotated[int, typer.Option(help="Random seed.")] = 0,
     run_name: Annotated[
         str, typer.Option(help="W&B run name and output directory.")
-    ] = "InvarientBERT",
+    ] = "InvariantBERT",
     alpha: Annotated[float, typer.Option(help="Weight for contrastive loss.")] = 1.0,
     temperature: Annotated[float, typer.Option(help="Contrastive temperature.")] = 0.07,
     max_seq_length: Annotated[
