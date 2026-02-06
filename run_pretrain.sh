@@ -4,5 +4,5 @@
 export WANDB_PROJECT="InvPT"
 
 # Use a YAML config; override specific values with CLI options if needed:
-#   python -m modeling run experiments/base.yaml --seed 42
-python -m modeling run experiments/base.yaml
+#   python modeling/cli.py run experiments/base.yaml --seed 42
+python modeling/cli.py run experiments/base.yaml
