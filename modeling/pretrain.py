@@ -4,8 +4,9 @@ import hashlib
 import os
 from collections import defaultdict
 
+import torch
+import torch.distributed as dist
 from datasets import Dataset, Features, Value, load_dataset
-from torch.cuda import device_count
 from transformers import (
     DataCollatorForLanguageModeling,
     RobertaConfig,
@@ -15,9 +16,16 @@ from transformers import (
 )
 
 from ._types import ContraMode
-from .common import DEVICE, default_num_proc, set_seed
+from .common import default_num_proc, set_seed
 from .dataloader import contra_data_collator, grouped_contra_data_collator
 from .model import ContrastiveTrainer
+
+
+def _get_world_size() -> int:
+    """Return DDP world size if distributed is initialized, else GPU count (min 1)."""
+    if dist.is_initialized():
+        return dist.get_world_size()
+    return max(torch.cuda.device_count(), 1)
 
 
 def compute_function_id(code: str) -> int:
@@ -234,7 +242,6 @@ def main(
         model_name if checkpoint is None else checkpoint,
         config=config,
     )  # load weights from stage 1
-    model.to(DEVICE)
 
     features = Features(
         {
@@ -290,7 +297,7 @@ def main(
     training_args = TrainingArguments(
         output_dir=f"./saved_models/{run_name}",
         overwrite_output_dir=True,
-        per_device_train_batch_size=batch_size // device_count(),
+        per_device_train_batch_size=batch_size // _get_world_size(),
         gradient_accumulation_steps=gradient_accumulation_steps,
         num_train_epochs=num_epochs,
         save_strategy="epoch",
@@ -304,7 +311,7 @@ def main(
         run_name=run_name,
         save_total_limit=3,
         load_best_model_at_end=True,
-        dataloader_num_workers=os.cpu_count(),
+        dataloader_num_workers=max(1, (os.cpu_count() or 1) // _get_world_size()),
     )
 
     trainer = ContrastiveTrainer(

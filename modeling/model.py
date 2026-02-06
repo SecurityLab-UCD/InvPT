@@ -3,7 +3,6 @@ import torch.nn.functional as F
 from transformers import Trainer
 
 from ._types import ContraMode
-from .common import DEVICE
 
 
 def info_nce_loss(query, key, temperature=0.07):
@@ -227,13 +226,14 @@ class ContrastiveTrainer(Trainer):
         if self.contra_mode == ContraMode.GROUPED:
             return self._compute_grouped_loss(model, inputs, return_outputs)
 
-        # Move inputs to device
-        code_input_ids = inputs["code_input_ids"].to(DEVICE)
-        code_attention_mask = inputs["code_attention_mask"].to(DEVICE)
-        code_labels = inputs["code_labels"].to(DEVICE)
-        aug_input_ids = inputs["aug_input_ids"].to(DEVICE)
-        aug_attention_mask = inputs["aug_attention_mask"].to(DEVICE)
-        aug_labels = inputs["aug_labels"].to(DEVICE)
+        # Move inputs to the device the model lives on (supports DDP)
+        device = model.device
+        code_input_ids = inputs["code_input_ids"].to(device)
+        code_attention_mask = inputs["code_attention_mask"].to(device)
+        code_labels = inputs["code_labels"].to(device)
+        aug_input_ids = inputs["aug_input_ids"].to(device)
+        aug_attention_mask = inputs["aug_attention_mask"].to(device)
+        aug_labels = inputs["aug_labels"].to(device)
 
         # Forward pass for MLM
         # use bi-encoder training, encode code and augmentation separately using self.model
@@ -267,7 +267,7 @@ class ContrastiveTrainer(Trainer):
         # Compute contrastive loss between code and its augmentation
         if self.contra_mode == ContraMode.SUPCON:
             all_embeddings = torch.cat([code_embeddings, aug_embeddings], dim=0)
-            function_ids = inputs["function_id"].to(DEVICE)
+            function_ids = inputs["function_id"].to(device)
             all_function_ids = torch.cat([function_ids, function_ids], dim=0)
             contrastive_loss = supcon_loss(
                 all_embeddings, all_function_ids, self.temperature
@@ -294,13 +294,14 @@ class ContrastiveTrainer(Trainer):
           - aug_attention_mask, aug_labels: same shape
           - group_sizes: [B]
         """
-        code_input_ids = inputs["code_input_ids"].to(DEVICE)
-        code_attention_mask = inputs["code_attention_mask"].to(DEVICE)
-        code_labels = inputs["code_labels"].to(DEVICE)
-        aug_input_ids = inputs["aug_input_ids"].to(DEVICE)
-        aug_attention_mask = inputs["aug_attention_mask"].to(DEVICE)
-        aug_labels = inputs["aug_labels"].to(DEVICE)
-        group_sizes = inputs["group_sizes"].to(DEVICE)
+        device = model.device
+        code_input_ids = inputs["code_input_ids"].to(device)
+        code_attention_mask = inputs["code_attention_mask"].to(device)
+        code_labels = inputs["code_labels"].to(device)
+        aug_input_ids = inputs["aug_input_ids"].to(device)
+        aug_attention_mask = inputs["aug_attention_mask"].to(device)
+        aug_labels = inputs["aug_labels"].to(device)
+        group_sizes = inputs["group_sizes"].to(device)
 
         # Forward anchor
         code_outputs = model(
