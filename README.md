@@ -101,11 +101,19 @@ The CLI entry point is `modeling/cli.py`, which provides two subcommands:
 - **`run`** -- load a YAML experiment config (recommended; all parameters come from the config file to ensure full reproducibility)
 - **`pretrain`** -- pass all parameters directly as CLI options
 
+Pre-training uses PyTorch DistributedDataParallel (DDP) via `torchrun`. By default it uses all visible GPUs; control GPU selection with `CUDA_VISIBLE_DEVICES`.
+
 ```sh
-# From a YAML config (recommended)
+# Multi-GPU (uses all visible GPUs)
+torchrun --nproc_per_node=gpu modeling/cli.py run experiments/base.yaml
+
+# Select specific GPUs
+CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=gpu modeling/cli.py run experiments/base.yaml
+
+# Single-GPU (also works with plain python)
 python modeling/cli.py run experiments/base.yaml
 
-# Or pass all parameters directly
+# Pass all parameters directly
 python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
 
 # See all options
@@ -113,11 +121,13 @@ python modeling/cli.py run --help
 python modeling/cli.py pretrain --help
 ```
 
-There is also a convenience script:
+There is also a convenience script that launches `torchrun` on all visible GPUs:
 
 ```sh
 ./run_pretrain.sh
 ```
+
+The `batch_size` in config is the **total** batch size across all GPUs. It is automatically divided by the number of processes. For example, `batch_size: 128` on 2 GPUs gives 64 per GPU; with `gradient_accumulation_steps: 2` the effective batch size is 256.
 
 #### Experiment Configs
 
