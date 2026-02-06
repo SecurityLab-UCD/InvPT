@@ -3,7 +3,7 @@
 ## Task Definition
 
 Code translation aims to migrate legacy software from one programming language in a platform toanother.
-In CodeXGLUE, given a piece of Java (C#) code, the task is to translate the code into C# (Java) version. 
+In CodeXGLUE, given a piece of Java (C#) code, the task is to translate the code into C# (Java) version.
 Models are evaluated by BLEU scores, accuracy (exactly match), and [CodeBLEU](https://github.com/microsoft/CodeXGLUE/blob/main/code-to-code-trans/CodeBLEU.MD) scores.
 
 ## Dataset
@@ -40,7 +40,7 @@ BLEU: 61.08, Acc: 50.0
 
 ## Pipeline-CodeBERT
 
-We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002.08155.pdf) on this task. 
+We also provide a pipeline that fine-tunes [CodeBERT](https://arxiv.org/pdf/2002.08155.pdf) on this task.
 ### Dependency
 
 - python 3.6 or 3.7
@@ -78,7 +78,7 @@ python run.py \
 
 ### Inference
 
-We use full test data for inference. 
+We use full test data for inference.
 
 ```bash
 cd code
@@ -96,7 +96,7 @@ python run.py \
 	--max_source_length 512 \
 	--max_target_length 512 \
 	--beam_size 5 \
-	--eval_batch_size 16 
+	--eval_batch_size 16
 ```
 
 ### Evaluation
@@ -129,11 +129,10 @@ Java to C#:
 
 C# to Java:
 
-|     Method     |    BLEU    | Acc (100%) |  [CodeBLEU](https://github.com/microsoft/CodeXGLUE/blob/main/Code-Code/code-to-code-trans/CodeBLEU.MD) | 
+|     Method     |    BLEU    | Acc (100%) |  [CodeBLEU](https://github.com/microsoft/CodeXGLUE/blob/main/Code-Code/code-to-code-trans/CodeBLEU.MD) |
 |    ----------  | :--------: | :-------:  | :-------: |
 | Naive copy     |   18.69    |     0.0    |      -    |
 | PBSMT          |   40.06    |    16.1    |   43.48   |
 | Transformer    |   50.47    |    37.9    |   61.59   |
 | Roborta (code) |   71.99    |    57.9    | **80.18** |
 | CodeBERT       | **72.14**  |  **58.0**  |   79.41   |
-

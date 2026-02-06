@@ -14,9 +14,9 @@ def main(input_file_path: str, output_file_path: str):
     """
     nproc = cpu_count()
 
-    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
-        "Invalid input file path"
-    )
+    assert os.path.exists(input_file_path) and os.path.isfile(
+        input_file_path
+    ), "Invalid input file path"
     with open(input_file_path, "r") as f:
         lines = f.read().splitlines()
 

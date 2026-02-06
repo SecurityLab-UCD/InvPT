@@ -142,9 +142,9 @@ def main(
 ):
     print(f"-------- Selected Transforming Method: {augtype} -------- ")
 
-    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
-        "Invalid input file path"
-    )
+    assert os.path.exists(input_file_path) and os.path.isfile(
+        input_file_path
+    ), "Invalid input file path"
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:

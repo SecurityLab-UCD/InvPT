@@ -1,50 +1,58 @@
-# Copyright (c) Microsoft Corporation. 
+# Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
-from .utils import (tree_to_variable_index)
+from .utils import tree_to_variable_index
+
 
 def DFG_c(root_node, index_to_code, states):
-    assignment = ['assignment_expression']
-    def_statement = ['init_declatator', 'pointer_declarator', 'array_declarator']
-    increment_statement = ['update_expression']
-    if_statement = ['if_statement', 'else']
-    for_statement = ['for_statement']
-    while_statement = ['while_statement']
-    parameter_statement = ['parameter_declaration']
+    assignment = ["assignment_expression"]
+    def_statement = ["init_declatator", "pointer_declarator", "array_declarator"]
+    increment_statement = ["update_expression"]
+    if_statement = ["if_statement", "else"]
+    for_statement = ["for_statement"]
+    while_statement = ["while_statement"]
+    parameter_statement = ["parameter_declaration"]
     do_first_statement = []
     states = states.copy()
-    if (len(root_node.children) == 0 or root_node.type == 'string') and root_node.type != 'comment':
+    if (
+        len(root_node.children) == 0 or root_node.type == "string"
+    ) and root_node.type != "comment":
         idx, code = index_to_code[(root_node.start_point, root_node.end_point)]
-        if root_node.type == code or (root_node.parent.type == 'function_declarator' and root_node):
+        if root_node.type == code or (
+            root_node.parent.type == "function_declarator" and root_node
+        ):
             return [], states
         elif code in states:
-            return [(code, idx, 'comesFrom', [code], states[code].copy())], states
-        elif root_node.type == 'identifier':
-            if root_node.parent.type == 'declaration':
-                states[code]=[idx]
-                return [(code,idx,'comesFrom',[],[])],states
+            return [(code, idx, "comesFrom", [code], states[code].copy())], states
+        elif root_node.type == "identifier":
+            if root_node.parent.type == "declaration":
+                states[code] = [idx]
+                return [(code, idx, "comesFrom", [], [])], states
             return [], states
         else:
             return [], states
     elif root_node.type in def_statement:
-
-        if root_node.parent.type == 'function_definition':
-            while root_node.type == 'pointer_declarator' and root_node.child_by_field_name('declarator').type == 'pointer_declarator':
-                root_node = root_node.child_by_field_name('declarator')
+        if root_node.parent.type == "function_definition":
+            while (
+                root_node.type == "pointer_declarator"
+                and root_node.child_by_field_name("declarator").type
+                == "pointer_declarator"
+            ):
+                root_node = root_node.child_by_field_name("declarator")
             DFG = []
             for child in root_node.children:
                 if child.type not in do_first_statement:
                     temp, states = DFG_c(child, index_to_code, states)
                     DFG += temp
             return sorted(DFG, key=lambda x: x[1]), states
-        name = root_node.child_by_field_name('declarator')
-        value = root_node.child_by_field_name('value')
+        name = root_node.child_by_field_name("declarator")
+        value = root_node.child_by_field_name("value")
         DFG = []
         if value is None:
             indexs = tree_to_variable_index(name, index_to_code)
             for index in indexs:
                 idx, code = index_to_code[index]
-                DFG.append((code, idx, 'comesFrom', [], []))
+                DFG.append((code, idx, "comesFrom", [], []))
                 states[code] = [idx]
             return sorted(DFG, key=lambda x: x[1]), states
         else:
@@ -56,7 +64,7 @@ def DFG_c(root_node, index_to_code, states):
                 idx1, code1 = index_to_code[index1]
                 for index2 in value_indexs:
                     idx2, code2 = index_to_code[index2]
-                    DFG.append((code1, idx1, 'comesFrom', [code2], [idx2]))
+                    DFG.append((code1, idx1, "comesFrom", [code2], [idx2]))
                 states[code1] = [idx1]
             return sorted(DFG, key=lambda x: x[1]), states
     elif root_node.type in assignment:
@@ -88,7 +96,7 @@ def DFG_c(root_node, index_to_code, states):
             idx1, code1 = index_to_code[index1]
             for index2 in indexs:
                 idx2, code2 = index_to_code[index2]
-                DFG.append((code1, idx1, 'computedFrom', [code2], [idx2]))
+                DFG.append((code1, idx1, "computedFrom", [code2], [idx2]))
             states[code1] = [idx1]
         return sorted(DFG, key=lambda x: x[1]), states
     elif root_node.type in if_statement:
@@ -97,10 +105,10 @@ def DFG_c(root_node, index_to_code, states):
         others_states = []
         flag = False
         tag = False
-        if 'else' in root_node.type:
+        if "else" in root_node.type:
             tag = True
         for child in root_node.children:
-            if 'else' in child.type:
+            if "else" in child.type:
                 tag = True
             if child.type not in if_statement and flag is False:
                 temp, current_states = DFG_c(child, index_to_code, current_states)
@@ -145,9 +153,16 @@ def DFG_c(root_node, index_to_code, states):
             if (x[0], x[1], x[2]) not in dic:
                 dic[(x[0], x[1], x[2])] = [x[3], x[4]]
             else:
-                dic[(x[0], x[1], x[2])][0] = list(set(dic[(x[0], x[1], x[2])][0] + x[3]))
-                dic[(x[0], x[1], x[2])][1] = sorted(list(set(dic[(x[0], x[1], x[2])][1] + x[4])))
-        DFG = [(x[0], x[1], x[2], y[0], y[1]) for x, y in sorted(dic.items(), key=lambda t: t[0][1])]
+                dic[(x[0], x[1], x[2])][0] = list(
+                    set(dic[(x[0], x[1], x[2])][0] + x[3])
+                )
+                dic[(x[0], x[1], x[2])][1] = sorted(
+                    list(set(dic[(x[0], x[1], x[2])][1] + x[4]))
+                )
+        DFG = [
+            (x[0], x[1], x[2], y[0], y[1])
+            for x, y in sorted(dic.items(), key=lambda t: t[0][1])
+        ]
         return sorted(DFG, key=lambda x: x[1]), states
     elif root_node.type in while_statement:
         DFG = []
@@ -160,24 +175,31 @@ def DFG_c(root_node, index_to_code, states):
             if (x[0], x[1], x[2]) not in dic:
                 dic[(x[0], x[1], x[2])] = [x[3], x[4]]
             else:
-                dic[(x[0], x[1], x[2])][0] = list(set(dic[(x[0], x[1], x[2])][0] + x[3]))
-                dic[(x[0], x[1], x[2])][1] = sorted(list(set(dic[(x[0], x[1], x[2])][1] + x[4])))
-        DFG = [(x[0], x[1], x[2], y[0], y[1]) for x, y in sorted(dic.items(), key=lambda t: t[0][1])]
+                dic[(x[0], x[1], x[2])][0] = list(
+                    set(dic[(x[0], x[1], x[2])][0] + x[3])
+                )
+                dic[(x[0], x[1], x[2])][1] = sorted(
+                    list(set(dic[(x[0], x[1], x[2])][1] + x[4]))
+                )
+        DFG = [
+            (x[0], x[1], x[2], y[0], y[1])
+            for x, y in sorted(dic.items(), key=lambda t: t[0][1])
+        ]
         return sorted(DFG, key=lambda x: x[1]), states
     elif root_node.type in parameter_statement:
-        child = root_node.child_by_field_name('declarator')
+        child = root_node.child_by_field_name("declarator")
         if not child:
             return [], states
-        while(child.type != 'identifier'):
-            if child.type == 'parenthesized_declarator':
+        while child.type != "identifier":
+            if child.type == "parenthesized_declarator":
                 child = child.children[1]
             else:
-                child = child.child_by_field_name('declarator')
+                child = child.child_by_field_name("declarator")
             if not child:
                 return [], states
-        idx,code=index_to_code[(child.start_point,child.end_point)]
-        states[code]=[idx]
-        return [(code,idx,'comesFrom',[],[])],states
+        idx, code = index_to_code[(child.start_point, child.end_point)]
+        states[code] = [idx]
+        return [(code, idx, "comesFrom", [], [])], states
     else:
         DFG = []
         for child in root_node.children:

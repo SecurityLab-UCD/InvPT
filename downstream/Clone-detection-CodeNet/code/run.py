@@ -457,9 +457,9 @@ def get_n_retrieval(eval_dataset):
     # check all values are the same
     n_programs = list(label_examples.values())[0]
     for v in label_examples.values():
-        assert v == n_programs, (
-            "The number of examples for each label should be the same"
-        )
+        assert (
+            v == n_programs
+        ), "The number of examples for each label should be the same"
     return n_programs - 1
 
 

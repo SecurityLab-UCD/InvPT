@@ -26,9 +26,9 @@ def add_aug_type(aug_type: AugType, csn: CodeSearchNetExample) -> CodeSearchNetE
 
 
 def main(input_file_path: str, output_file_path: str):
-    assert os.path.exists(input_file_path) and os.path.isfile(input_file_path), (
-        "Invalid input file path"
-    )
+    assert os.path.exists(input_file_path) and os.path.isfile(
+        input_file_path
+    ), "Invalid input file path"
 
     # read in the jsonl file
     with open(input_file_path, "r") as f:

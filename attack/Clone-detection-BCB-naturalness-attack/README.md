@@ -62,7 +62,7 @@ bash build.sh
 
 # Victim Models and Datasets
 
-> <span style="color:red;"> If you cannot access to Google Driven in your region or countries, be free to email me and I will try to find another way to share the models.</span> 
+> <span style="color:red;"> If you cannot access to Google Driven in your region or countries, be free to email me and I will try to find another way to share the models.</span>
 
 ## Models
 
@@ -127,7 +127,7 @@ The datasets and results can be downloaded from this [Onedrive](https://smu-my.s
                 ├── ...
 ```
 
-Let's take the CodeBERT and vulnerability detection task as an example. The `dataset` folder contains the training and evaluation data for this task. The `substitutes` folder contains *naturalness aware* substitutions that we generate for the test set. The numbers in the file name (e.g., "0_400") means that this file only contains substitutes for the first 400 code snippets in the datasets. We split the whole dataset into several chunks to process them in parallel. 
+Let's take the CodeBERT and vulnerability detection task as an example. The `dataset` folder contains the training and evaluation data for this task. The `substitutes` folder contains *naturalness aware* substitutions that we generate for the test set. The numbers in the file name (e.g., "0_400") means that this file only contains substitutes for the first 400 code snippets in the datasets. We split the whole dataset into several chunks to process them in parallel.
 
  The `attack results` folder contains the results of two methods evaluated in our experiment. Note: `GA` means our method, and `MHM-LS` means the `MHM-NS` in the paper. (at the earlier stage, we called it "Literal Semantic" but then we thought "Natural Semantic" was more appropriate).
  Under each folder, you can find two types of files: `.csv` and `.log`. The csv files record details of adversarial examples, e.g., the original code, program length, adversarial examples, replcaed variables, whether the attack is successful, etc. An example in the `.log` file is as follows.
@@ -145,7 +145,7 @@ Total count:  7
 Index:  10
 ```
 
-`ACC! p => php (0.59901 => 0.50218)` means that we replace the variable name `p` to `php`. By doing so, the model's confidence on the ground truth label decrease from `0.59901` to `0.50218`. However, this replacement doesn't change the label. Then, `SUC! extradata => extadata (0.50218 => 0.47853)` means replacing the variable name `extradata` to `extadata`, which generates a successful adversarial example as the confidence decreases to `0.47853` (less than `0.5`). We also record the time cost to generate this adversarial example, number of queries in this attack, attack success rate by so far, etc. 
+`ACC! p => php (0.59901 => 0.50218)` means that we replace the variable name `p` to `php`. By doing so, the model's confidence on the ground truth label decrease from `0.59901` to `0.50218`. However, this replacement doesn't change the label. Then, `SUC! extradata => extadata (0.50218 => 0.47853)` means replacing the variable name `extradata` to `extadata`, which generates a successful adversarial example as the confidence decreases to `0.47853` (less than `0.5`). We also record the time cost to generate this adversarial example, number of queries in this attack, attack success rate by so far, etc.
 
 As a quick comparison, here is the log for `MHM-NS`. Although it successfully attacks as well, it queries the model for much more times and is 5 times slower than our method.
 
@@ -186,11 +186,11 @@ All Query times:  10114
 
 
 # Running Experiments
-We refer to the README.md files under each folder to fine-tune and attack models on different datasets. `./CodeXGLUE/` contains code for the CodeBERT experiment and `./GraphCodeBERT` contains code for GraphCodeBERT experiment. 
+We refer to the README.md files under each folder to fine-tune and attack models on different datasets. `./CodeXGLUE/` contains code for the CodeBERT experiment and `./GraphCodeBERT` contains code for GraphCodeBERT experiment.
 
 
 # Acknowledgement
-We are very grateful that the authors of CodeBERT, GraphCodeBERT, CodeXGLUE, MHM make their code publicly available so that we can build this repository on top of their code. 
+We are very grateful that the authors of CodeBERT, GraphCodeBERT, CodeXGLUE, MHM make their code publicly available so that we can build this repository on top of their code.
 
 
 # Contact

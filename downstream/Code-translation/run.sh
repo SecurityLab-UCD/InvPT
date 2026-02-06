@@ -1,5 +1,5 @@
 #!/bin/bash
-# run.sh 
+# run.sh
 
 # Example: microsoft/codebert-base
 pretrained_model=$1
@@ -47,7 +47,7 @@ python code/run.py \
 	--max_source_length 512 \
 	--max_target_length 512 \
 	--beam_size 5 \
-	--eval_batch_size 16 
+	--eval_batch_size 16
 
 # Inference output is test_<id>.output, with ID starting at 0
 mv $output_dir/test_0.output $output_dir/java_to_cs.output
@@ -70,7 +70,7 @@ python code/run.py \
 	--max_source_length 512 \
 	--max_target_length 512 \
 	--beam_size 5 \
-	--eval_batch_size 16 
+	--eval_batch_size 16
 
 # Inference output is test_<id>.output, with ID starting at 0
 mv $output_dir/test_0.output $output_dir/cs_to_java.output

@@ -25,8 +25,7 @@ def get_problem_ids(all_programs: list[CodeNetProgram]) -> list[int]:
 
 
 def split_programs(
-    all_programs: list[CodeNetProgram],
-    num_of_classes: int = 104
+    all_programs: list[CodeNetProgram], num_of_classes: int = 104
 ) -> tuple[list[CodeNetProgram], list[CodeNetProgram], list[CodeNetProgram]]:
     """split programs into train, valid, test sets by 50%, 25%, 25%"""
     # split the dataset by problems, not by programs
