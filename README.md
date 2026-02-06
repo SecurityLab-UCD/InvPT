@@ -5,7 +5,7 @@ InvPT is a novel pre-training method that improves both the performance and robu
 Key design choices:
 
 - **PL-only pre-training**: Removes natural language docstrings, focusing solely on programming language data.
-- **Invariant contrastive learning**: Uses InfoNCE loss between original code and its semantic-preserving transformations with a single shared encoder (no momentum contrast).
+- **Invariant contrastive learning**: Uses InfoNCE or Supervised Contrastive (SupCon) loss between original code and its semantic-preserving transformations with a single shared encoder (no momentum contrast). SupCon mode treats all augmentations of the same function as positives within a batch.
 - **Indirect curriculum learning**: Simultaneously trains on self-contrast (easy) and invariant-contrast (hard) examples with dynamic learning rate scheduling.
 
 ## Usage
@@ -102,19 +102,37 @@ The resulting file `data/csn.jsonl` will be used for pre-training.
 
 This script continues pre-training a RoBERTa-based model (e.g., GraphCodeBERT, ContraBERT) with InvPT on 4 GPUs. Key hyperparameters:
 
-| Parameter                       | Value  |
-| ------------------------------- | ------ |
-| Batch size                      | 256    |
-| Max steps                       | 50,000 |
-| Learning rate                   | 5e-5   |
-| Warmup steps                    | 5,000  |
-| Max sequence length             | 256    |
-| Weight decay                    | 0.01   |
-| MLM mask probability            | 15%    |
-| Contrastive loss weight (alpha) | 0.7    |
-| Temperature (InfoNCE)           | 0.07   |
+| Parameter                       | Value      |
+| ------------------------------- | ---------- |
+| Batch size                      | 256        |
+| Max steps                       | 50,000     |
+| Learning rate                   | 5e-5       |
+| Warmup steps                    | 5,000      |
+| Max sequence length             | 256        |
+| Weight decay                    | 0.01       |
+| MLM mask probability            | 15%        |
+| Contrastive loss weight (alpha) | 0.7        |
+| Temperature                     | 0.07       |
+| Contrastive mode                | `info_nce` |
 
 Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weights & Biases](https://wandb.ai).
+
+#### Contrastive Loss Modes
+
+The `--contra_mode` flag selects the contrastive loss function:
+
+- **`info_nce`** (default): Standard InfoNCE with diagonal positives only. Each code sample is paired with its single augmentation; all other batch items are negatives.
+- **`supcon`**: Supervised Contrastive loss ([Khosla et al., 2020](https://arxiv.org/abs/2004.11362)). Uses a `function_id` (hash of the original code) to identify all augmentations of the same function within a batch as positives. Code and augmented embeddings are concatenated into a single pool of size `2B`, and a positive mask marks all pairs sharing the same `function_id`.
+
+```sh
+# Standard InfoNCE (default)
+./run_pretrain.sh
+
+# SupCon multi-positive
+python -m modeling.pretrain --contra_mode supcon ...
+```
+
+SupCon benefits from larger per-GPU batch sizes since it needs multiple augmentations of the same function to co-occur in a batch for the multi-positive signal to activate.
 
 ### Downstream Evaluation
 
