@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # export CUDA_VISIBLE_DEVICES=4,5,6,7
-export WANDB_PROJECT="PIA"
+export WANDB_PROJECT="InvPT"
 
     # --model_name="microsoft/graphcodebert-base" \
 RUN_NAME="InvContraBERT_G"

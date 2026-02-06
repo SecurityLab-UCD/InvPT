@@ -120,26 +120,60 @@ Models are saved to `saved_models/<run_name>/`. Experiment tracking is via [Weig
 
 #### CLI Arguments
 
-| Argument                        | Type  | Default                   | Description                                                                     |
-| ------------------------------- | ----- | ------------------------- | ------------------------------------------------------------------------------- |
-| `--dataset_path`                | str   | `data/csn_jp.jsonl`       | Path to the pre-training JSONL dataset                                          |
-| `--model_name`                  | str   | `microsoft/codebert-base` | Pre-trained model name or path                                                  |
-| `--tokenizer_name`              | str   | (same as `--model_name`)  | Tokenizer name; useful when model only provides weights                         |
-| `--checkpoint`                  | str   | None                      | Path to a checkpoint to resume weights from                                     |
-| `--batch_size`                  | int   | 256                       | Total batch size across all GPUs                                                |
-| `--num_epochs`                  | int   | 10                        | Number of training epochs                                                       |
-| `--gradient_accumulation_steps` | int   | 1                         | Gradient accumulation steps                                                     |
-| `--learning_rate`               | float | 2e-4                      | Learning rate                                                                   |
-| `--alpha`                       | float | 1.0                       | Contrastive loss weight                                                         |
-| `--temperature`                 | float | 0.07                      | Contrastive loss temperature                                                    |
-| `--max_seq_length`              | int   | 256                       | Maximum token sequence length                                                   |
-| `--sample_rate`                 | float | 1.0                       | Fraction of dataset to use (for quick experiments)                              |
-| `--seed`                        | int   | 0                         | Random seed                                                                     |
-| `--run_name`                    | str   | `InvarientBERT`           | W&B run name and output directory name                                          |
-| `--num_proc`                    | int   | 80                        | Number of processes for dataset tokenization                                    |
-| `--resume`                      | flag  | False                     | Resume training from the latest checkpoint                                      |
-| `--contra_mode`                 | str   | `info_nce`                | Contrastive loss mode: `info_nce`, `supcon`, or `grouped`                       |
-| `--max_num_augs`                | int   | 6                         | Maximum augmentations per anchor group (only used with `--contra_mode grouped`) |
+- `--dataset_path`
+    - default: `data/csn_jp.jsonl`
+    - Path to the pre-training JSONL dataset.
+- `--model_name`
+    - default: `microsoft/codebert-base`
+    - Pre-trained model name or path.
+- `--tokenizer_name`
+    - default: (same as `--model_name`)
+    - Tokenizer name; useful when model only provides weights.
+- `--checkpoint`
+    - default: None
+    - Path to a checkpoint to resume weights from.
+- `--batch_size`
+    - default: `256`
+    - Total batch size across all GPUs.
+- `--num_epochs`
+    - default: `10`
+    - Number of training epochs.
+- `--gradient_accumulation_steps`
+    - default: `1`
+    - Gradient accumulation steps.
+- `--learning_rate`
+    - default: `2e-4`
+    - Learning rate.
+- `--alpha`
+    - default: `1.0`
+    - Contrastive loss weight.
+- `--temperature`
+    - default: `0.07`
+    - Contrastive loss temperature.
+- `--max_seq_length`
+    - default: `256`
+    - Maximum token sequence length.
+- `--sample_rate`
+    - default: `1.0`
+    - Fraction of dataset to use (for quick experiments).
+- `--seed`
+    - default: `0`
+    - Random seed.
+- `--run_name`
+    - default: `InvarientBERT`
+    - W&B run name and output directory name.
+- `--num_proc`
+    - default: `80`
+    - Number of processes for dataset tokenization.
+- `--resume`
+    - default: False
+    - Resume training from the latest checkpoint.
+- `--contra_mode`
+    - default: `info_nce`
+    - Contrastive loss mode: `info_nce`, `supcon`, or `grouped`.
+- `--max_num_augs`
+    - default: `6`
+    - Maximum augmentations per anchor group. Only used with `--contra_mode grouped`.
 
 #### Contrastive Loss Modes
 
