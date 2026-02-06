@@ -16,6 +16,7 @@ Paper: *Invariant Pre-training for Robust Code Representation Learning* (ICSE 20
 InvPT/
 ├── modeling/              # Core training pipeline
 │   ├── pretrain.py        # Entry point for pre-training
+│   ├── config.py          # PretrainConfig dataclass, YAML config loading
 │   ├── model.py           # ContrastiveTrainer (MLM + InfoNCE loss)
 │   ├── dataloader.py      # Data collation, AugType enum, CodeSearchNetExample
 │   └── common.py          # Device setup, seed utilities
@@ -44,6 +45,9 @@ InvPT/
 │   └── Code-translation/
 ├── plot/                  # t-SNE visualization of embeddings
 │   └── visualize.py
+├── experiments/            # YAML experiment configurations
+│   ├── base.yaml          # Base supcon config (matches original run_pretrain.sh)
+│   └── grouped_example.yaml # Grouped contrastive mode example
 ├── saved_models/          # Pre-trained model checkpoints
 ├── run_pretrain.sh        # Pre-training launch script
 ├── clang.sh               # LLVM 14 installation script
@@ -93,9 +97,27 @@ pytest python_transform/tests/
 2. Augment Python: `python python_transform/augment_pretrain.py -i data/raw_csn_py.jsonl -o data/aug_csn_py.jsonl`
 3. Augment Java: `python java_transform/augment_pretrain.py -i data/raw_csn_java.jsonl -o data/aug_csn_java.jsonl`
 4. Combine: `cat data/raw_csn.jsonl data/aug_csn_py.jsonl data/aug_csn_java.jsonl > data/csn.jsonl`
-5. Train: `./run_pretrain.sh`
+5. Train: `./run_pretrain.sh` or `python -m modeling.pretrain --config experiments/base.yaml`
 
 Pre-training runs for 50k steps on 4 GPUs with batch size 256, learning rate 5e-5, and 5000 warmup steps.
+
+### Experiment Configuration
+
+Experiments are configured via YAML files in `experiments/`. The `--config` flag loads a YAML config,
+and any additional CLI args override the YAML values (precedence: dataclass defaults < YAML < CLI).
+
+```sh
+# Full YAML config
+python -m modeling.pretrain --config experiments/base.yaml
+
+# YAML config with CLI overrides for quick experiments
+python -m modeling.pretrain --config experiments/base.yaml --seed 42 --run_name "seed42-test"
+
+# Pure CLI (backward compatible, no config file)
+python -m modeling.pretrain --batch_size=64 --num_epochs=3 --model_name="./saved_models/ContraBERT_G" ...
+```
+
+To create a new experiment, copy an existing YAML file in `experiments/` and modify the parameters.
 
 ## Downstream Evaluation
 
@@ -113,7 +135,7 @@ Metrics: MAP@R for clone detection, accuracy for defect detection and code class
 - Type annotations are used throughout; checked with mypy (strict mode, see `mypy.ini`).
 - Functional error handling via `returns` library (`Maybe`, `Some`, `Nothing`).
 - Parallel processing via `pathos` (serializable lambdas).
-- CLI interfaces use `argparse` or `fire`.
+- CLI interfaces use `argparse` or `fire`. Pre-training uses YAML configs via `modeling/config.py`.
 - Experiment tracking via Weights & Biases (`wandb`).
 
 ## Development Guidelines

@@ -319,68 +319,56 @@ def main(
 
 
 if __name__ == "__main__":
+    from dataclasses import asdict
+
+    import dacite
+
+    from .config import _DACITE_CONFIG, PretrainConfig, load_config, merge_cli_overrides
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_path", type=str, default="data/csn_jp.jsonl")
-    parser.add_argument("--model_name", type=str, default="microsoft/codebert-base")
-    parser.add_argument("--batch_size", type=int, default=256)
-    parser.add_argument("--num_proc", type=int, default=80)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--run_name", type=str, default="InvarientBERT")
-    parser.add_argument("--num_epochs", type=int, default=10)
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--learning_rate", type=float, default=2e-4)
-    parser.add_argument("--alpha", type=float, default=1.0)
-    parser.add_argument("--temperature", type=float, default=0.07)
-    parser.add_argument("--max_seq_length", type=int, default=256)
-    parser.add_argument("--sample_rate", type=float, default=1.0)
-    parser.add_argument("--resume", default=False, action="store_true")
     parser.add_argument(
-        "--checkpoint",
+        "--config",
         type=str,
         default=None,
-        help="Path to a checkpoint file to load model weights from. Use this to resume training from a previous state.",
+        help="Path to a YAML experiment config file. CLI args override config values.",
     )
-    parser.add_argument(
-        "--tokenizer_name",
-        type=str,
-        default=None,
-        help="Tokenizer model name. Defaults to --model_name if not specified. Useful when the model only provides weights and reuses the tokenizer from its base model.",
-    )
+    parser.add_argument("--dataset_path", type=str, default=None)
+    parser.add_argument("--model_name", type=str, default=None)
+    parser.add_argument("--batch_size", type=int, default=None)
+    parser.add_argument("--num_proc", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--run_name", type=str, default=None)
+    parser.add_argument("--num_epochs", type=int, default=None)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=None)
+    parser.add_argument("--learning_rate", type=float, default=None)
+    parser.add_argument("--alpha", type=float, default=None)
+    parser.add_argument("--temperature", type=float, default=None)
+    parser.add_argument("--max_seq_length", type=int, default=None)
+    parser.add_argument("--sample_rate", type=float, default=None)
+    parser.add_argument("--resume", default=None, action="store_true")
+    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--tokenizer_name", type=str, default=None)
     parser.add_argument(
         "--contra_mode",
         type=str,
-        default="info_nce",
+        default=None,
         choices=["info_nce", "supcon", "grouped"],
-        help="Contrastive loss mode: 'info_nce' (diagonal positives only), "
-        "'supcon' (multi-positive by function_id mask), or "
-        "'grouped' (grouped multi-key contrast with explicit aug grouping).",
     )
-    parser.add_argument(
-        "--max_num_augs",
-        type=int,
-        default=6,
-        help="Maximum augmentations per anchor group (only used with --contra_mode grouped).",
-    )
+    parser.add_argument("--max_num_augs", type=int, default=None)
 
     args = parser.parse_args()
 
-    main(
-        dataset_path=args.dataset_path,
-        model_name=args.model_name,
-        batch_size=args.batch_size,
-        num_proc=args.num_proc,
-        seed=args.seed,
-        run_name=args.run_name,
-        num_epochs=args.num_epochs,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        learning_rate=args.learning_rate,
-        resume=args.resume,
-        alpha=args.alpha,
-        temperature=args.temperature,
-        max_seq_length=args.max_seq_length,
-        sample_rate=args.sample_rate,
-        checkpoint=args.checkpoint,
-        tokenizer_name=args.tokenizer_name,
-        contra_mode=args.contra_mode,
-        max_num_augs=args.max_num_augs,
-    )
+    if args.config is not None:
+        config = load_config(args.config)
+        config = merge_cli_overrides(config, vars(args))
+    else:
+        cli_data = {
+            k: v for k, v in vars(args).items() if k != "config" and v is not None
+        }
+        config = dacite.from_dict(
+            data_class=PretrainConfig,
+            data=cli_data,
+            config=_DACITE_CONFIG,
+        )
+
+    main(**asdict(config))
