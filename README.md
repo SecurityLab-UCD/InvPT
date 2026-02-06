@@ -101,30 +101,47 @@ The CLI entry point is `modeling/cli.py`, which provides two subcommands:
 - **`run`** -- load a YAML experiment config (recommended; all parameters come from the config file to ensure full reproducibility)
 - **`pretrain`** -- pass all parameters directly as CLI options
 
-Pre-training uses PyTorch DistributedDataParallel (DDP) via `torchrun`. By default it uses all visible GPUs; control GPU selection with `CUDA_VISIBLE_DEVICES`.
+Pre-training uses PyTorch DistributedDataParallel (DDP) via `torchrun`, which ships with PyTorch itself (no extra dependencies). The same training code runs on both multi-GPU and single-GPU nodes -- the HuggingFace `Trainer` auto-detects the distributed environment set up by `torchrun` and enables or disables DDP accordingly.
+
+#### Multi-GPU node
+
+Use `torchrun` to spawn one process per GPU. `--nproc_per_node=gpu` automatically uses all visible GPUs:
 
 ```sh
-# Multi-GPU (uses all visible GPUs)
 torchrun --nproc_per_node=gpu modeling/cli.py run experiments/base.yaml
+```
 
-# Select specific GPUs
+To select specific GPUs, set `CUDA_VISIBLE_DEVICES`:
+
+```sh
 CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=gpu modeling/cli.py run experiments/base.yaml
-
-# Single-GPU (also works with plain python)
-python modeling/cli.py run experiments/base.yaml
-
-# Pass all parameters directly
-python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
-
-# See all options
-python modeling/cli.py run --help
-python modeling/cli.py pretrain --help
 ```
 
 There is also a convenience script that launches `torchrun` on all visible GPUs:
 
 ```sh
 ./run_pretrain.sh
+```
+
+#### Single-GPU node
+
+On a single-GPU machine, run with plain `python` -- no `torchrun` needed:
+
+```sh
+python modeling/cli.py run experiments/base.yaml
+```
+
+`torchrun --nproc_per_node=1` also works if you prefer a uniform launch command across environments.
+
+#### CLI examples
+
+```sh
+# Pass all parameters directly (without a YAML config)
+python modeling/cli.py pretrain --batch-size 64 --num-epochs 3 --model-name ./saved_models/ContraBERT_G
+
+# See all options
+python modeling/cli.py run --help
+python modeling/cli.py pretrain --help
 ```
 
 The `batch_size` in config is the **total** batch size across all GPUs. It is automatically divided by the number of processes. For example, `batch_size: 128` on 2 GPUs gives 64 per GPU; with `gradient_accumulation_steps: 2` the effective batch size is 256.
