@@ -5,9 +5,9 @@
 dataset_path: "data/aug_csn.jsonl"
 model_name: "microsoft/codebert-base"
 
-batch_size: 16
+batch_size: 64
 num_epochs: 3
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 4
 learning_rate: 2.0e-5
 
 seed: 0
