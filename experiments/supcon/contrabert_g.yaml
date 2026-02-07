@@ -1,5 +1,6 @@
-# InvPT pre-training experiment configuration
-# Usage: python -m modeling.pretrain --config experiments/base.yaml
+# InvPT pre-training: SupCon — ContraBERT_G
+# Effective batch size: 64 * 4 = 256
+# Usage: python modeling/cli.py run experiments/supcon/contrabert_g.yaml
 
 dataset_path: "data/aug_csn.jsonl"
 model_name: "./saved_models/ContraBERT_G"
@@ -11,7 +12,7 @@ gradient_accumulation_steps: 4
 learning_rate: 2.0e-5
 
 seed: 0
-run_name: "InvContraBERT_G-aug02-supcon"
+run_name: "InvContraBERT_G-supcon"
 
 alpha: 1.0
 temperature: 0.1
@@ -19,4 +20,3 @@ max_seq_length: 512
 sample_rate: 0.2
 
 contra_mode: "supcon"
-# max_num_augs: 6  # only used with contra_mode: "grouped"
