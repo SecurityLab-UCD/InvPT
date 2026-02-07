@@ -9,7 +9,7 @@ MAX_NUM_PROC = 80
 
 def default_num_proc() -> int:
     """Return the default number of parallel workers, capped at available CPUs."""
-    return min(os.cpu_count() or 1, MAX_NUM_PROC)
+    return os.cpu_count() or 1
 
 
 def set_seed(seed):
