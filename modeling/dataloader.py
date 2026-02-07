@@ -66,7 +66,7 @@ def contra_data_collator(mlm_collator, features):
     return batch
 
 
-def grouped_contra_data_collator(mlm_collator, features, max_num_augs):
+def grouped_contra_data_collator(mlm_collator, max_num_augs, features):
     """Collate grouped samples where each item has 1 anchor + variable-count augmentations.
 
     Each feature dict contains:

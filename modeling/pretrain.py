@@ -3,6 +3,7 @@
 import hashlib
 import os
 from collections import defaultdict
+from functools import partial
 
 import torch
 import torch.distributed as dist
@@ -270,25 +271,26 @@ def main(
     if contra_mode == "grouped":
         # Regroup flat rows by function_id into {code, [aug_1, ..., aug_K]}
         grouped_dataset = regroup_dataset(dataset, max_num_augs=max_num_augs)
-        tokenized_datasets = grouped_dataset.shuffle(seed=seed).map(
-            lambda example: tokenize_grouped(
-                tokenizer, example, max_seq_length, max_num_augs
+        tokenized_datasets = grouped_dataset.map(
+            partial(
+                tokenize_grouped,
+                tokenizer,
+                max_seq_length=max_seq_length,
+                max_num_augs=max_num_augs,
             ),
             batched=True,
             num_proc=num_proc,
-        )
+        ).shuffle(seed=seed)
 
-        collator_fn = lambda features: grouped_contra_data_collator(
-            mlm_collator, features, max_num_augs
-        )
+        collator_fn = partial(grouped_contra_data_collator, mlm_collator, max_num_augs)
     else:
-        tokenized_datasets = dataset.shuffle(seed=seed).map(
-            lambda example: tokenize(tokenizer, example, max_seq_length=max_seq_length),
+        tokenized_datasets = dataset.map(
+            partial(tokenize, tokenizer, max_seq_length=max_seq_length),
             batched=True,
             num_proc=num_proc,
-        )
+        ).shuffle(seed=seed)
 
-        collator_fn = lambda features: contra_data_collator(mlm_collator, features)
+        collator_fn = partial(contra_data_collator, mlm_collator)
 
     split_dataset = tokenized_datasets.train_test_split(test_size=0.1)
     train_dataset = split_dataset["train"]
