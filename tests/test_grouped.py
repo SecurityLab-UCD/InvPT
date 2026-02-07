@@ -162,7 +162,7 @@ class TestGroupedContraDataCollator:
         mlm_collator = self._get_mlm_collator()
         seq_len = 16
         features = _make_grouped_feature(seq_len, aug_counts=[2, 3])
-        batch = grouped_contra_data_collator(mlm_collator, features, max_num_augs=6)
+        batch = grouped_contra_data_collator(mlm_collator, 6, features)
 
         B = 2
         max_K = 3  # max(2, 3)
@@ -177,7 +177,7 @@ class TestGroupedContraDataCollator:
         seq_len = 16
         # Group 0: 1 aug, Group 1: 3 augs → max_K=3, group 0 has 2 padding slots
         features = _make_grouped_feature(seq_len, aug_counts=[1, 3])
-        batch = grouped_contra_data_collator(mlm_collator, features, max_num_augs=6)
+        batch = grouped_contra_data_collator(mlm_collator, 6, features)
 
         # Group 0's padding slots are indices 1 and 2 in the flattened aug batch
         # (group 0 occupies slots 0..2, real=1, padding=slots 1,2)
@@ -190,14 +190,14 @@ class TestGroupedContraDataCollator:
         """group_sizes should reflect actual aug counts."""
         mlm_collator = self._get_mlm_collator()
         features = _make_grouped_feature(16, aug_counts=[1, 2, 4])
-        batch = grouped_contra_data_collator(mlm_collator, features, max_num_augs=6)
+        batch = grouped_contra_data_collator(mlm_collator, 6, features)
         assert batch["group_sizes"].tolist() == [1, 2, 4]
 
     def test_max_num_augs_truncation(self):
         """Features with more augs than max_num_augs get truncated."""
         mlm_collator = self._get_mlm_collator()
         features = _make_grouped_feature(16, aug_counts=[5, 3])
-        batch = grouped_contra_data_collator(mlm_collator, features, max_num_augs=2)
+        batch = grouped_contra_data_collator(mlm_collator, 2, features)
 
         B = 2
         max_K = 2
@@ -208,7 +208,7 @@ class TestGroupedContraDataCollator:
         """function_id should be present in the batch."""
         mlm_collator = self._get_mlm_collator()
         features = _make_grouped_feature(16, aug_counts=[2, 1])
-        batch = grouped_contra_data_collator(mlm_collator, features, max_num_augs=6)
+        batch = grouped_contra_data_collator(mlm_collator, 6, features)
         assert "function_id" in batch
         assert batch["function_id"].shape == (2,)
 
