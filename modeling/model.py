@@ -226,45 +226,36 @@ class ContrastiveTrainer(Trainer):
         if self.contra_mode == ContraMode.GROUPED:
             return self._compute_grouped_loss(model, inputs, return_outputs)
 
-        # Move inputs to the device the model lives on (supports DDP).
-        # Clone input_ids tensors to avoid in-place modification conflicts
-        # during backward when the MLM head or embeddings share storage.
+        # Concatenate code and aug inputs into a single batch so that DDP
+        # sees exactly one forward pass per backward (two separate forwards
+        # through DDP cause in-place version errors on internal buffers).
         device = model.device
-        code_input_ids = inputs["code_input_ids"].to(device).clone()
+        code_input_ids = inputs["code_input_ids"].to(device)
         code_attention_mask = inputs["code_attention_mask"].to(device)
         code_labels = inputs["code_labels"].to(device)
-        aug_input_ids = inputs["aug_input_ids"].to(device).clone()
+        aug_input_ids = inputs["aug_input_ids"].to(device)
         aug_attention_mask = inputs["aug_attention_mask"].to(device)
         aug_labels = inputs["aug_labels"].to(device)
 
-        # Forward pass for MLM
-        # use bi-encoder training, encode code and augmentation separately using self.model
-        code_outputs = model(
-            input_ids=code_input_ids,
-            attention_mask=code_attention_mask,
-            labels=code_labels,
+        B = code_input_ids.size(0)
+
+        all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
+        all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
+        all_labels = torch.cat([code_labels, aug_labels], dim=0)
+
+        outputs = model(
+            input_ids=all_input_ids,
+            attention_mask=all_attention_mask,
+            labels=all_labels,
             output_hidden_states=True,
             return_dict=True,
         )
-        code_hidden_states = code_outputs.hidden_states[-1]
-        code_embeddings = code_hidden_states[:, 0, :]
 
-        aug_outputs = model(
-            input_ids=aug_input_ids,
-            attention_mask=aug_attention_mask,
-            labels=aug_labels,
-            output_hidden_states=True,
-            return_dict=True,
-        )
-        aug_hidden_states = aug_outputs.hidden_states[-1]
-        aug_embeddings = aug_hidden_states[:, 0, :]
+        hidden_states = outputs.hidden_states[-1]
+        code_embeddings = hidden_states[:B, 0, :]
+        aug_embeddings = hidden_states[B:, 0, :]
 
-        # Average MLM losses so the combined MLM term is on the same scale
-        # as the single contrastive term (~3-8 each), letting alpha express
-        # a genuine preference rather than compensating for a 2x scale artifact.
-        code_mlm_loss = code_outputs.loss
-        aug_mlm_loss = aug_outputs.loss
-        mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
+        mlm_loss = outputs.loss
 
         # Compute contrastive loss between code and its augmentation
         if self.contra_mode == ContraMode.SUPCON:
@@ -281,10 +272,9 @@ class ContrastiveTrainer(Trainer):
                 self.temperature,
             )
 
-        # Total loss with weighting (adjust alpha as needed)
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, code_outputs) if return_outputs else total_loss
+        return (total_loss, outputs) if return_outputs else total_loss
 
     def _compute_grouped_loss(self, model, inputs, return_outputs=False):
         """Compute loss for grouped multi-key contrast mode.
@@ -297,36 +287,36 @@ class ContrastiveTrainer(Trainer):
           - group_sizes: [B]
         """
         device = model.device
-        code_input_ids = inputs["code_input_ids"].to(device).clone()
+        code_input_ids = inputs["code_input_ids"].to(device)
         code_attention_mask = inputs["code_attention_mask"].to(device)
         code_labels = inputs["code_labels"].to(device)
-        aug_input_ids = inputs["aug_input_ids"].to(device).clone()
+        aug_input_ids = inputs["aug_input_ids"].to(device)
         aug_attention_mask = inputs["aug_attention_mask"].to(device)
         aug_labels = inputs["aug_labels"].to(device)
         group_sizes = inputs["group_sizes"].to(device)
 
-        # Forward anchor
-        code_outputs = model(
-            input_ids=code_input_ids,
-            attention_mask=code_attention_mask,
-            labels=code_labels,
-            output_hidden_states=True,
-            return_dict=True,
-        )
-        code_embeddings = code_outputs.hidden_states[-1][:, 0, :]  # [B, D]
+        B = code_input_ids.size(0)
 
-        # Forward all augmentations (flattened [B*max_K, seq_len])
-        aug_outputs = model(
-            input_ids=aug_input_ids,
-            attention_mask=aug_attention_mask,
-            labels=aug_labels,
+        # Single forward pass: concatenate anchors and augmentations to avoid
+        # DDP in-place buffer errors from two separate forward calls.
+        all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
+        all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
+        all_labels = torch.cat([code_labels, aug_labels], dim=0)
+
+        outputs = model(
+            input_ids=all_input_ids,
+            attention_mask=all_attention_mask,
+            labels=all_labels,
             output_hidden_states=True,
             return_dict=True,
         )
-        aug_embeddings = aug_outputs.hidden_states[-1][:, 0, :]  # [B*max_K, D]
+
+        hidden_states = outputs.hidden_states[-1]
+        code_embeddings = hidden_states[:B, 0, :]  # [B, D]
+        aug_embeddings = hidden_states[B:, 0, :]  # [B*max_K, D]
 
         # MLM loss (padding augs have labels=-100, contribute 0)
-        mlm_loss = (code_outputs.loss + aug_outputs.loss) / 2
+        mlm_loss = outputs.loss
 
         # Contrastive loss
         contrastive_loss = grouped_contrastive_loss(
@@ -335,7 +325,7 @@ class ContrastiveTrainer(Trainer):
 
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, code_outputs) if return_outputs else total_loss
+        return (total_loss, outputs) if return_outputs else total_loss
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
         """
