@@ -226,12 +226,14 @@ class ContrastiveTrainer(Trainer):
         if self.contra_mode == ContraMode.GROUPED:
             return self._compute_grouped_loss(model, inputs, return_outputs)
 
-        # Move inputs to the device the model lives on (supports DDP)
+        # Move inputs to the device the model lives on (supports DDP).
+        # Clone input_ids tensors to avoid in-place modification conflicts
+        # during backward when the MLM head or embeddings share storage.
         device = model.device
-        code_input_ids = inputs["code_input_ids"].to(device)
+        code_input_ids = inputs["code_input_ids"].to(device).clone()
         code_attention_mask = inputs["code_attention_mask"].to(device)
         code_labels = inputs["code_labels"].to(device)
-        aug_input_ids = inputs["aug_input_ids"].to(device)
+        aug_input_ids = inputs["aug_input_ids"].to(device).clone()
         aug_attention_mask = inputs["aug_attention_mask"].to(device)
         aug_labels = inputs["aug_labels"].to(device)
 
@@ -295,10 +297,10 @@ class ContrastiveTrainer(Trainer):
           - group_sizes: [B]
         """
         device = model.device
-        code_input_ids = inputs["code_input_ids"].to(device)
+        code_input_ids = inputs["code_input_ids"].to(device).clone()
         code_attention_mask = inputs["code_attention_mask"].to(device)
         code_labels = inputs["code_labels"].to(device)
-        aug_input_ids = inputs["aug_input_ids"].to(device)
+        aug_input_ids = inputs["aug_input_ids"].to(device).clone()
         aug_attention_mask = inputs["aug_attention_mask"].to(device)
         aug_labels = inputs["aug_labels"].to(device)
         group_sizes = inputs["group_sizes"].to(device)
