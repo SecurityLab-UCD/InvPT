@@ -211,6 +211,20 @@ def grouped_contrastive_loss(
     return loss
 
 
+def _mlm_loss_from_hidden(model, hidden_states, labels):
+    """Compute MLM loss from hidden states without materializing logits for the full concatenated batch.
+
+    Runs the LM head on a subset of hidden states so the [N, seq_len, vocab_size]
+    logit tensor is only as large as the subset, not the full 2B (or B+B*K) batch.
+    """
+    logits = model.lm_head(hidden_states)
+    return F.cross_entropy(
+        logits.view(-1, logits.size(-1)),
+        labels.view(-1),
+        ignore_index=-100,
+    )
+
+
 class ContrastiveTrainer(Trainer):
     def __init__(
         self, alpha=1.0, temperature=0.07, contra_mode="info_nce", *args, **kwargs
@@ -241,12 +255,12 @@ class ContrastiveTrainer(Trainer):
 
         all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
         all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
-        all_labels = torch.cat([code_labels, aug_labels], dim=0)
 
+        # Don't pass labels — avoids materializing [2B, seq_len, vocab_size]
+        # logits in one tensor.  We compute MLM loss per-half below.
         outputs = model(
             input_ids=all_input_ids,
             attention_mask=all_attention_mask,
-            labels=all_labels,
             output_hidden_states=True,
             return_dict=True,
         )
@@ -255,7 +269,14 @@ class ContrastiveTrainer(Trainer):
         code_embeddings = hidden_states[:B, 0, :]
         aug_embeddings = hidden_states[B:, 0, :]
 
-        mlm_loss = outputs.loss
+        # Compute MLM loss on each half separately so the [B, seq_len, vocab]
+        # logit tensor is only half as large and freed between the two calls.
+        base_model = model.module if hasattr(model, "module") else model
+        code_mlm_loss = _mlm_loss_from_hidden(
+            base_model, hidden_states[:B], code_labels
+        )
+        aug_mlm_loss = _mlm_loss_from_hidden(base_model, hidden_states[B:], aug_labels)
+        mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
 
         # Compute contrastive loss between code and its augmentation
         if self.contra_mode == ContraMode.SUPCON:
@@ -301,12 +322,12 @@ class ContrastiveTrainer(Trainer):
         # DDP in-place buffer errors from two separate forward calls.
         all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
         all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
-        all_labels = torch.cat([code_labels, aug_labels], dim=0)
 
+        # Don't pass labels — compute MLM loss per-half to avoid the huge
+        # [B + B*max_K, seq_len, vocab_size] logit tensor.
         outputs = model(
             input_ids=all_input_ids,
             attention_mask=all_attention_mask,
-            labels=all_labels,
             output_hidden_states=True,
             return_dict=True,
         )
@@ -315,8 +336,13 @@ class ContrastiveTrainer(Trainer):
         code_embeddings = hidden_states[:B, 0, :]  # [B, D]
         aug_embeddings = hidden_states[B:, 0, :]  # [B*max_K, D]
 
-        # MLM loss (padding augs have labels=-100, contribute 0)
-        mlm_loss = outputs.loss
+        # MLM loss on each half (padding augs have labels=-100, contribute 0)
+        base_model = model.module if hasattr(model, "module") else model
+        code_mlm_loss = _mlm_loss_from_hidden(
+            base_model, hidden_states[:B], code_labels
+        )
+        aug_mlm_loss = _mlm_loss_from_hidden(base_model, hidden_states[B:], aug_labels)
+        mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
 
         # Contrastive loss
         contrastive_loss = grouped_contrastive_loss(
