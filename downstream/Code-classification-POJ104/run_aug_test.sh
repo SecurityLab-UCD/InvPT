@@ -19,7 +19,7 @@ python ./code/run.py \
     --num_train_epochs 5 \
     --block_size 256 \
     --train_batch_size 8 \
-    --eval_batch_size 16 \
+    --eval_batch_size 64 \
     --learning_rate 2e-5 \
     --max_grad_norm 1.0 \
     --seed 123456  2>&1 | tee $output_dir/aug_test.log
