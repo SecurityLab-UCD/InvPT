@@ -1,10 +1,9 @@
-# InvPT pre-training: Grouped — ContraBERT_G
+# InvPT pre-training: Grouped — GraphCodeBERT
 # Effective batch size: 16 * 16 = 256
-# Usage: python modeling/cli.py run experiments/grouped/contrabert_g.yaml
+# Usage: python modeling/cli.py run experiments/grouped/graphcodebert.yaml
 
 dataset_path: "data/aug_csn.jsonl"
-model_name: "./saved_models/ContraBERT_G"
-tokenizer_name: "microsoft/graphcodebert-base"
+model_name: "microsoft/graphcodebert-base"
 
 batch_size: 16
 num_epochs: 3
@@ -12,7 +11,7 @@ gradient_accumulation_steps: 16
 learning_rate: 2.0e-5
 
 seed: 0
-run_name: "InvContraBERT_G-grouped"
+run_name: "InvGraphCodeBERT-grouped"
 
 alpha: 1.0
 temperature: 0.1
