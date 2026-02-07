@@ -16,7 +16,6 @@ run_name: "InvGraphCodeBERT-grouped"
 alpha: 1.0
 temperature: 0.1
 max_seq_length: 512
-sample_rate: 0.2
 
 contra_mode: "grouped"
 max_num_augs: 6
