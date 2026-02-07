@@ -1,8 +1,91 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from transformers import Trainer
+from transformers import RobertaForMaskedLM, Trainer
 
 from ._types import ContraMode
+
+
+class SplitHeadWrapper(nn.Module):
+    """Wraps ``RobertaForMaskedLM`` so that the LM head is applied per-chunk.
+
+    ``RobertaForMaskedLM.forward()`` always materializes a
+    ``[N, seq_len, vocab_size]`` logit tensor.  When the input is a
+    concatenated code+aug batch (``N = 2B`` or ``N = B + B*K``), this
+    doubles/multiplies peak GPU memory and causes OOM.
+
+    This wrapper runs the **encoder** on the full concatenated input (one
+    forward pass — required for DDP), then applies the **LM head** on each
+    chunk separately so the logit tensor is never larger than
+    ``[B, seq_len, vocab_size]``.
+
+    The wrapper is what DDP wraps, so all parameters (encoder + lm_head)
+    participate in the single ``forward()`` and gradient sync works normally.
+    """
+
+    def __init__(self, roberta_mlm: RobertaForMaskedLM):
+        super().__init__()
+        self.roberta_mlm = roberta_mlm
+
+    @property
+    def config(self):
+        return self.roberta_mlm.config
+
+    @property
+    def device(self):
+        return self.roberta_mlm.device
+
+    def forward(
+        self,
+        input_ids,
+        attention_mask,
+        labels_a,
+        labels_b,
+        split_at,
+        output_hidden_states=True,
+    ):
+        """Run encoder on full batch, compute MLM loss on each half.
+
+        Args:
+            input_ids: ``[N, seq_len]`` concatenated code + aug tokens.
+            attention_mask: ``[N, seq_len]``.
+            labels_a: ``[split_at, seq_len]`` MLM labels for the first chunk.
+            labels_b: ``[N - split_at, seq_len]`` MLM labels for the second chunk.
+            split_at: integer index where to split (typically ``B``).
+            output_hidden_states: whether to return encoder hidden states.
+
+        Returns:
+            ``(mlm_loss, last_hidden_state)`` where ``mlm_loss`` is the
+            average of the per-chunk MLM losses.
+        """
+        encoder_outputs = self.roberta_mlm.roberta(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=output_hidden_states,
+            return_dict=True,
+        )
+
+        last_hidden = encoder_outputs.last_hidden_state  # [N, seq, D]
+
+        # Run lm_head per-chunk to avoid [N, seq, vocab] peak memory.
+        logits_a = self.roberta_mlm.lm_head(last_hidden[:split_at])
+        mlm_loss_a = F.cross_entropy(
+            logits_a.view(-1, logits_a.size(-1)),
+            labels_a.view(-1),
+            ignore_index=-100,
+        )
+        del logits_a
+
+        logits_b = self.roberta_mlm.lm_head(last_hidden[split_at:])
+        mlm_loss_b = F.cross_entropy(
+            logits_b.view(-1, logits_b.size(-1)),
+            labels_b.view(-1),
+            ignore_index=-100,
+        )
+        del logits_b
+
+        mlm_loss = (mlm_loss_a + mlm_loss_b) / 2
+        return mlm_loss, last_hidden
 
 
 def info_nce_loss(query, key, temperature=0.07):
@@ -211,21 +294,15 @@ def grouped_contrastive_loss(
     return loss
 
 
-def _mlm_loss_from_hidden(model, hidden_states, labels):
-    """Compute MLM loss from hidden states without materializing logits for the full concatenated batch.
-
-    Runs the LM head on a subset of hidden states so the [N, seq_len, vocab_size]
-    logit tensor is only as large as the subset, not the full 2B (or B+B*K) batch.
-    """
-    logits = model.lm_head(hidden_states)
-    return F.cross_entropy(
-        logits.view(-1, logits.size(-1)),
-        labels.view(-1),
-        ignore_index=-100,
-    )
-
-
 class ContrastiveTrainer(Trainer):
+    """HF Trainer subclass for contrastive pre-training.
+
+    Expects ``model`` to be a :class:`SplitHeadWrapper` (or DDP-wrapped
+    ``SplitHeadWrapper``).  The wrapper's ``forward()`` runs the encoder on
+    the full concatenated batch but applies the LM head per-chunk, so the
+    ``[N, seq, vocab]`` logit tensor is never larger than ``[B, seq, vocab]``.
+    """
+
     def __init__(
         self, alpha=1.0, temperature=0.07, contra_mode="info_nce", *args, **kwargs
     ):
@@ -240,9 +317,6 @@ class ContrastiveTrainer(Trainer):
         if self.contra_mode == ContraMode.GROUPED:
             return self._compute_grouped_loss(model, inputs, return_outputs)
 
-        # Concatenate code and aug inputs into a single batch so that DDP
-        # sees exactly one forward pass per backward (two separate forwards
-        # through DDP cause in-place version errors on internal buffers).
         device = model.device
         code_input_ids = inputs["code_input_ids"].to(device)
         code_attention_mask = inputs["code_attention_mask"].to(device)
@@ -256,27 +330,18 @@ class ContrastiveTrainer(Trainer):
         all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
         all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
 
-        # Don't pass labels — avoids materializing [2B, seq_len, vocab_size]
-        # logits in one tensor.  We compute MLM loss per-half below.
-        outputs = model(
+        # Single forward through SplitHeadWrapper: encoder on full batch,
+        # LM head per-chunk to avoid [2B, seq, vocab] peak memory.
+        mlm_loss, last_hidden = model(
             input_ids=all_input_ids,
             attention_mask=all_attention_mask,
-            output_hidden_states=True,
-            return_dict=True,
+            labels_a=code_labels,
+            labels_b=aug_labels,
+            split_at=B,
         )
 
-        hidden_states = outputs.hidden_states[-1]
-        code_embeddings = hidden_states[:B, 0, :]
-        aug_embeddings = hidden_states[B:, 0, :]
-
-        # Compute MLM loss on each half separately so the [B, seq_len, vocab]
-        # logit tensor is only half as large and freed between the two calls.
-        base_model = model.module if hasattr(model, "module") else model
-        code_mlm_loss = _mlm_loss_from_hidden(
-            base_model, hidden_states[:B], code_labels
-        )
-        aug_mlm_loss = _mlm_loss_from_hidden(base_model, hidden_states[B:], aug_labels)
-        mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
+        code_embeddings = last_hidden[:B, 0, :]
+        aug_embeddings = last_hidden[B:, 0, :]
 
         # Compute contrastive loss between code and its augmentation
         if self.contra_mode == ContraMode.SUPCON:
@@ -295,7 +360,7 @@ class ContrastiveTrainer(Trainer):
 
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, outputs) if return_outputs else total_loss
+        return (total_loss, None) if return_outputs else total_loss
 
     def _compute_grouped_loss(self, model, inputs, return_outputs=False):
         """Compute loss for grouped multi-key contrast mode.
@@ -318,31 +383,19 @@ class ContrastiveTrainer(Trainer):
 
         B = code_input_ids.size(0)
 
-        # Single forward pass: concatenate anchors and augmentations to avoid
-        # DDP in-place buffer errors from two separate forward calls.
         all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
         all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
 
-        # Don't pass labels — compute MLM loss per-half to avoid the huge
-        # [B + B*max_K, seq_len, vocab_size] logit tensor.
-        outputs = model(
+        mlm_loss, last_hidden = model(
             input_ids=all_input_ids,
             attention_mask=all_attention_mask,
-            output_hidden_states=True,
-            return_dict=True,
+            labels_a=code_labels,
+            labels_b=aug_labels,
+            split_at=B,
         )
 
-        hidden_states = outputs.hidden_states[-1]
-        code_embeddings = hidden_states[:B, 0, :]  # [B, D]
-        aug_embeddings = hidden_states[B:, 0, :]  # [B*max_K, D]
-
-        # MLM loss on each half (padding augs have labels=-100, contribute 0)
-        base_model = model.module if hasattr(model, "module") else model
-        code_mlm_loss = _mlm_loss_from_hidden(
-            base_model, hidden_states[:B], code_labels
-        )
-        aug_mlm_loss = _mlm_loss_from_hidden(base_model, hidden_states[B:], aug_labels)
-        mlm_loss = (code_mlm_loss + aug_mlm_loss) / 2
+        code_embeddings = last_hidden[:B, 0, :]
+        aug_embeddings = last_hidden[B:, 0, :]
 
         # Contrastive loss
         contrastive_loss = grouped_contrastive_loss(
@@ -351,33 +404,28 @@ class ContrastiveTrainer(Trainer):
 
         total_loss = mlm_loss + self.alpha * contrastive_loss
 
-        return (total_loss, outputs) if return_outputs else total_loss
+        return (total_loss, None) if return_outputs else total_loss
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
-        """
-        Override the default prediction_step to handle custom inputs during evaluation.
-        """
-        # Move inputs to device
+        """Override prediction_step for SplitHeadWrapper evaluation."""
         device = self.args.device
         code_input_ids = inputs["code_input_ids"].to(device)
         code_attention_mask = inputs["code_attention_mask"].to(device)
         code_labels = inputs["code_labels"].to(device)
 
-        # Prepare inputs for the model
-        # Since evaluation usually focuses on the MLM task, we can use code inputs
-        inputs_for_model = {
-            "input_ids": code_input_ids,
-            "attention_mask": code_attention_mask,
-            "labels": code_labels,
-        }
-
         with torch.no_grad():
-            outputs = model(**inputs_for_model)
+            # For eval we only need code (no aug), so both halves are the
+            # same chunk.  Pass an empty second chunk.
+            base = model.module if hasattr(model, "module") else model
+            roberta_mlm = base.roberta_mlm
+            outputs = roberta_mlm(
+                input_ids=code_input_ids,
+                attention_mask=code_attention_mask,
+                labels=code_labels,
+                return_dict=True,
+            )
 
+            loss = outputs.loss
             if prediction_loss_only:
-                loss = outputs.loss
                 return (loss, None, None)
-            else:
-                loss = outputs.loss
-                logits = outputs.logits
-                return (loss, logits, code_labels)
+            return (loss, outputs.logits, code_labels)

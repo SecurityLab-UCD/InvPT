@@ -19,7 +19,7 @@ from transformers import (
 from ._types import ContraMode
 from .common import default_num_proc, set_seed
 from .dataloader import contra_data_collator, grouped_contra_data_collator
-from .model import ContrastiveTrainer
+from .model import ContrastiveTrainer, SplitHeadWrapper
 
 
 def _get_world_size() -> int:
@@ -239,10 +239,14 @@ def main(
     config = RobertaConfig.from_pretrained(tokenizer_name)
     # model = RobertaForMaskedLM.from_pretrained(model_name)
 
-    model = RobertaForMaskedLM.from_pretrained(
+    roberta_mlm = RobertaForMaskedLM.from_pretrained(
         model_name if checkpoint is None else checkpoint,
         config=config,
     )  # load weights from stage 1
+
+    # Wrap so the LM head is applied per-chunk (avoids [2B, seq, vocab] OOM).
+    # DDP will wrap SplitHeadWrapper, keeping all params in one forward().
+    model = SplitHeadWrapper(roberta_mlm)
 
     features = Features(
         {
@@ -328,4 +332,12 @@ def main(
     )
 
     trainer.train(resume_from_checkpoint=resume)
-    trainer.save_model(f"saved_models/{run_name}/final")
+
+    # Save the inner RobertaForMaskedLM so downstream tasks can load it
+    # directly with RobertaForMaskedLM.from_pretrained().
+    save_path = f"saved_models/{run_name}/final"
+    unwrapped = trainer.model
+    if hasattr(unwrapped, "module"):  # DDP
+        unwrapped = unwrapped.module
+    unwrapped.roberta_mlm.save_pretrained(save_path)
+    tokenizer.save_pretrained(save_path)
