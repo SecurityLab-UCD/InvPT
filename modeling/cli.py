@@ -20,15 +20,23 @@ def run(
         Path,
         typer.Argument(help="Path to a YAML experiment config file."),
     ],
+    sample_rate: Annotated[
+        Optional[float],
+        typer.Option("--sample-rate", "-sr", help="Override sample rate from config."),
+    ] = None,
 ) -> None:
     """Run pre-training from a YAML config file.
 
     All parameters are read from the config file to ensure full reproducibility.
+    Use --sample-rate to override the dataset sampling fraction.
 
-    Example: python -m modeling run experiments/base.yaml
+    Example: python -m modeling run experiments/base.yaml --sample-rate 0.1
     """
     cfg = load_config(config)
-    main(**asdict(cfg))
+    kwargs = asdict(cfg)
+    if sample_rate is not None:
+        kwargs["sample_rate"] = sample_rate
+    main(**kwargs)
 
 
 @app.command()
