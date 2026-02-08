@@ -5,8 +5,7 @@ import os
 from collections import defaultdict
 from functools import partial
 
-import torch
-import torch.distributed as dist
+from accelerate import PartialState
 from datasets import Dataset, Features, Value, load_dataset
 from transformers import (
     DataCollatorForLanguageModeling,
@@ -23,10 +22,8 @@ from .model import ContrastiveTrainer, SplitHeadWrapper
 
 
 def _get_world_size() -> int:
-    """Return DDP world size if distributed is initialized, else GPU count (min 1)."""
-    if dist.is_initialized():
-        return dist.get_world_size()
-    return max(torch.cuda.device_count(), 1)
+    """Return world size via Accelerate (handles both distributed and single-process)."""
+    return PartialState().num_processes
 
 
 def compute_function_id(code: str) -> int:
@@ -231,9 +228,9 @@ def main(
 
     # Cap num_proc to a sane default (see modeling.common.default_num_proc()).
     num_proc = min(num_proc, default_num_proc())
-    # When launched with torchrun, each rank would otherwise spawn num_proc
-    # workers, quickly oversubscribing CPUs (e.g., 4 ranks × 80 workers = 320).
-    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    # Each rank would otherwise spawn num_proc workers, quickly oversubscribing
+    # CPUs (e.g., 4 ranks × 80 workers = 320).
+    world_size = _get_world_size()
     if world_size > 1:
         num_proc = max(1, num_proc // world_size)
     if num_proc > 1:
@@ -330,6 +327,7 @@ def main(
         save_total_limit=3,
         load_best_model_at_end=True,
         dataloader_num_workers=max(1, (os.cpu_count() or 1) // _get_world_size()),
+        save_safetensors=False,  # SplitHeadWrapper has tied weights from RobertaForMaskedLM
     )
 
     trainer = ContrastiveTrainer(
@@ -338,6 +336,7 @@ def main(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=collator_fn,
+        processing_class=tokenizer,
         alpha=alpha,
         temperature=temperature,
         contra_mode=contra_mode,

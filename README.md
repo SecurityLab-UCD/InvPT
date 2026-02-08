@@ -101,23 +101,23 @@ The CLI entry point is `modeling/cli.py`, which provides two subcommands:
 - **`run`** -- load a YAML experiment config (recommended; all parameters come from the config file to ensure full reproducibility)
 - **`pretrain`** -- pass all parameters directly as CLI options
 
-Pre-training uses PyTorch DistributedDataParallel (DDP) via `torchrun`, which ships with PyTorch itself (no extra dependencies). The same training code runs on both multi-GPU and single-GPU nodes -- the HuggingFace `Trainer` auto-detects the distributed environment set up by `torchrun` and enables or disables DDP accordingly.
+Pre-training uses PyTorch DistributedDataParallel (DDP) via [HuggingFace Accelerate](https://huggingface.co/docs/accelerate). The same training code runs on both multi-GPU and single-GPU nodes -- the HuggingFace `Trainer` auto-detects the distributed environment and enables or disables DDP accordingly.
 
 #### Multi-GPU node
 
-Use `torchrun` to spawn one process per GPU. `--nproc_per_node=gpu` automatically uses all visible GPUs:
+Use `accelerate launch --multi_gpu` to spawn one process per GPU. It automatically uses all visible GPUs:
 
 ```sh
-torchrun --nproc_per_node=gpu modeling/cli.py run experiments/base.yaml
+accelerate launch --multi_gpu modeling/cli.py run experiments/base.yaml
 ```
 
 To select specific GPUs, set `CUDA_VISIBLE_DEVICES`:
 
 ```sh
-CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=gpu modeling/cli.py run experiments/base.yaml
+CUDA_VISIBLE_DEVICES=0,1 accelerate launch --multi_gpu modeling/cli.py run experiments/base.yaml
 ```
 
-There is also a convenience script that launches `torchrun` on all visible GPUs:
+There is also a convenience script that launches on all visible GPUs:
 
 ```sh
 ./run_pretrain.sh
@@ -125,13 +125,13 @@ There is also a convenience script that launches `torchrun` on all visible GPUs:
 
 #### Single-GPU node
 
-On a single-GPU machine, run with plain `python` -- no `torchrun` needed:
+On a single-GPU machine, run with plain `python` -- no `accelerate launch` needed:
 
 ```sh
 python modeling/cli.py run experiments/base.yaml
 ```
 
-`torchrun --nproc_per_node=1` also works if you prefer a uniform launch command across environments.
+`accelerate launch` (without `--multi_gpu`) also works if you prefer a uniform launch command across environments.
 
 #### CLI examples
 
@@ -215,7 +215,7 @@ The `pretrain` subcommand accepts all training parameters directly as CLI option
 | `--contra-mode` | `info_nce` | Contrastive loss mode: `info_nce`, `supcon`, or `grouped` |
 | `--max-num-augs` | `6` | Max augmentations per anchor group (`grouped` mode only) |
 
-Note: dataset preprocessing uses HuggingFace Datasets multiprocessing. When running with `torchrun` (multi-GPU), `--num-proc` is automatically scaled down per-rank to avoid CPU oversubscription, and `TOKENIZERS_PARALLELISM` is disabled when using multiple workers.
+Note: dataset preprocessing uses HuggingFace Datasets multiprocessing. When running multi-GPU, `--num-proc` is automatically scaled down per-rank to avoid CPU oversubscription, and `TOKENIZERS_PARALLELISM` is disabled when using multiple workers.
 
 #### Contrastive Loss Modes
 
