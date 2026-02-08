@@ -38,14 +38,12 @@ def compute_function_id(code: str) -> int:
 def tokenize(tokenizer, example, max_seq_length=256):
     code_inputs = tokenizer(
         example["code"],
-        padding="max_length",
         truncation=True,
         max_length=max_seq_length,
         return_special_tokens_mask=True,
     )
     aug_inputs = tokenizer(
         example["transformed"],
-        padding="max_length",
         truncation=True,
         max_length=max_seq_length,
         return_special_tokens_mask=True,
@@ -90,8 +88,8 @@ def regroup_dataset(dataset, max_num_augs: int = 6) -> Dataset:
         }
     )
 
-    for i in range(len(dataset)):
-        row = dataset[i]
+    # Iterating a HF Dataset is much faster than random indexing (dataset[i]).
+    for row in dataset:
         fid = compute_function_id(row["code"])
         g = groups[fid]
         if g["code"] is None:
@@ -231,8 +229,16 @@ def main(
 ):
     set_seed(seed)
 
-    # Cap num_proc to available CPU cores to avoid broken-pipe errors.
+    # Cap num_proc to a sane default (see modeling.common.default_num_proc()).
     num_proc = min(num_proc, default_num_proc())
+    # When launched with torchrun, each rank would otherwise spawn num_proc
+    # workers, quickly oversubscribing CPUs (e.g., 4 ranks × 80 workers = 320).
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    if world_size > 1:
+        num_proc = max(1, num_proc // world_size)
+    if num_proc > 1:
+        # Avoid oversubscription (processes × tokenizer threads).
+        os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
     tokenizer_name = tokenizer_name or model_name
     tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_name)
@@ -261,7 +267,11 @@ def main(
         }
     )
     dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
-    dataset = dataset.filter(lambda x: x["transformed"] is not None)
+    dataset = dataset.filter(
+        lambda transformed: transformed is not None,
+        input_columns=["transformed"],
+        num_proc=num_proc,
+    )
 
     if sample_rate < 1.0:
         dataset = dataset.shuffle(seed=seed).select(
@@ -284,6 +294,7 @@ def main(
             ),
             batched=True,
             num_proc=num_proc,
+            remove_columns=grouped_dataset.column_names,
         ).shuffle(seed=seed)
 
         collator_fn = partial(grouped_contra_data_collator, mlm_collator, max_num_augs)
@@ -292,6 +303,7 @@ def main(
             partial(tokenize, tokenizer, max_seq_length=max_seq_length),
             batched=True,
             num_proc=num_proc,
+            remove_columns=dataset.column_names,
         ).shuffle(seed=seed)
 
         collator_fn = partial(contra_data_collator, mlm_collator)

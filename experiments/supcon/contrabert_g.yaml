@@ -6,9 +6,9 @@ dataset_path: "data/aug_csn.jsonl"
 model_name: "./saved_models/ContraBERT_G"
 tokenizer_name: "microsoft/graphcodebert-base"
 
-batch_size: 64
+batch_size: 256
 num_epochs: 3
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 1
 learning_rate: 2.0e-5
 
 seed: 0

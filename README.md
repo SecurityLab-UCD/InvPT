@@ -210,10 +210,12 @@ The `pretrain` subcommand accepts all training parameters directly as CLI option
 | `--sample-rate` | `1.0` | Fraction of dataset to use (for quick experiments) |
 | `--seed` | `0` | Random seed |
 | `--run-name` | `InvariantBERT` | W&B run name and output directory name |
-| `--num-proc` | `80` | Number of processes for dataset tokenization |
+| `--num-proc` | (all CPU cores) | Parallel workers for dataset preprocessing |
 | `--resume / --no-resume` | `False` | Resume training from the latest checkpoint |
 | `--contra-mode` | `info_nce` | Contrastive loss mode: `info_nce`, `supcon`, or `grouped` |
 | `--max-num-augs` | `6` | Max augmentations per anchor group (`grouped` mode only) |
+
+Note: dataset preprocessing uses HuggingFace Datasets multiprocessing. When running with `torchrun` (multi-GPU), `--num-proc` is automatically scaled down per-rank to avoid CPU oversubscription, and `TOKENIZERS_PARALLELISM` is disabled when using multiple workers.
 
 #### Contrastive Loss Modes
 
