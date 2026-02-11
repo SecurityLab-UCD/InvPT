@@ -264,9 +264,13 @@ def main(
         }
     )
     dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
-    dataset = dataset.filter(
-        lambda transformed: transformed is not None,
-        input_columns=["transformed"],
+    # For rows without a transformation, use the original code as the
+    # augmentation (self-contrast: same code, different MLM masks).
+    dataset = dataset.map(
+        lambda transformed, code: {
+            "transformed": transformed if transformed is not None else code
+        },
+        input_columns=["transformed", "code"],
         num_proc=num_proc,
     )
 
