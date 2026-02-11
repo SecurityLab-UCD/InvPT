@@ -47,6 +47,35 @@ def contra_data_collator(mlm_collator, features):
     code_batch = mlm_collator(code_features)
     aug_batch = mlm_collator(aug_features)
 
+    # Pad to same seq_len (each batch is independently padded to its own max)
+    code_seq_len = code_batch["input_ids"].size(1)
+    aug_seq_len = aug_batch["input_ids"].size(1)
+    if code_seq_len != aug_seq_len:
+        pad_token_id = mlm_collator.tokenizer.pad_token_id
+        target_len = max(code_seq_len, aug_seq_len)
+        if code_seq_len < target_len:
+            pad = target_len - code_seq_len
+            code_batch["input_ids"] = torch.nn.functional.pad(
+                code_batch["input_ids"], (0, pad), value=pad_token_id
+            )
+            code_batch["attention_mask"] = torch.nn.functional.pad(
+                code_batch["attention_mask"], (0, pad), value=0
+            )
+            code_batch["labels"] = torch.nn.functional.pad(
+                code_batch["labels"], (0, pad), value=-100
+            )
+        else:
+            pad = target_len - aug_seq_len
+            aug_batch["input_ids"] = torch.nn.functional.pad(
+                aug_batch["input_ids"], (0, pad), value=pad_token_id
+            )
+            aug_batch["attention_mask"] = torch.nn.functional.pad(
+                aug_batch["attention_mask"], (0, pad), value=0
+            )
+            aug_batch["labels"] = torch.nn.functional.pad(
+                aug_batch["labels"], (0, pad), value=-100
+            )
+
     # Combine batches
     batch = {
         "code_input_ids": code_batch["input_ids"],
@@ -137,6 +166,35 @@ def grouped_contra_data_collator(mlm_collator, max_num_augs, features):
             )
 
     aug_batch = mlm_collator(aug_features_flat)
+
+    # Pad to same seq_len (each batch is independently padded to its own max)
+    code_seq_len = code_batch["input_ids"].size(1)
+    aug_seq_len = aug_batch["input_ids"].size(1)
+    if code_seq_len != aug_seq_len:
+        pad_token_id = mlm_collator.tokenizer.pad_token_id
+        target_len = max(code_seq_len, aug_seq_len)
+        if code_seq_len < target_len:
+            pad = target_len - code_seq_len
+            code_batch["input_ids"] = torch.nn.functional.pad(
+                code_batch["input_ids"], (0, pad), value=pad_token_id
+            )
+            code_batch["attention_mask"] = torch.nn.functional.pad(
+                code_batch["attention_mask"], (0, pad), value=0
+            )
+            code_batch["labels"] = torch.nn.functional.pad(
+                code_batch["labels"], (0, pad), value=-100
+            )
+        else:
+            pad = target_len - aug_seq_len
+            aug_batch["input_ids"] = torch.nn.functional.pad(
+                aug_batch["input_ids"], (0, pad), value=pad_token_id
+            )
+            aug_batch["attention_mask"] = torch.nn.functional.pad(
+                aug_batch["attention_mask"], (0, pad), value=0
+            )
+            aug_batch["labels"] = torch.nn.functional.pad(
+                aug_batch["labels"], (0, pad), value=-100
+            )
 
     batch = {
         "code_input_ids": code_batch["input_ids"],

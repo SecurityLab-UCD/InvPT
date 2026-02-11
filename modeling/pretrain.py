@@ -327,7 +327,7 @@ def main(
         save_total_limit=3,
         load_best_model_at_end=True,
         dataloader_num_workers=max(1, (os.cpu_count() or 1) // _get_world_size()),
-        save_safetensors=False,  # SplitHeadWrapper has tied weights from RobertaForMaskedLM
+        save_safetensors=False,  # SplitHeadWrapper has tied weights from RoBERTa (embeddings ↔ lm_head); safetensors rejects shared tensors
     )
 
     trainer = ContrastiveTrainer(
