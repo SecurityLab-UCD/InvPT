@@ -2,7 +2,7 @@
 # Effective batch size: 16 * 16 = 256
 # Usage: python modeling/cli.py run experiments/grouped/graphcodebert.yaml
 
-dataset_path: "data/aug_csn.jsonl"
+dataset_path: "data/csn.jsonl"
 model_name: "microsoft/graphcodebert-base"
 
 batch_size: 32

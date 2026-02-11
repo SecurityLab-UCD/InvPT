@@ -2,7 +2,7 @@
 # Effective batch size: 64 * 4 = 256
 # Usage: python modeling/cli.py run experiments/supcon/codebert.yaml
 
-dataset_path: "data/aug_csn.jsonl"
+dataset_path: "data/csn.jsonl"
 model_name: "microsoft/codebert-base"
 
 batch_size: 256

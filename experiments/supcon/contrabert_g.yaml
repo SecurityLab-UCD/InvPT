@@ -2,7 +2,7 @@
 # Effective batch size: 64 * 4 = 256
 # Usage: python modeling/cli.py run experiments/supcon/contrabert_g.yaml
 
-dataset_path: "data/aug_csn.jsonl"
+dataset_path: "data/csn.jsonl"
 model_name: "./saved_models/ContraBERT_G"
 tokenizer_name: "microsoft/graphcodebert-base"
 
