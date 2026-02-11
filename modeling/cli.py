@@ -24,18 +24,26 @@ def run(
         Optional[float],
         typer.Option("--sample-rate", "-sr", help="Override sample rate from config."),
     ] = None,
+    self_contrast: Annotated[
+        Optional[bool],
+        typer.Option(
+            help="Override self-contrast setting from config. Use --no-self-contrast to disable.",
+        ),
+    ] = None,
 ) -> None:
     """Run pre-training from a YAML config file.
 
     All parameters are read from the config file to ensure full reproducibility.
-    Use --sample-rate to override the dataset sampling fraction.
+    Use --sample-rate / --no-self-contrast to override specific settings.
 
-    Example: python -m modeling run experiments/base.yaml --sample-rate 0.1
+    Example: python -m modeling run experiments/base.yaml --no-self-contrast
     """
     cfg = load_config(config)
     kwargs = asdict(cfg)
     if sample_rate is not None:
         kwargs["sample_rate"] = sample_rate
+    if self_contrast is not None:
+        kwargs["self_contrast"] = self_contrast
     main(**kwargs)
 
 
