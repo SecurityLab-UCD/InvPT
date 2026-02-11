@@ -2,7 +2,7 @@
 # Effective batch size: 16 * 16 = 256
 # Usage: python modeling/cli.py run experiments/grouped/codebert.yaml
 
-dataset_path: "data/aug_csn.jsonl"
+dataset_path: "data/csn.jsonl"
 model_name: "microsoft/codebert-base"
 
 batch_size: 32
@@ -19,3 +19,4 @@ max_seq_length: 512
 
 contra_mode: "grouped"
 max_num_augs: 6
+self_contrast: true

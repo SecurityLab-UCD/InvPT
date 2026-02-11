@@ -2,7 +2,7 @@
 # Effective batch size: 16 * 16 = 256
 # Usage: python modeling/cli.py run experiments/grouped/contrabert_c.yaml
 
-dataset_path: "data/aug_csn.jsonl"
+dataset_path: "data/csn.jsonl"
 model_name: "./saved_models/ContraBERT_C"
 tokenizer_name: "microsoft/codebert-base"
 
@@ -20,3 +20,4 @@ max_seq_length: 512
 
 contra_mode: "grouped"
 max_num_augs: 6
+self_contrast: true
