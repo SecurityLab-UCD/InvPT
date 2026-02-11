@@ -88,6 +88,12 @@ def pretrain(
     max_num_augs: Annotated[
         int, typer.Option(help="Max augmentations per anchor (grouped mode).")
     ] = 6,
+    self_contrast: Annotated[
+        bool,
+        typer.Option(
+            help="Use self-contrast (same code, different MLM masks) for rows without augmentation. If disabled, rows without augmentation are dropped."
+        ),
+    ] = True,
 ) -> None:
     """Run pre-training with all parameters specified as CLI options.
 
@@ -113,6 +119,7 @@ def pretrain(
         checkpoint=checkpoint,
         contra_mode=contra_mode,
         max_num_augs=max_num_augs,
+        self_contrast=self_contrast,
     )
 
 

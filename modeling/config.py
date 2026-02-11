@@ -32,6 +32,7 @@ class PretrainConfig:
     tokenizer_name: str | None = None
     contra_mode: ContraMode = ContraMode.INFO_NCE
     max_num_augs: int = 6
+    self_contrast: bool = True
 
 
 def load_config(path: str | Path) -> PretrainConfig:

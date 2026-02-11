@@ -223,6 +223,7 @@ def main(
     tokenizer_name: str | None = None,
     contra_mode: ContraMode = "info_nce",
     max_num_augs: int = 6,
+    self_contrast: bool = True,
 ):
     set_seed(seed)
 
@@ -264,15 +265,23 @@ def main(
         }
     )
     dataset = load_dataset("json", data_files=dataset_path, features=features)["train"]
-    # For rows without a transformation, use the original code as the
-    # augmentation (self-contrast: same code, different MLM masks).
-    dataset = dataset.map(
-        lambda transformed, code: {
-            "transformed": transformed if transformed is not None else code
-        },
-        input_columns=["transformed", "code"],
-        num_proc=num_proc,
-    )
+    if self_contrast:
+        # For rows without a transformation, use the original code as the
+        # augmentation (self-contrast: same code, different MLM masks).
+        dataset = dataset.map(
+            lambda transformed, code: {
+                "transformed": transformed if transformed is not None else code
+            },
+            input_columns=["transformed", "code"],
+            num_proc=num_proc,
+        )
+    else:
+        # Drop rows that have no real augmentation.
+        dataset = dataset.filter(
+            lambda transformed: transformed is not None and transformed != "",
+            input_columns=["transformed"],
+            num_proc=num_proc,
+        )
 
     if sample_rate < 1.0:
         dataset = dataset.shuffle(seed=seed).select(
