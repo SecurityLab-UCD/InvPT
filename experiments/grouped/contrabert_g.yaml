@@ -20,3 +20,4 @@ max_seq_length: 512
 
 contra_mode: "grouped"
 max_num_augs: 6
+self_contrast: true
