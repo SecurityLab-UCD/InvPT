@@ -49,8 +49,8 @@ from model import Model
 from tqdm import tqdm
 
 cpu_cont = multiprocessing.cpu_count()
+from torch.optim import AdamW
 from transformers import (
-    AdamW,
     BertConfig,
     BertForMaskedLM,
     BertTokenizer,
