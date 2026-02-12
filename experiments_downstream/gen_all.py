@@ -59,7 +59,7 @@ models = [
 # Using chr(36) to produce '$' so no shell can possibly interpret them.
 D = chr(36)  # dollar sign
 SD_LINE = f'SCRIPT_DIR="{D}(cd "{D}(dirname "{D}{{BASH_SOURCE[0]}}")" && pwd)"'
-RD_LINE = f'ROOT_DIR="{D}(cd "{D}SCRIPT_DIR/.." && pwd)"'
+RD_LINE = f'ROOT_DIR="{D}(cd "{D}SCRIPT_DIR/../.." && pwd)"'
 
 
 def model_ref(model_path: str) -> str:
@@ -94,8 +94,10 @@ def make_script(
     )
 
 
-def write_script(fname: str, content: str) -> None:
-    fp = BASE / fname
+def write_script(task_dir: str, fname: str, content: str) -> None:
+    dp = BASE / task_dir
+    dp.mkdir(parents=True, exist_ok=True)
+    fp = dp / fname
     fp.write_text(content)
     fp.chmod(fp.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
@@ -104,6 +106,7 @@ count = 0
 for short, mpath, tok, mtype in models:
     # Clone-detection-POJ104: run.sh <model> <output> <model_type> <tokenizer>
     write_script(
+        "Clone-detection-POJ104",
         f"clone-poj104_{short}.sh",
         make_script(
             "Clone-detection-POJ104", short, mpath, args_extra=f" {mtype} {tok}"
@@ -114,6 +117,7 @@ for short, mpath, tok, mtype in models:
     # Clone-detection-CodeNet: run.sh <model> <save_path> <subset> <model_type> <tokenizer>
     for sub in ["Java250", "Python800", "C++1400"]:
         write_script(
+            "Clone-detection-CodeNet",
             f"clone-codenet_{sub}_{short}.sh",
             make_script(
                 "Clone-detection-CodeNet",
@@ -127,6 +131,7 @@ for short, mpath, tok, mtype in models:
 
     # Clone-detection-BigCloneBench: run.sh <model> <output>
     write_script(
+        "Clone-detection-BigCloneBench",
         f"clone-bcb_{short}.sh",
         make_script("Clone-detection-BigCloneBench", short, mpath),
     )
@@ -134,6 +139,7 @@ for short, mpath, tok, mtype in models:
 
     # Code-classification-POJ104: run.sh <model> <save_path> <subset> <model_type> <tokenizer>
     write_script(
+        "Code-classification-POJ104",
         f"cls-poj104_Cpp_{short}.sh",
         make_script(
             "Code-classification-POJ104",
@@ -148,6 +154,7 @@ for short, mpath, tok, mtype in models:
     # Code-classification-CodeNet: run.sh <model> <save_path> <subset> <model_type> <tokenizer>
     for sub in ["Java250", "Python800", "C++1400"]:
         write_script(
+            "Code-classification-CodeNet",
             f"cls-codenet_{sub}_{short}.sh",
             make_script(
                 "Code-classification-CodeNet",
@@ -161,6 +168,7 @@ for short, mpath, tok, mtype in models:
 
     # Defect-detection: run.sh <model> <output>
     write_script(
+        "Defect-detection",
         f"defect_{short}.sh",
         make_script("Defect-detection", short, mpath),
     )
@@ -168,6 +176,7 @@ for short, mpath, tok, mtype in models:
 
     # Code-translation: run.sh <model> <output>
     write_script(
+        "Code-translation",
         f"translation_{short}.sh",
         make_script("Code-translation", short, mpath),
     )
