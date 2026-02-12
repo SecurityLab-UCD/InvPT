@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from modeling._types import ContraMode
+from modeling._types import ContraMode, ModelType
 from modeling.common import default_num_proc
 from modeling.config import load_config
 from modeling.pretrain import main
@@ -102,6 +102,13 @@ def pretrain(
             help="Use self-contrast (same code, different MLM masks) for rows without augmentation. If disabled, rows without augmentation are dropped."
         ),
     ] = True,
+    model_type: Annotated[
+        ModelType, typer.Option(help="Model architecture type.")
+    ] = ModelType.ROBERTA,
+    pooling: Annotated[
+        str,
+        typer.Option(help="Pooling strategy for contrastive embeddings (cls or mean)."),
+    ] = "cls",
 ) -> None:
     """Run pre-training with all parameters specified as CLI options.
 
@@ -128,6 +135,8 @@ def pretrain(
         contra_mode=contra_mode,
         max_num_augs=max_num_augs,
         self_contrast=self_contrast,
+        model_type=model_type,
+        pooling=pooling,
     )
 
 

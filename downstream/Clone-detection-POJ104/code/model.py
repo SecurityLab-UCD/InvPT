@@ -13,15 +13,23 @@ class Model(nn.Module):
         self.tokenizer = tokenizer
         self.args = args
 
+    def _pool(self, hidden_states, attention_mask):
+        """Mean pooling over non-padding tokens."""
+        mask = attention_mask.unsqueeze(-1).float()
+        return (hidden_states * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)
+
     def forward(self, input_ids=None, p_input_ids=None, n_input_ids=None, labels=None):
         bs, _ = input_ids.size()
         input_ids = torch.cat((input_ids, p_input_ids, n_input_ids), 0)
+        attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
 
-        outputs = self.encoder(input_ids, attention_mask=input_ids.ne(1))
-        if len(outputs) > 1:
-            outputs = outputs[1]
+        encoder_outputs = self.encoder(input_ids, attention_mask=attention_mask)
+        if hasattr(self.args, "model_type") and self.args.model_type == "modernbert":
+            outputs = self._pool(encoder_outputs[0], attention_mask)
+        elif len(encoder_outputs) > 1:
+            outputs = encoder_outputs[1]
         else:
-            outputs = outputs[0][:, 0, :]
+            outputs = encoder_outputs[0][:, 0, :]
         outputs = outputs.split(bs, 0)
 
         prob_1 = (outputs[0] * outputs[1]).sum(-1)

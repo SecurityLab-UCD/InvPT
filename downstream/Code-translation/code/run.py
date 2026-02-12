@@ -36,13 +36,19 @@ from torch.utils.data import DataLoader, SequentialSampler, RandomSampler, Tenso
 from torch.utils.data.distributed import DistributedSampler
 from transformers import (
     AdamW,
+    AutoConfig,
+    AutoModel,
+    AutoTokenizer,
     get_linear_schedule_with_warmup,
     RobertaConfig,
     RobertaModel,
     RobertaTokenizer,
 )
 
-MODEL_CLASSES = {"roberta": (RobertaConfig, RobertaModel, RobertaTokenizer)}
+MODEL_CLASSES = {
+    "roberta": (RobertaConfig, RobertaModel, RobertaTokenizer),
+    "modernbert": (AutoConfig, AutoModel, AutoTokenizer),
+}
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",

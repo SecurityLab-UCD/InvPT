@@ -2,6 +2,8 @@
 model_path=$1
 save_path=$2
 subset=$3
+model_type=${4:-roberta}
+tokenizer_name=${5:-microsoft/codebert-base}
 
 output_dir=$save_path/$subset
 
@@ -10,7 +12,8 @@ touch $output_dir/test_train.log
 
 python ./code/run.py \
     --output_dir=$output_dir \
-    --tokenizer_name=microsoft/codebert-base \
+    --model_type=$model_type \
+    --tokenizer_name=$tokenizer_name \
     --model_name_or_path=$model_path \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \

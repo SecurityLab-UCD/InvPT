@@ -1,0 +1,5 @@
+model_name: "answerdotai/ModernBERT-base"
+model_type: "modernbert"
+pooling: "mean"
+max_seq_length: 512
+run_name: "InvPT-ModernBERT-base"

@@ -8,10 +8,10 @@ from functools import partial
 from accelerate import PartialState
 from datasets import Dataset, Features, Value, load_dataset
 from transformers import (
+    AutoConfig,
+    AutoModelForMaskedLM,
+    AutoTokenizer,
     DataCollatorForLanguageModeling,
-    RobertaConfig,
-    RobertaForMaskedLM,
-    RobertaTokenizerFast,
     TrainingArguments,
 )
 
@@ -224,6 +224,8 @@ def main(
     contra_mode: ContraMode = "info_nce",
     max_num_augs: int = 6,
     self_contrast: bool = True,
+    model_type: str = "roberta",
+    pooling: str = "cls",
 ):
     set_seed(seed)
 
@@ -239,18 +241,17 @@ def main(
         os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
     tokenizer_name = tokenizer_name or model_name
-    tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_name)
-    config = RobertaConfig.from_pretrained(tokenizer_name)
-    # model = RobertaForMaskedLM.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    config = AutoConfig.from_pretrained(tokenizer_name)
 
-    roberta_mlm = RobertaForMaskedLM.from_pretrained(
+    mlm_model = AutoModelForMaskedLM.from_pretrained(
         model_name if checkpoint is None else checkpoint,
         config=config,
-    )  # load weights from stage 1
+    )
 
     # Wrap so the LM head is applied per-chunk (avoids [2B, seq, vocab] OOM).
     # DDP will wrap SplitHeadWrapper, keeping all params in one forward().
-    model = SplitHeadWrapper(roberta_mlm)
+    model = SplitHeadWrapper(mlm_model)
 
     features = Features(
         {
@@ -353,15 +354,16 @@ def main(
         alpha=alpha,
         temperature=temperature,
         contra_mode=contra_mode,
+        pooling=pooling,
     )
 
     trainer.train(resume_from_checkpoint=resume)
 
-    # Save the inner RobertaForMaskedLM so downstream tasks can load it
-    # directly with RobertaForMaskedLM.from_pretrained().
+    # Save the inner *ForMaskedLM so downstream tasks can load it
+    # directly with AutoModelForMaskedLM.from_pretrained().
     save_path = f"saved_models/{run_name}/final"
     unwrapped = trainer.model
     if hasattr(unwrapped, "module"):  # DDP
         unwrapped = unwrapped.module
-    unwrapped.roberta_mlm.save_pretrained(save_path)
+    unwrapped.mlm_model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
