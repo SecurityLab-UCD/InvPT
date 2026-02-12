@@ -2,6 +2,8 @@
 model_path=$1
 save_path=$2
 subset=$3
+model_type=${4:-roberta}
+tokenizer_name=${5:-microsoft/codebert-base}
 
 output_dir=$save_path/$subset
 
@@ -11,7 +13,8 @@ touch $output_dir/test_train.log
 echo "Running fine-tuning for subset: $subset"
 python ./code/run.py \
     --output_dir=$output_dir \
-    --tokenizer_name=microsoft/codebert-base \
+    --model_type=$model_type \
+    --tokenizer_name=$tokenizer_name \
     --model_name_or_path=$model_path \
     --do_train \
     --do_test \
@@ -28,4 +31,4 @@ python ./code/run.py \
 
 
 echo "Running evaluation for augmented test set..."
-./run_aug_test.sh $model_path $save_path $subset
+./run_aug_test.sh $model_path $save_path $subset $model_type $tokenizer_name

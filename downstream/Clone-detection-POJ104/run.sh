@@ -1,14 +1,17 @@
 #!/bin/bash
 model_path=$1
 output_dir=$2
+model_type=${3:-roberta}
+tokenizer_name=${4:-roberta-base}
+
 mkdir -p $output_dir
 touch $output_dir/train.log
 
 python ./code/run.py \
     --output_dir=$output_dir \
-    --model_type=roberta \
+    --model_type=$model_type \
     --model_name_or_path=$model_path \
-    --tokenizer_name=roberta-base \
+    --tokenizer_name=$tokenizer_name \
     --do_train \
     --do_test \
     --train_data_file=./dataset/train.jsonl \
@@ -34,4 +37,4 @@ python evaluator/evaluator.py \
 
 
 echo "Running evaluation for augmented test set..."
-./run_aug_test.sh $model_path $output_dir
+./run_aug_test.sh $model_path $output_dir $model_type $tokenizer_name

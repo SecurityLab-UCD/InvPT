@@ -1,6 +1,8 @@
 #!/bin/bash
 model_path=$1
 save_path=$2
+model_type=${3:-roberta}
+tokenizer_name=${4:-roberta-base}
 
 output_dir=$save_path
 
@@ -9,9 +11,9 @@ touch $output_dir/aug_train.log
 
 python ./code/run.py \
     --output_dir=$output_dir \
-    --model_type=roberta \
+    --model_type=$model_type \
     --model_name_or_path=$model_path \
-    --tokenizer_name=roberta-base \
+    --tokenizer_name=$tokenizer_name \
     --do_test \
     --train_data_file=./dataset/train.jsonl \
     --eval_data_file=./dataset/valid.jsonl \

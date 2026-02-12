@@ -2,6 +2,8 @@
 model_path=$1
 save_path=$2
 subset=$3
+model_type=${4:-roberta}
+tokenizer_name=${5:-roberta-base}
 
 output_dir=$save_path/$subset
 
@@ -10,9 +12,9 @@ touch $output_dir/aug_train.log
 
 python ./code/run.py \
     --output_dir=$output_dir \
-    --model_type=roberta \
+    --model_type=$model_type \
     --model_name_or_path=$model_path \
-    --tokenizer_name=roberta-base \
+    --tokenizer_name=$tokenizer_name \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
     --eval_data_file=./dataset/$subset/valid.jsonl \

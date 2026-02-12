@@ -14,7 +14,9 @@ class Model(nn.Module):
         self.args = args
 
     def forward(self, input_ids=None, labels=None):
-        logits = self.encoder(input_ids, attention_mask=input_ids.ne(1))[0]
+        logits = self.encoder(
+            input_ids, attention_mask=input_ids.ne(self.tokenizer.pad_token_id)
+        )[0]
         prob = torch.softmax(logits, -1)
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss(ignore_index=-1)
