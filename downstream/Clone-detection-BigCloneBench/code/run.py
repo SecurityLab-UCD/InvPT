@@ -50,6 +50,9 @@ from tqdm import tqdm
 cpu_cont = multiprocessing.cpu_count()
 from transformers import (
     AdamW,
+    AutoConfig,
+    AutoModel,
+    AutoTokenizer,
     BertConfig,
     BertForMaskedLM,
     BertTokenizer,
@@ -76,6 +79,7 @@ MODEL_CLASSES = {
     "bert": (BertConfig, BertForMaskedLM, BertTokenizer),
     "roberta": (RobertaConfig, RobertaModel, RobertaTokenizer),
     "distilbert": (DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer),
+    "modernbert": (AutoConfig, AutoModel, AutoTokenizer),
 }
 
 

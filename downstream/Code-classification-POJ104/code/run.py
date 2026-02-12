@@ -39,11 +39,19 @@ from torch.utils.data import (
 from tqdm import tqdm
 from transformers import (
     AdamW,
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
     RobertaConfig,
     RobertaForSequenceClassification,
     RobertaTokenizer,
     get_linear_schedule_with_warmup,
 )
+
+MODEL_CLASSES = {
+    "roberta": (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
+    "modernbert": (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
+}
 
 logger = logging.getLogger(__name__)
 
@@ -342,6 +350,12 @@ def main():
         help="The model checkpoint for weights initialization.",
     )
     parser.add_argument(
+        "--model_type",
+        default="roberta",
+        type=str,
+        help="Model type (roberta or modernbert).",
+    )
+    parser.add_argument(
         "--tokenizer_name",
         default="",
         type=str,
@@ -415,12 +429,13 @@ def main():
     # Set seed
     set_seed(args.seed)
 
-    config = RobertaConfig.from_pretrained(args.model_name_or_path)
+    config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+    config = config_class.from_pretrained(args.model_name_or_path)
     config.num_labels = 104
-    tokenizer = RobertaTokenizer.from_pretrained(args.tokenizer_name)
-    model = RobertaForSequenceClassification.from_pretrained(
-        args.model_name_or_path, config=config
+    tokenizer = tokenizer_class.from_pretrained(
+        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path
     )
+    model = model_class.from_pretrained(args.model_name_or_path, config=config)
 
     model = Model(model, config, tokenizer, args)
 

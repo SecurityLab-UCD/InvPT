@@ -50,6 +50,9 @@ from tqdm import tqdm
 cpu_cont = multiprocessing.cpu_count()
 from transformers import (
     AdamW,
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
     BertConfig,
     BertForSequenceClassification,
     BertTokenizer,
@@ -75,6 +78,7 @@ MODEL_CLASSES = {
     "openai-gpt": (OpenAIGPTConfig, OpenAIGPTLMHeadModel, OpenAIGPTTokenizer),
     "bert": (BertConfig, BertForSequenceClassification, BertTokenizer),
     "roberta": (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
+    "modernbert": (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
     "distilbert": (
         DistilBertConfig,
         DistilBertForSequenceClassification,

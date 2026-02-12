@@ -1,15 +1,19 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import RobertaForMaskedLM, Trainer
+from transformers import Trainer
 
 from ._types import ContraMode
 
 
 class SplitHeadWrapper(nn.Module):
-    """Wraps ``RobertaForMaskedLM`` so that the LM head is applied per-chunk.
+    """Wraps a ``*ForMaskedLM`` model so the LM head is applied per-chunk.
 
-    ``RobertaForMaskedLM.forward()`` always materializes a
+    Supports both RoBERTa (``RobertaForMaskedLM``) and ModernBERT
+    (``ModernBertForMaskedLM``).  The wrapper auto-detects the encoder and
+    LM-head attributes.
+
+    The ``*ForMaskedLM.forward()`` always materializes a
     ``[N, seq_len, vocab_size]`` logit tensor.  When the input is a
     concatenated code+aug batch (``N = 2B`` or ``N = B + B*K``), this
     doubles/multiplies peak GPU memory and causes OOM.
@@ -23,17 +27,34 @@ class SplitHeadWrapper(nn.Module):
     participate in the single ``forward()`` and gradient sync works normally.
     """
 
-    def __init__(self, roberta_mlm: RobertaForMaskedLM):
+    def __init__(self, mlm_model: nn.Module):
         super().__init__()
-        self.roberta_mlm = roberta_mlm
+        self.mlm_model = mlm_model
 
     @property
     def config(self):
-        return self.roberta_mlm.config
+        return self.mlm_model.config
 
     @property
     def device(self):
-        return self.roberta_mlm.device
+        return self.mlm_model.device
+
+    def _get_encoder(self) -> nn.Module:
+        """Return the encoder backbone (RobertaModel or ModernBertModel)."""
+        if hasattr(self.mlm_model, "roberta"):
+            return self.mlm_model.roberta
+        if hasattr(self.mlm_model, "model"):
+            return self.mlm_model.model
+        raise ValueError(f"Cannot find encoder in {type(self.mlm_model)}")
+
+    def _apply_lm_head(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        """Apply the LM head to get logits."""
+        if hasattr(self.mlm_model, "lm_head"):
+            return self.mlm_model.lm_head(hidden_states)  # RoBERTa
+        if hasattr(self.mlm_model, "decoder"):
+            # ModernBERT: prediction head + decoder projection
+            return self.mlm_model.decoder(self.mlm_model.head(hidden_states))
+        raise ValueError(f"Cannot find LM head in {type(self.mlm_model)}")
 
     def forward(
         self,
@@ -58,7 +79,8 @@ class SplitHeadWrapper(nn.Module):
             ``(mlm_loss, last_hidden_state)`` where ``mlm_loss`` is the
             average of the per-chunk MLM losses.
         """
-        encoder_outputs = self.roberta_mlm.roberta(
+        encoder = self._get_encoder()
+        encoder_outputs = encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
             output_hidden_states=output_hidden_states,
@@ -68,7 +90,7 @@ class SplitHeadWrapper(nn.Module):
         last_hidden = encoder_outputs.last_hidden_state  # [N, seq, D]
 
         # Run lm_head per-chunk to avoid [N, seq, vocab] peak memory.
-        logits_a = self.roberta_mlm.lm_head(last_hidden[:split_at])
+        logits_a = self._apply_lm_head(last_hidden[:split_at])
         mlm_loss_a = F.cross_entropy(
             logits_a.view(-1, logits_a.size(-1)),
             labels_a.view(-1),
@@ -76,7 +98,7 @@ class SplitHeadWrapper(nn.Module):
         )
         del logits_a
 
-        logits_b = self.roberta_mlm.lm_head(last_hidden[split_at:])
+        logits_b = self._apply_lm_head(last_hidden[split_at:])
         mlm_loss_b = F.cross_entropy(
             logits_b.view(-1, logits_b.size(-1)),
             labels_b.view(-1),
@@ -304,12 +326,39 @@ class ContrastiveTrainer(Trainer):
     """
 
     def __init__(
-        self, alpha=1.0, temperature=0.07, contra_mode="info_nce", *args, **kwargs
+        self,
+        alpha=1.0,
+        temperature=0.07,
+        contra_mode="info_nce",
+        pooling="cls",
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
         self.temperature = temperature
         self.contra_mode = ContraMode(contra_mode)
+        self.pooling = pooling
+
+    def _pool(
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        """Pool token-level hidden states into a single embedding.
+
+        Args:
+            hidden_states: ``[N, seq_len, D]``.
+            attention_mask: ``[N, seq_len]``.
+
+        Returns:
+            ``[N, D]`` pooled embeddings.
+        """
+        if self.pooling == "mean":
+            mask = attention_mask.unsqueeze(-1).float()  # [N, seq, 1]
+            return (hidden_states * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)
+        # Default: CLS token
+        return hidden_states[:, 0, :]
 
     def compute_loss(
         self, model, inputs, return_outputs=False, num_items_in_batch=None
@@ -340,8 +389,8 @@ class ContrastiveTrainer(Trainer):
             split_at=B,
         )
 
-        code_embeddings = last_hidden[:B, 0, :]
-        aug_embeddings = last_hidden[B:, 0, :]
+        code_embeddings = self._pool(last_hidden[:B], code_attention_mask)
+        aug_embeddings = self._pool(last_hidden[B:], aug_attention_mask)
 
         # Compute contrastive loss between code and its augmentation
         if self.contra_mode == ContraMode.SUPCON:
@@ -394,8 +443,8 @@ class ContrastiveTrainer(Trainer):
             split_at=B,
         )
 
-        code_embeddings = last_hidden[:B, 0, :]
-        aug_embeddings = last_hidden[B:, 0, :]
+        code_embeddings = self._pool(last_hidden[:B], code_attention_mask)
+        aug_embeddings = self._pool(last_hidden[B:], aug_attention_mask)
 
         # Contrastive loss
         contrastive_loss = grouped_contrastive_loss(
@@ -417,8 +466,8 @@ class ContrastiveTrainer(Trainer):
             # For eval we only need code (no aug), so both halves are the
             # same chunk.  Pass an empty second chunk.
             base = model.module if hasattr(model, "module") else model
-            roberta_mlm = base.roberta_mlm
-            outputs = roberta_mlm(
+            mlm_model = base.mlm_model
+            outputs = mlm_model(
                 input_ids=code_input_ids,
                 attention_mask=code_attention_mask,
                 labels=code_labels,

@@ -48,7 +48,8 @@ InvPT/
 │   └── visualize.py
 ├── experiments/            # YAML experiment configurations
 │   ├── base.yaml          # Base supcon config (matches original run_pretrain.sh)
-│   └── grouped_example.yaml # Grouped contrastive mode example
+│   ├── grouped_example.yaml # Grouped contrastive mode example
+│   └── modernbert_base.yaml # ModernBERT-base config (mean pooling)
 ├── saved_models/          # Pre-trained model checkpoints
 ├── run_pretrain.sh        # Pre-training launch script
 ├── clang.sh               # LLVM 14 installation script
@@ -64,6 +65,8 @@ InvPT/
 - **PL-only**: Unlike prior work (CodeBERT, ContraBERT), InvPT removes natural language docstrings during pre-training.
 - **No MoCo**: Uses a single shared encoder for original and transformed code, unlike ContraBERT which uses momentum contrast.
 - **Contrastive modes**: `info_nce` (diagonal positives), `supcon` (multi-positive by function_id mask), `grouped` (grouped multi-key contrast with explicit aug grouping via `--max_num_augs`).
+- **Model types**: `roberta` (RoBERTa/CodeBERT/ContraBERT, default) and `modernbert` (ModernBERT with RoPE, Flash Attention, 8K context). Configured via `model_type` in YAML configs.
+- **Pooling strategies**: `cls` (CLS token, default for RoBERTa) and `mean` (mean pooling over non-padding tokens, recommended for ModernBERT).
 
 ## Transformation Operators
 
@@ -84,7 +87,7 @@ source .envrc             # Load environment variables
 ./clang.sh                # Install LLVM 14 (for C/C++ transforms)
 ```
 
-Requires: Python 3.11+, JDK 11+ (for Java transforms), LLVM 14 (for C/C++ transforms).
+Requires: Python 3.11+, JDK 11+ (for Java transforms), LLVM 14 (for C/C++ transforms), transformers >= 4.48 (for ModernBERT support).
 
 ## Running Tests
 
