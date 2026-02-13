@@ -37,8 +37,8 @@ from torch.utils.data import (
     SequentialSampler,
 )
 from tqdm import tqdm
+from torch.optim import AdamW
 from transformers import (
-    AdamW,
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,

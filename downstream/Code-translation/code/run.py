@@ -34,8 +34,8 @@ from tqdm import tqdm
 from bleu import _bleu
 from torch.utils.data import DataLoader, SequentialSampler, RandomSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
+from torch.optim import AdamW
 from transformers import (
-    AdamW,
     AutoConfig,
     AutoModel,
     AutoTokenizer,
