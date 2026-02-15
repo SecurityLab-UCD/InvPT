@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Launch downstream tasks in parallel across 8 GPUs."""
+"""Launch downstream tasks across GPUs with a work-stealing pool."""
 
 from __future__ import annotations
 
 import os
+import queue
 import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
@@ -27,6 +30,28 @@ class RunHandle:
 
 
 MODELS: dict[tuple[str, str], ModelSpec] = {
+    # --- baselines ---
+    ("codebert", "supcon"): ModelSpec(
+        "microsoft/codebert-base",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+    ("graphcodebert", "supcon"): ModelSpec(
+        "microsoft/graphcodebert-base",
+        "microsoft/graphcodebert-base",
+        "roberta",
+    ),
+    ("contrabert_c", "supcon"): ModelSpec(
+        "./saved_models/ContraBERT_C",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+    ("contrabert_g", "supcon"): ModelSpec(
+        "./saved_models/ContraBERT_G",
+        "microsoft/graphcodebert-base",
+        "roberta",
+    ),
+    # --- InvPT models ---
     ("inv-codebert", "supcon"): ModelSpec(
         "./saved_models/InvCodeBERT-supcon/final",
         "microsoft/codebert-base",
@@ -144,7 +169,7 @@ def run_task(
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = gpu_id
 
-    label = f"{task_dir}{'/' + subset if subset else ''}"
+    label = f"{model_key}/{task_dir}{'/' + subset if subset else ''}"
     if dry_run:
         print(f"[launch] GPU {gpu_id}: {label}")
         print(f"         cwd: {task_path}")
@@ -169,16 +194,19 @@ def run_task(
 
 @app.command()
 def main(
+    all_models: bool = typer.Option(
+        False, "--all", help="Run all models in the registry."
+    ),
     loss: str = typer.Option(
-        ..., "--loss", help="Training loss identifier (e.g., supcon)."
+        None, "--loss", help="Training loss identifier (e.g., supcon)."
     ),
     model: str = typer.Option(
-        ..., "--model", help="Pretrained model key (e.g., inv-codebert)."
+        None, "--model", help="Pretrained model key (e.g., inv-codebert)."
     ),
     gpus: str = typer.Option(
         "0,1,2,3,4,5,6,7",
         "--gpus",
-        help="Comma-separated GPU ids to use (must be 8).",
+        help="Comma-separated GPU ids to use.",
     ),
     results_root: str = typer.Option(
         "results", "--results-root", help="Base output directory for results."
@@ -189,50 +217,96 @@ def main(
 ) -> None:
     root = Path(__file__).resolve().parents[1]
 
-    model_key = model.strip()
-    loss_key = loss.strip()
-    spec = resolve_model(model_key, loss_key)
+    # Resolve which models to run
+    if all_models:
+        if model is not None:
+            raise typer.BadParameter("Cannot use --model with --all")
+        entries = list(MODELS.items())
+        if loss is not None:
+            loss_key = loss.strip()
+            entries = [((m, lk), s) for (m, lk), s in entries if lk == loss_key]
+        if not entries:
+            raise typer.BadParameter(f"No models found for loss={loss}")
+    else:
+        if model is None or loss is None:
+            raise typer.BadParameter(
+                "Either --all or both --model and --loss are required"
+            )
+        model_key = model.strip()
+        loss_key = loss.strip()
+        spec = resolve_model(model_key, loss_key)
+        entries = [((model_key, loss_key), spec)]
 
     gpu_ids = [gpu.strip() for gpu in gpus.split(",") if gpu.strip()]
-    if len(gpu_ids) != len(TASKS):
-        raise typer.BadParameter(
-            f"Expected {len(TASKS)} GPU ids, got {len(gpu_ids)}: {gpu_ids}"
-        )
+    if not gpu_ids:
+        raise typer.BadParameter("No GPU ids provided")
 
+    # Build all jobs: (model_key, spec, task_dir, subset)
+    jobs: list[tuple[str, ModelSpec, str, str | None]] = []
+    for (mk, _lk), sp in entries:
+        for task_dir, subset in TASKS:
+            jobs.append((mk, sp, task_dir, subset))
+
+    total = len(jobs)
     results_root_path = Path(results_root).resolve()
 
-    processes: list[RunHandle] = []
-    for (task_dir, subset), gpu_id in zip(TASKS, gpu_ids, strict=True):
-        proc = run_task(
-            root,
-            model_key,
-            spec,
-            task_dir,
-            subset,
-            gpu_id,
-            results_root_path,
-            dry_run,
-        )
-        if proc is not None:
-            processes.append(proc)
-
     if dry_run:
+        for i, (mk, sp, task_dir, subset) in enumerate(jobs):
+            gpu_id = gpu_ids[i % len(gpu_ids)]
+            run_task(root, mk, sp, task_dir, subset, gpu_id, results_root_path, True)
+        print(f"\n[dry-run] {total} total jobs across {len(gpu_ids)} GPUs")
         raise typer.Exit(0)
 
+    # GPU work-stealing pool
+    gpu_pool: queue.Queue[str] = queue.Queue()
+    for gid in gpu_ids:
+        gpu_pool.put(gid)
+
+    completed = 0
+    lock = threading.Lock()
     failures: list[str] = []
-    for handle in processes:
-        code = handle.process.wait()
-        handle.log_file.close()
-        if code != 0:
-            failures.append(f"{handle.label} (exit {code})")
+
+    def run_job(mk: str, sp: ModelSpec, task_dir: str, subset: str | None) -> None:
+        nonlocal completed
+        gpu_id = gpu_pool.get()
+        label = f"{mk}/{task_dir}{'/' + subset if subset else ''}"
+        try:
+            with lock:
+                print(f"[start]  GPU {gpu_id}: {label}")
+            handle = run_task(
+                root, mk, sp, task_dir, subset, gpu_id, results_root_path, False
+            )
+            if handle is not None:
+                code = handle.process.wait()
+                handle.log_file.close()
+                with lock:
+                    completed += 1
+                    if code != 0:
+                        failures.append(f"{label} (exit {code})")
+                        print(
+                            f"[FAIL]   GPU {gpu_id}: {label} "
+                            f"(exit {code}) [{completed}/{total}]"
+                        )
+                    else:
+                        print(f"[done]   GPU {gpu_id}: {label} [{completed}/{total}]")
+        finally:
+            gpu_pool.put(gpu_id)
+
+    with ThreadPoolExecutor(max_workers=len(gpu_ids)) as executor:
+        futures = [
+            executor.submit(run_job, mk, sp, task_dir, subset)
+            for mk, sp, task_dir, subset in jobs
+        ]
+        for f in futures:
+            f.result()
 
     if failures:
-        print("\n[error] Some tasks failed:")
+        print(f"\n[error] {len(failures)}/{total} tasks failed:")
         for failure in failures:
             print(f"  - {failure}")
         raise typer.Exit(1)
 
-    print("\n[done] All downstream tasks completed successfully.")
+    print(f"\n[done] All {total} downstream tasks completed successfully.")
 
 
 if __name__ == "__main__":
