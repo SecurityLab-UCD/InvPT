@@ -265,6 +265,19 @@ cd downstream/Clone-detection-POJ-104
 Pre-generated per-model evaluation scripts live in `experiments_downstream/`, including
 ModernBERT variants. Regenerate them with `python3 experiments_downstream/gen_all.py`.
 
+To launch the 8 downstream tasks (clone detection + code classification across POJ and
+CodeNet) in parallel on 8 GPUs, use the helper script in `experiments_downstream/`:
+
+```sh
+python experiments_downstream/run_all_downstream.py --loss supcon --model inv-codebert
+```
+
+Override GPU ids with `--gpus` (comma-separated, must be 8):
+
+```sh
+python experiments_downstream/run_all_downstream.py --loss supcon --model inv-codebert --gpus 0,1,2,3,4,5,6,7
+```
+
 To evaluate robustness, use the augmented test scripts:
 
 ```sh
