@@ -262,6 +262,9 @@ cd downstream/Clone-detection-POJ-104
 ./run.sh <pretrained_model_path> <output_dir>
 ```
 
+Pre-generated per-model evaluation scripts live in `experiments_downstream/`, including
+ModernBERT variants. Regenerate them with `python3 experiments_downstream/gen_all.py`.
+
 To evaluate robustness, use the augmented test scripts:
 
 ```sh

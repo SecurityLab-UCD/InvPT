@@ -53,6 +53,12 @@ models = [
         "microsoft/graphcodebert-base",
         "roberta",
     ),
+    (
+        "inv-modernbert",
+        "./saved_models/aug-only/InvModernBERT-supcon/final",
+        "answerdotai/ModernBERT-base",
+        "modernbert",
+    ),
 ]
 
 # These are the literal shell lines we want in the output.
@@ -67,6 +73,13 @@ def model_ref(model_path: str) -> str:
     if model_path.startswith("./"):
         return f'"{D}ROOT_DIR/{model_path[2:]}"'
     return model_path
+
+
+def tokenizer_ref(tokenizer_path: str) -> str:
+    """Return the shell expression for the tokenizer path."""
+    if tokenizer_path.startswith("./"):
+        return f'"{D}ROOT_DIR/{tokenizer_path[2:]}"'
+    return tokenizer_path
 
 
 def make_script(
@@ -110,12 +123,13 @@ def write_script(task_dir: str, fname: str, content: str) -> None:
 
 count = 0
 for short, mpath, tok, mtype in models:
+    tok_ref = tokenizer_ref(tok)
     # Clone-detection-POJ104: run.sh <model> <output> <model_type> <tokenizer>
     write_script(
         "Clone-detection-POJ104",
         f"clone-poj104_{short}.sh",
         make_script(
-            "Clone-detection-POJ104", short, mpath, args_extra=f" {mtype} {tok}"
+            "Clone-detection-POJ104", short, mpath, args_extra=f" {mtype} {tok_ref}"
         ),
     )
     count += 1
@@ -130,7 +144,7 @@ for short, mpath, tok, mtype in models:
                 short,
                 mpath,
                 subset=sub,
-                args_extra=f" {sub} {mtype} {tok}",
+                args_extra=f" {sub} {mtype} {tok_ref}",
             ),
         )
         count += 1
@@ -152,7 +166,7 @@ for short, mpath, tok, mtype in models:
             short,
             mpath,
             subset="Cpp",
-            args_extra=f" Cpp {mtype} {tok}",
+            args_extra=f" Cpp {mtype} {tok_ref}",
         ),
     )
     count += 1
@@ -167,7 +181,7 @@ for short, mpath, tok, mtype in models:
                 short,
                 mpath,
                 subset=sub,
-                args_extra=f" {sub} {mtype} {tok}",
+                args_extra=f" {sub} {mtype} {tok_ref}",
             ),
         )
         count += 1
