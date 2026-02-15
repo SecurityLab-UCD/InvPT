@@ -293,6 +293,14 @@ Generate t-SNE visualizations of code embeddings across models:
 uv run plot/visualize.py --input_test_file dataset/aug_test.jsonl --output_file clusters.png
 ```
 
+### Results Parsing
+
+Parse downstream evaluation outputs into a regular vs augmented table:
+
+```sh
+python experiments_downstream/parse_results.py --results-root results --digits 2
+```
+
 ## Invariant Code Transformations
 
 InvPT uses six semantic-preserving transformation operators:
