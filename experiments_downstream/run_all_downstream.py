@@ -60,7 +60,7 @@ TASKS = [
     ("Clone-detection-CodeNet", "Java250"),
     ("Clone-detection-CodeNet", "Python800"),
     ("Clone-detection-CodeNet", "C++1400"),
-    ("Code-classification-POJ104", "Cpp"),
+    ("Code-classification-POJ104", None),
     ("Code-classification-CodeNet", "Java250"),
     ("Code-classification-CodeNet", "Python800"),
     ("Code-classification-CodeNet", "C++1400"),
@@ -118,12 +118,11 @@ def run_task(
             ]
         )
     elif task_dir == "Code-classification-POJ104":
-        if subset is None:
-            raise ValueError("Subset is required for Code-classification-POJ104")
+        subset_arg = subset or ""
         cmd.extend(
             [
                 results_dir_str,
-                subset,
+                subset_arg,
                 spec.model_type,
                 spec.tokenizer_name,
             ]
