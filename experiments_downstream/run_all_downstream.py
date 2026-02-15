@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TextIO
 
 import typer
+from tqdm import tqdm
 
 
 @dataclass(frozen=True)
@@ -262,17 +263,20 @@ def main(
     for gid in gpu_ids:
         gpu_pool.put(gid)
 
-    completed = 0
+    running = 0
+    failed = 0
     lock = threading.Lock()
     failures: list[str] = []
+    pbar = tqdm(total=total, desc="Downstream", unit="task")
 
     def run_job(mk: str, sp: ModelSpec, task_dir: str, subset: str | None) -> None:
-        nonlocal completed
+        nonlocal running, failed
         gpu_id = gpu_pool.get()
         label = f"{mk}/{task_dir}{'/' + subset if subset else ''}"
         try:
             with lock:
-                print(f"[start]  GPU {gpu_id}: {label}")
+                running += 1
+                pbar.set_postfix(running=running, failed=failed, refresh=True)
             handle = run_task(
                 root, mk, sp, task_dir, subset, gpu_id, results_root_path, False
             )
@@ -280,15 +284,15 @@ def main(
                 code = handle.process.wait()
                 handle.log_file.close()
                 with lock:
-                    completed += 1
+                    running -= 1
                     if code != 0:
+                        failed += 1
                         failures.append(f"{label} (exit {code})")
-                        print(
-                            f"[FAIL]   GPU {gpu_id}: {label} "
-                            f"(exit {code}) [{completed}/{total}]"
-                        )
+                        tqdm.write(f"[FAIL] GPU {gpu_id}: {label} (exit {code})")
                     else:
-                        print(f"[done]   GPU {gpu_id}: {label} [{completed}/{total}]")
+                        tqdm.write(f"[done] GPU {gpu_id}: {label}")
+                    pbar.set_postfix(running=running, failed=failed, refresh=False)
+                    pbar.update(1)
         finally:
             gpu_pool.put(gpu_id)
 
@@ -299,6 +303,7 @@ def main(
         ]
         for f in futures:
             f.result()
+    pbar.close()
 
     if failures:
         print(f"\n[error] {len(failures)}/{total} tasks failed:")
