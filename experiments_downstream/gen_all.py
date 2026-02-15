@@ -43,13 +43,13 @@ models = [
     ),
     (
         "inv-contrabert_c",
-        "./saved_models/InvContraBERT_C-supcon",
+        "./saved_models/InvContraBERT_C-supcon/final",
         "microsoft/codebert-base",
         "roberta",
     ),
     (
         "inv-contrabert_g",
-        "./saved_models/InvContraBERT_G-supcon",
+        "./saved_models/InvContraBERT_G-supcon/final",
         "microsoft/graphcodebert-base",
         "roberta",
     ),
