@@ -126,9 +126,27 @@ def collect_clone_results(
     task_dir: Path,
     task: str,
 ) -> None:
-    task_paths = list(task_dir.iterdir())
-    if any(p.is_dir() for p in task_paths):
-        for subset_dir in sorted(p for p in task_paths if p.is_dir()):
+    regular = parse_clone_score(task_dir / "test.log")
+    augmented = parse_clone_score(task_dir / "aug_test.log")
+    if regular is not None or augmented is not None:
+        results.append(
+            ParsedResult(
+                model=model,
+                dataset=dataset_label(task, None),
+                task=task,
+                metric="MAP@R",
+                scores=ScorePair(regular, augmented),
+            )
+        )
+        return
+    subset_dirs = [
+        path
+        for path in task_dir.iterdir()
+        if path.is_dir()
+        and any((path / log_name).exists() for log_name in ("test.log", "aug_test.log"))
+    ]
+    if subset_dirs:
+        for subset_dir in sorted(subset_dirs):
             regular = parse_clone_score(subset_dir / "test.log")
             augmented = parse_clone_score(subset_dir / "aug_test.log")
             results.append(
@@ -140,18 +158,16 @@ def collect_clone_results(
                     scores=ScorePair(regular, augmented),
                 )
             )
-    else:
-        regular = parse_clone_score(task_dir / "test.log")
-        augmented = parse_clone_score(task_dir / "aug_test.log")
-        results.append(
-            ParsedResult(
-                model=model,
-                dataset=dataset_label(task, None),
-                task=task,
-                metric="MAP@R",
-                scores=ScorePair(regular, augmented),
-            )
+        return
+    results.append(
+        ParsedResult(
+            model=model,
+            dataset=dataset_label(task, None),
+            task=task,
+            metric="MAP@R",
+            scores=ScorePair(regular, augmented),
         )
+    )
 
 
 def collect_classification_results(
@@ -160,9 +176,30 @@ def collect_classification_results(
     task_dir: Path,
     task: str,
 ) -> None:
-    task_paths = list(task_dir.iterdir())
-    if any(p.is_dir() for p in task_paths):
-        for subset_dir in sorted(p for p in task_paths if p.is_dir()):
+    regular = parse_classification_score(task_dir / "test_train.log")
+    augmented = parse_classification_score(task_dir / "aug_test.log")
+    if regular is not None or augmented is not None:
+        results.append(
+            ParsedResult(
+                model=model,
+                dataset=dataset_label(task, None),
+                task=task,
+                metric="Accuracy",
+                scores=ScorePair(regular, augmented),
+            )
+        )
+        return
+    subset_dirs = [
+        path
+        for path in task_dir.iterdir()
+        if path.is_dir()
+        and any(
+            (path / log_name).exists()
+            for log_name in ("test_train.log", "aug_test.log")
+        )
+    ]
+    if subset_dirs:
+        for subset_dir in sorted(subset_dirs):
             regular = parse_classification_score(subset_dir / "test_train.log")
             augmented = parse_classification_score(subset_dir / "aug_test.log")
             results.append(
@@ -174,18 +211,16 @@ def collect_classification_results(
                     scores=ScorePair(regular, augmented),
                 )
             )
-    else:
-        regular = parse_classification_score(task_dir / "test_train.log")
-        augmented = parse_classification_score(task_dir / "aug_test.log")
-        results.append(
-            ParsedResult(
-                model=model,
-                dataset=dataset_label(task, None),
-                task=task,
-                metric="Accuracy",
-                scores=ScorePair(regular, augmented),
-            )
+        return
+    results.append(
+        ParsedResult(
+            model=model,
+            dataset=dataset_label(task, None),
+            task=task,
+            metric="Accuracy",
+            scores=ScorePair(regular, augmented),
         )
+    )
 
 
 def format_score(value: float | None, digits: int) -> str:
