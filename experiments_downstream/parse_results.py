@@ -1,39 +1,18 @@
 #!/usr/bin/env python3
-"""Parse downstream evaluation logs into a summary table."""
+"""Parse downstream evaluation logs into pivot-style Markdown tables."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
+import pandas as pd
 
-@dataclass(frozen=True)
-class ScorePair:
-    regular: float | None
-    augmented: float | None
-
-
-@dataclass(frozen=True)
-class ParsedResult:
-    model: str
-    dataset: str
-    task: str
-    metric: str
-    scores: ScorePair
-
-
-CLONE_TASKS = {
-    "Clone-detection-POJ104",
-    "Clone-detection-CodeNet",
-}
-CLS_TASKS = {
-    "Code-classification-POJ104",
-    "Code-classification-CodeNet",
-}
+# ---------------------------------------------------------------------------
+# Score parsing helpers
+# ---------------------------------------------------------------------------
 
 MAP_PATTERN = re.compile(r"MAP@R\W*[:=]?\W*(\d*\.?\d+)")
 TEST_ACC_PATTERN = re.compile(r"\btest_acc\b\s*=\s*(\d*\.?\d+)")
@@ -82,189 +61,110 @@ def parse_classification_score(path: Path) -> float | None:
     return float(matches[-1])
 
 
-def iter_result_dirs(results_root: Path) -> Iterable[tuple[str, Path]]:
+# ---------------------------------------------------------------------------
+# Column definitions
+# ---------------------------------------------------------------------------
+
+# Ordered subsets that become column pairs (<subset>, <subset> aug).
+SUBSETS = ["Java250", "Python800", "C++1400", "POJ104"]
+
+# Map from task category to (codenet_task_dir_name, poj104_task_dir_name).
+CLONE_CODENET = "Clone-detection-CodeNet"
+CLONE_POJ104 = "Clone-detection-POJ104"
+CLS_CODENET = "Code-classification-CodeNet"
+CLS_POJ104 = "Code-classification-POJ104"
+
+
+# ---------------------------------------------------------------------------
+# Result collection
+# ---------------------------------------------------------------------------
+
+
+def _fmt(value: float | None, digits: int) -> str:
+    if value is None:
+        return "-"
+    return f"{value * 100:.{digits}f}"
+
+
+def _collect_clone_row(model_dir: Path, digits: int) -> dict[str, str]:
+    row: dict[str, str] = {}
+    # CodeNet subsets
+    codenet_dir = model_dir / CLONE_CODENET
+    for subset in ("Java250", "Python800", "C++1400"):
+        subset_dir = codenet_dir / subset
+        reg = parse_clone_score(subset_dir / "test.log")
+        aug = parse_clone_score(subset_dir / "aug_test.log")
+        row[subset] = _fmt(reg, digits)
+        row[f"{subset} aug"] = _fmt(aug, digits)
+    # POJ104 (logs directly in the task dir)
+    poj_dir = model_dir / CLONE_POJ104
+    reg = parse_clone_score(poj_dir / "test.log")
+    aug = parse_clone_score(poj_dir / "aug_test.log")
+    row["POJ104"] = _fmt(reg, digits)
+    row["POJ104 aug"] = _fmt(aug, digits)
+    return row
+
+
+def _collect_cls_row(model_dir: Path, digits: int) -> dict[str, str]:
+    row: dict[str, str] = {}
+    # CodeNet subsets
+    codenet_dir = model_dir / CLS_CODENET
+    for subset in ("Java250", "Python800", "C++1400"):
+        subset_dir = codenet_dir / subset
+        reg = parse_classification_score(subset_dir / "test_train.log")
+        aug = parse_classification_score(subset_dir / "aug_test.log")
+        row[subset] = _fmt(reg, digits)
+        row[f"{subset} aug"] = _fmt(aug, digits)
+    # POJ104
+    poj_dir = model_dir / CLS_POJ104
+    reg = parse_classification_score(poj_dir / "test_train.log")
+    aug = parse_classification_score(poj_dir / "aug_test.log")
+    row["POJ104"] = _fmt(reg, digits)
+    row["POJ104 aug"] = _fmt(aug, digits)
+    return row
+
+
+def build_table(
+    results_root: Path,
+    collector,
+    digits: int,
+) -> pd.DataFrame:
+    columns = []
+    for s in SUBSETS:
+        columns.extend([s, f"{s} aug"])
+
+    rows: list[dict[str, str]] = []
     if not results_root.exists():
-        return iter(())
+        return pd.DataFrame(columns=["Model"] + columns)
+
     for model_dir in sorted(results_root.iterdir()):
         if not model_dir.is_dir():
             continue
-        yield model_dir.name, model_dir
+        row = collector(model_dir, digits)
+        row["Model"] = model_dir.name
+        rows.append(row)
+
+    if not rows:
+        return pd.DataFrame(columns=["Model"] + columns)
+
+    df = pd.DataFrame(rows)
+    df = df[["Model"] + columns]
+    return df
 
 
-def infer_task(task_dir: Path) -> str | None:
-    name = task_dir.name
-    if name in CLONE_TASKS or name in CLS_TASKS:
-        return name
-    return None
-
-
-def dataset_label(task: str, subset: str | None) -> str:
-    if subset:
-        return f"{task}/{subset}"
-    return task
-
-
-def collect_results(results_root: Path) -> list[ParsedResult]:
-    results: list[ParsedResult] = []
-    for model_name, model_dir in iter_result_dirs(results_root):
-        for task_dir in sorted(model_dir.iterdir()):
-            if not task_dir.is_dir():
-                continue
-            task = infer_task(task_dir)
-            if task is None:
-                continue
-            if task in CLONE_TASKS:
-                collect_clone_results(results, model_name, task_dir, task)
-            elif task in CLS_TASKS:
-                collect_classification_results(results, model_name, task_dir, task)
-    return results
-
-
-def collect_clone_results(
-    results: list[ParsedResult],
-    model: str,
-    task_dir: Path,
-    task: str,
-) -> None:
-    regular = parse_clone_score(task_dir / "test.log")
-    augmented = parse_clone_score(task_dir / "aug_test.log")
-    if regular is not None or augmented is not None:
-        results.append(
-            ParsedResult(
-                model=model,
-                dataset=dataset_label(task, None),
-                task=task,
-                metric="MAP@R",
-                scores=ScorePair(regular, augmented),
-            )
-        )
-        return
-    subset_dirs = [
-        path
-        for path in task_dir.iterdir()
-        if path.is_dir()
-        and any((path / log_name).exists() for log_name in ("test.log", "aug_test.log"))
-    ]
-    if subset_dirs:
-        for subset_dir in sorted(subset_dirs):
-            regular = parse_clone_score(subset_dir / "test.log")
-            augmented = parse_clone_score(subset_dir / "aug_test.log")
-            results.append(
-                ParsedResult(
-                    model=model,
-                    dataset=dataset_label(task, subset_dir.name),
-                    task=task,
-                    metric="MAP@R",
-                    scores=ScorePair(regular, augmented),
-                )
-            )
-        return
-    results.append(
-        ParsedResult(
-            model=model,
-            dataset=dataset_label(task, None),
-            task=task,
-            metric="MAP@R",
-            scores=ScorePair(regular, augmented),
-        )
-    )
-
-
-def collect_classification_results(
-    results: list[ParsedResult],
-    model: str,
-    task_dir: Path,
-    task: str,
-) -> None:
-    regular = parse_classification_score(task_dir / "test_train.log")
-    augmented = parse_classification_score(task_dir / "aug_test.log")
-    if regular is not None or augmented is not None:
-        results.append(
-            ParsedResult(
-                model=model,
-                dataset=dataset_label(task, None),
-                task=task,
-                metric="Accuracy",
-                scores=ScorePair(regular, augmented),
-            )
-        )
-        return
-    subset_dirs = [
-        path
-        for path in task_dir.iterdir()
-        if path.is_dir()
-        and any(
-            (path / log_name).exists()
-            for log_name in ("test_train.log", "aug_test.log")
-        )
-    ]
-    if subset_dirs:
-        for subset_dir in sorted(subset_dirs):
-            regular = parse_classification_score(subset_dir / "test_train.log")
-            augmented = parse_classification_score(subset_dir / "aug_test.log")
-            results.append(
-                ParsedResult(
-                    model=model,
-                    dataset=dataset_label(task, subset_dir.name),
-                    task=task,
-                    metric="Accuracy",
-                    scores=ScorePair(regular, augmented),
-                )
-            )
-        return
-    results.append(
-        ParsedResult(
-            model=model,
-            dataset=dataset_label(task, None),
-            task=task,
-            metric="Accuracy",
-            scores=ScorePair(regular, augmented),
-        )
-    )
-
-
-def format_score(value: float | None, digits: int) -> str:
-    if value is None:
-        return "-"
-    return f"{value * 100:.{digits}f}%"
-
-
-def render_table(results: list[ParsedResult], digits: int) -> str:
-    headers = ["Model", "Dataset", "Metric", "Regular (%)", "Augmented (%)"]
-    rows = []
-    for result in results:
-        rows.append(
-            [
-                result.model,
-                result.dataset,
-                result.metric,
-                format_score(result.scores.regular, digits),
-                format_score(result.scores.augmented, digits),
-            ]
-        )
-
-    widths = [len(h) for h in headers]
-    for row in rows:
-        for idx, value in enumerate(row):
-            widths[idx] = max(widths[idx], len(value))
-
-    header_line = "  ".join(h.ljust(widths[idx]) for idx, h in enumerate(headers))
-    divider = "  ".join("-" * widths[idx] for idx in range(len(headers)))
-    body = [
-        "  ".join(row[idx].ljust(widths[idx]) for idx in range(len(headers)))
-        for row in rows
-    ]
-    return "\n".join([header_line, divider, *body])
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Parse downstream results into a table."
+        description="Parse downstream results into pivot Markdown tables."
     )
     parser.add_argument(
         "--results-root",
         default="results",
-        help="Root directory containing result folders.",
+        help="Root directory containing model result folders.",
     )
     parser.add_argument(
         "--digits",
@@ -278,11 +178,25 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     results_root = Path(args.results_root).resolve()
-    results = collect_results(results_root)
-    if not results:
+
+    clone_df = build_table(results_root, _collect_clone_row, args.digits)
+    cls_df = build_table(results_root, _collect_cls_row, args.digits)
+
+    found = False
+    if not clone_df.empty:
+        found = True
+        print("# Clone Detection (MAP@R)\n")
+        print(clone_df.to_markdown(index=False))
+        print()
+
+    if not cls_df.empty:
+        found = True
+        print("# Code Classification (Acc)\n")
+        print(cls_df.to_markdown(index=False))
+        print()
+
+    if not found:
         print(f"No results found under {results_root}")
-        return
-    print(render_table(results, args.digits))
 
 
 if __name__ == "__main__":
