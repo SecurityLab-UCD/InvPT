@@ -266,7 +266,8 @@ Pre-generated per-model evaluation scripts live in `experiments_downstream/`, in
 ModernBERT variants. Regenerate them with `python3 experiments_downstream/gen_all.py`.
 
 To launch the 8 downstream tasks (clone detection + code classification across POJ and
-CodeNet) in parallel on 8 GPUs, use the helper script in `experiments_downstream/`:
+CodeNet) in parallel on 8 GPUs, use the helper script in `experiments_downstream/`.
+Each subtask writes to its own output directory (e.g., `results/<model>/<task>/<subset>/`):
 
 ```sh
 python experiments_downstream/run_all_downstream.py --loss supcon --model inv-codebert

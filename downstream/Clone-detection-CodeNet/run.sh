@@ -5,7 +5,12 @@ subset=$3
 model_type=${4:-roberta}
 tokenizer_name=${5:-roberta-base}
 
-output_dir=$save_path/$subset
+base_name=$(basename "$save_path")
+if [ "$base_name" = "$subset" ]; then
+    output_dir=$save_path
+else
+    output_dir=$save_path/$subset
+fi
 
 mkdir -p $output_dir
 touch $output_dir/train.log

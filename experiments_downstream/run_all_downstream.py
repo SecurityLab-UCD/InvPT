@@ -99,18 +99,19 @@ def run_task(
         model_path = str((root / model_path[2:]).resolve())
 
     results_base = results_root / model_key / task_dir
-    results_base_str = str(results_base.resolve())
-    log_path = results_base / "run.log"
+    results_dir = results_base / subset if subset else results_base
+    results_dir_str = str(results_dir.resolve())
+    log_path = results_dir / "run.log"
 
     cmd = ["./run.sh", model_path]
     if task_dir == "Clone-detection-POJ104":
-        cmd.extend([results_base_str, spec.model_type, spec.tokenizer_name])
+        cmd.extend([results_dir_str, spec.model_type, spec.tokenizer_name])
     elif task_dir == "Clone-detection-CodeNet":
         if subset is None:
             raise ValueError("Subset is required for Clone-detection-CodeNet")
         cmd.extend(
             [
-                results_base_str,
+                results_dir_str,
                 subset,
                 spec.model_type,
                 spec.tokenizer_name,
@@ -121,7 +122,7 @@ def run_task(
             raise ValueError("Subset is required for Code-classification-POJ104")
         cmd.extend(
             [
-                results_base_str,
+                results_dir_str,
                 subset,
                 spec.model_type,
                 spec.tokenizer_name,
@@ -132,7 +133,7 @@ def run_task(
             raise ValueError("Subset is required for Code-classification-CodeNet")
         cmd.extend(
             [
-                results_base_str,
+                results_dir_str,
                 subset,
                 spec.model_type,
                 spec.tokenizer_name,
@@ -151,7 +152,7 @@ def run_task(
         print(f"         cmd: {' '.join(cmd)}")
         return None
 
-    results_base.mkdir(parents=True, exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_path.open("w")
     log_file.write(f"[launch] GPU {gpu_id}: {label}\n")
     log_file.write(f"[launch] cwd: {task_path}\n")
