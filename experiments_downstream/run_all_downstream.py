@@ -202,7 +202,9 @@ def main(
         None, "--loss", help="Training loss identifier (e.g., supcon)."
     ),
     model: str = typer.Option(
-        None, "--model", help="Pretrained model key (e.g., inv-codebert)."
+        None,
+        "--model",
+        help="Pretrained model key(s), comma-separated (e.g., inv-codebert,inv-graphcodebert).",
     ),
     gpus: str = typer.Option(
         "0,1,2,3,4,5,6,7",
@@ -233,10 +235,14 @@ def main(
             raise typer.BadParameter(
                 "Either --all or both --model and --loss are required"
             )
-        model_key = model.strip()
         loss_key = loss.strip()
-        spec = resolve_model(model_key, loss_key)
-        entries = [((model_key, loss_key), spec)]
+        model_keys = [m.strip() for m in model.split(",") if m.strip()]
+        if not model_keys:
+            raise typer.BadParameter("No model keys provided")
+        entries = []
+        for model_key in model_keys:
+            spec = resolve_model(model_key, loss_key)
+            entries.append(((model_key, loss_key), spec))
 
     gpu_ids = [gpu.strip() for gpu in gpus.split(",") if gpu.strip()]
     if not gpu_ids:
