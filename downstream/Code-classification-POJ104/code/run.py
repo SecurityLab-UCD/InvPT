@@ -99,7 +99,7 @@ def convert_examples_to_features(js, tokenizer, args):
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer, args, file_path: str):
-        file_path = cast(str, file_path)
+        file_path = str(file_path)
         self.examples = []
         with open(file_path) as f:
             for line in f:
