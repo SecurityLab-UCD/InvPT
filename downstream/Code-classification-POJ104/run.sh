@@ -16,6 +16,11 @@ mkdir -p $output_dir
 touch $output_dir/test_train.log
 
 echo "Running fine-tuning for POJ104"
+train_suffix=""
+if [ -n "$subset" ]; then
+    train_suffix="/$subset"
+fi
+
 python ./code/run.py \
     --output_dir=$output_dir \
     --model_type=$model_type \
@@ -23,9 +28,9 @@ python ./code/run.py \
     --model_name_or_path=$model_path \
     --do_train \
     --do_test \
-    --train_data_file=./dataset/$subset/train.jsonl \
-    --eval_data_file=./dataset/$subset/valid.jsonl \
-    --test_data_file=./dataset/$subset/test.jsonl \
+    --train_data_file=./dataset${train_suffix}/train.jsonl \
+    --eval_data_file=./dataset${train_suffix}/valid.jsonl \
+    --test_data_file=./dataset${train_suffix}/test.jsonl \
     --num_train_epochs 10 \
     --block_size 512 \
     --train_batch_size 32 \
