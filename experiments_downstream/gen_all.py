@@ -31,13 +31,13 @@ models = [
     # Our trained models
     (
         "inv-codebert",
-        "./saved_models/InvCodeBERT-supcon",
+        "./saved_models/InvCodeBERT-supcon/final",
         "microsoft/codebert-base",
         "roberta",
     ),
     (
         "inv-graphcodebert",
-        "./saved_models/InvGraphCodeBERT-supcon",
+        "./saved_models/InvGraphCodeBERT-supcon/final",
         "microsoft/graphcodebert-base",
         "roberta",
     ),

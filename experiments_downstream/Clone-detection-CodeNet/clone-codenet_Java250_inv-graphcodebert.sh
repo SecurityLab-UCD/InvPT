@@ -11,4 +11,4 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 export CUDA_VISIBLE_DEVICES="$CUDA_DEVICE"
 
 cd "$ROOT_DIR/downstream/Clone-detection-CodeNet"
-./run.sh "$ROOT_DIR/saved_models/InvGraphCodeBERT-supcon" "$ROOT_DIR/results/inv-graphcodebert/Clone-detection-CodeNet" Java250 roberta microsoft/graphcodebert-base
+./run.sh "$ROOT_DIR/saved_models/InvGraphCodeBERT-supcon/final" "$ROOT_DIR/results/inv-graphcodebert/Clone-detection-CodeNet" Java250 roberta microsoft/graphcodebert-base

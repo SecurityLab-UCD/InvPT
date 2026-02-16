@@ -11,4 +11,4 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 export CUDA_VISIBLE_DEVICES="$CUDA_DEVICE"
 
 cd "$ROOT_DIR/downstream/Defect-detection"
-./run.sh "$ROOT_DIR/saved_models/InvCodeBERT-supcon" "$ROOT_DIR/results/inv-codebert/Defect-detection"
+./run.sh "$ROOT_DIR/saved_models/InvCodeBERT-supcon/final" "$ROOT_DIR/results/inv-codebert/Defect-detection"
