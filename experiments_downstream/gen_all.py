@@ -31,27 +31,33 @@ models = [
     # Our trained models
     (
         "inv-codebert",
-        "./saved_models/InvCodeBERT-supcon",
+        "./saved_models/InvCodeBERT-supcon/final",
         "microsoft/codebert-base",
         "roberta",
     ),
     (
         "inv-graphcodebert",
-        "./saved_models/InvGraphCodeBERT-supcon",
+        "./saved_models/InvGraphCodeBERT-supcon/final",
         "microsoft/graphcodebert-base",
         "roberta",
     ),
     (
         "inv-contrabert_c",
-        "./saved_models/InvContraBERT_C-supcon",
+        "./saved_models/InvContraBERT_C-supcon/final",
         "microsoft/codebert-base",
         "roberta",
     ),
     (
         "inv-contrabert_g",
-        "./saved_models/InvContraBERT_G-supcon",
+        "./saved_models/InvContraBERT_G-supcon/final",
         "microsoft/graphcodebert-base",
         "roberta",
+    ),
+    (
+        "inv-modernbert",
+        "./saved_models/aug-only/InvModernBERT-supcon/final",
+        "answerdotai/ModernBERT-base",
+        "modernbert",
     ),
 ]
 
@@ -69,6 +75,13 @@ def model_ref(model_path: str) -> str:
     return model_path
 
 
+def tokenizer_ref(tokenizer_path: str) -> str:
+    """Return the shell expression for the tokenizer path."""
+    if tokenizer_path.startswith("./"):
+        return f'"{D}ROOT_DIR/{tokenizer_path[2:]}"'
+    return tokenizer_path
+
+
 def make_script(
     task_dir: str,
     short: str,
@@ -84,8 +97,14 @@ def make_script(
             "#!/bin/bash",
             f"# Downstream evaluation: {task_dir}{sl} with {short}",
             "set -euo pipefail",
+            "",
+            "# Parse CUDA device argument (default: 0)",
+            'CUDA_DEVICE="${1:-0}"',
+            "",
             SD_LINE,
             RD_LINE,
+            "",
+            'export CUDA_VISIBLE_DEVICES="$CUDA_DEVICE"',
             "",
             f'cd "{D}ROOT_DIR/downstream/{task_dir}"',
             f"./run.sh {mr} {op}{args_extra}",
@@ -104,12 +123,13 @@ def write_script(task_dir: str, fname: str, content: str) -> None:
 
 count = 0
 for short, mpath, tok, mtype in models:
+    tok_ref = tokenizer_ref(tok)
     # Clone-detection-POJ104: run.sh <model> <output> <model_type> <tokenizer>
     write_script(
         "Clone-detection-POJ104",
         f"clone-poj104_{short}.sh",
         make_script(
-            "Clone-detection-POJ104", short, mpath, args_extra=f" {mtype} {tok}"
+            "Clone-detection-POJ104", short, mpath, args_extra=f" {mtype} {tok_ref}"
         ),
     )
     count += 1
@@ -124,7 +144,7 @@ for short, mpath, tok, mtype in models:
                 short,
                 mpath,
                 subset=sub,
-                args_extra=f" {sub} {mtype} {tok}",
+                args_extra=f" {sub} {mtype} {tok_ref}",
             ),
         )
         count += 1
@@ -138,15 +158,15 @@ for short, mpath, tok, mtype in models:
     count += 1
 
     # Code-classification-POJ104: run.sh <model> <save_path> <subset> <model_type> <tokenizer>
+    # POJ104 has no language subsets — data lives directly in ./dataset/
     write_script(
         "Code-classification-POJ104",
-        f"cls-poj104_Cpp_{short}.sh",
+        f"cls-poj104_{short}.sh",
         make_script(
             "Code-classification-POJ104",
             short,
             mpath,
-            subset="Cpp",
-            args_extra=f" Cpp {mtype} {tok}",
+            args_extra=f' "" {mtype} {tok_ref}',
         ),
     )
     count += 1
@@ -161,7 +181,7 @@ for short, mpath, tok, mtype in models:
                 short,
                 mpath,
                 subset=sub,
-                args_extra=f" {sub} {mtype} {tok}",
+                args_extra=f" {sub} {mtype} {tok_ref}",
             ),
         )
         count += 1

@@ -53,6 +53,22 @@ MODEL_CLASSES = {
     "modernbert": (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
 }
 
+
+def resolve_model_type(model_type, model_name_or_path):
+    if model_type in MODEL_CLASSES:
+        return model_type
+    candidate = model_name_or_path or model_type or ""
+    name = candidate.lower()
+    resolved = "modernbert" if "modernbert" in name else "roberta"
+    logger.warning(
+        "Unknown model_type '%s'; inferring '%s' from '%s'.",
+        model_type,
+        resolved,
+        candidate,
+    )
+    return resolved
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,7 +98,8 @@ def convert_examples_to_features(js, tokenizer, args):
 
 
 class TextDataset(Dataset):
-    def __init__(self, tokenizer, args, file_path=None):
+    def __init__(self, tokenizer, args, file_path: str):
+        file_path = str(file_path)
         self.examples = []
         with open(file_path) as f:
             for line in f:
@@ -429,6 +446,7 @@ def main():
     # Set seed
     set_seed(args.seed)
 
+    args.model_type = resolve_model_type(args.model_type, args.model_name_or_path)
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     config = config_class.from_pretrained(args.model_name_or_path)
     config.num_labels = 104
@@ -456,7 +474,8 @@ def main():
     if args.do_eval:
         checkpoint_prefix = "checkpoint-best-acc/model.bin"
         output_dir = os.path.join(args.output_dir, "{}".format(checkpoint_prefix))
-        model.load_state_dict(torch.load(output_dir))
+        model_to_load = model.module if hasattr(model, "module") else model
+        model_to_load.load_state_dict(torch.load(output_dir))
         model.to(args.device)
         result = evaluate(args, model, tokenizer)
         logger.info("***** Eval results *****")
@@ -466,7 +485,8 @@ def main():
     if args.do_test:
         checkpoint_prefix = "checkpoint-best-acc/model.bin"
         output_dir = os.path.join(args.output_dir, "{}".format(checkpoint_prefix))
-        model.load_state_dict(torch.load(output_dir))
+        model_to_load = model.module if hasattr(model, "module") else model
+        model_to_load.load_state_dict(torch.load(output_dir))
         model.to(args.device)
         result = test(args, model, tokenizer)
         logger.info("***** Test results *****")

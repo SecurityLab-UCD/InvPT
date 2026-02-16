@@ -194,3 +194,4 @@ cplus_transforms/traverse.py
 *.pdf
 
 .references/*
+/results/

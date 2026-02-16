@@ -93,6 +93,7 @@ def _make_modernbert_wrapper(
         num_attention_heads=num_attention_heads,
         intermediate_size=intermediate_size,
         max_position_embeddings=max_position_embeddings,
+        pad_token_id=0,
     )
     mlm = ModernBertForMaskedLM(config)
     return SplitHeadWrapper(mlm)
