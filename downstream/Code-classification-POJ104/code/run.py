@@ -474,7 +474,8 @@ def main():
     if args.do_eval:
         checkpoint_prefix = "checkpoint-best-acc/model.bin"
         output_dir = os.path.join(args.output_dir, "{}".format(checkpoint_prefix))
-        model.load_state_dict(torch.load(output_dir))
+        model_to_load = model.module if hasattr(model, "module") else model
+        model_to_load.load_state_dict(torch.load(output_dir))
         model.to(args.device)
         result = evaluate(args, model, tokenizer)
         logger.info("***** Eval results *****")
@@ -484,7 +485,8 @@ def main():
     if args.do_test:
         checkpoint_prefix = "checkpoint-best-acc/model.bin"
         output_dir = os.path.join(args.output_dir, "{}".format(checkpoint_prefix))
-        model.load_state_dict(torch.load(output_dir))
+        model_to_load = model.module if hasattr(model, "module") else model
+        model_to_load.load_state_dict(torch.load(output_dir))
         model.to(args.device)
         result = test(args, model, tokenizer)
         logger.info("***** Test results *****")

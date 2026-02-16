@@ -882,14 +882,16 @@ def main():
     if args.do_eval and args.local_rank in [-1, 0]:
         checkpoint_prefix = "checkpoint-best-f1/model.bin"
         output_dir = os.path.join(args.output_dir, "{}".format(checkpoint_prefix))
-        model.load_state_dict(torch.load(output_dir))
+        model_to_load = model.module if hasattr(model, "module") else model
+        model_to_load.load_state_dict(torch.load(output_dir))
         model.to(args.device)
         result = evaluate(args, model, tokenizer, pool=pool)
 
     if args.do_test and args.local_rank in [-1, 0]:
         checkpoint_prefix = "checkpoint-best-f1/model.bin"
         output_dir = os.path.join(args.output_dir, "{}".format(checkpoint_prefix))
-        model.load_state_dict(torch.load(output_dir))
+        model_to_load = model.module if hasattr(model, "module") else model
+        model_to_load.load_state_dict(torch.load(output_dir))
         model.to(args.device)
         test(args, model, tokenizer, pool=pool, best_threshold=0.5)
 

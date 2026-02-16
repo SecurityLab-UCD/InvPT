@@ -45,4 +45,4 @@ python evaluator/evaluator.py \
 
 
 echo "Running evaluation for augmented test set..."
-./run_aug_test.sh $model_path $save_path $subset $model_type $tokenizer_name
+./run_aug_test.sh "$model_path" "$save_path" "$subset" "$model_type" "$tokenizer_name"

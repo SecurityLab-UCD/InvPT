@@ -40,4 +40,4 @@ python ./code/run.py \
     --seed 123456  2>&1 | tee $output_dir/test_train.log
 
 echo "Running evaluation for augmented test set..."
-./run_aug_test.sh $model_path $save_path $subset $model_type $tokenizer_name
+./run_aug_test.sh "$model_path" "$save_path" "$subset" "$model_type" "$tokenizer_name"
