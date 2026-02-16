@@ -1,5 +1,5 @@
 #!/bin/bash
-# Downstream evaluation: Code-classification-POJ104 (Cpp) with inv-codebert
+# Downstream evaluation: Code-classification-POJ104 with contrabert_g
 set -euo pipefail
 
 # Parse CUDA device argument (default: 0)
@@ -11,4 +11,4 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 export CUDA_VISIBLE_DEVICES="$CUDA_DEVICE"
 
 cd "$ROOT_DIR/downstream/Code-classification-POJ104"
-./run.sh "$ROOT_DIR/saved_models/InvCodeBERT-supcon" "$ROOT_DIR/results/inv-codebert/Code-classification-POJ104" Cpp roberta microsoft/codebert-base
+./run.sh "$ROOT_DIR/saved_models/ContraBERT_G" "$ROOT_DIR/results/contrabert_g/Code-classification-POJ104" "" roberta microsoft/graphcodebert-base

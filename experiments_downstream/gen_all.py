@@ -158,15 +158,15 @@ for short, mpath, tok, mtype in models:
     count += 1
 
     # Code-classification-POJ104: run.sh <model> <save_path> <subset> <model_type> <tokenizer>
+    # POJ104 has no language subsets — data lives directly in ./dataset/
     write_script(
         "Code-classification-POJ104",
-        f"cls-poj104_Cpp_{short}.sh",
+        f"cls-poj104_{short}.sh",
         make_script(
             "Code-classification-POJ104",
             short,
             mpath,
-            subset="Cpp",
-            args_extra=f" Cpp {mtype} {tok_ref}",
+            args_extra=f' "" {mtype} {tok_ref}',
         ),
     )
     count += 1
