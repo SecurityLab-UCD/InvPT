@@ -27,16 +27,18 @@ Config: `experiments/supcon/codebert.yaml` (run name `InvCodeBERT-supcon`).
 | 1c  | Full method      | Control — both losses together.                           | `supcon/codebert.yaml`           |
 | 2   | No self-contrast | Is self-contrast (same code, different masks) beneficial? | `ablation/no_self_contrast.yaml` |
 | 3   | InfoNCE          | Does SupCon's multi-positive masking outperform InfoNCE?  | `ablation/infonce.yaml`          |
+| 4   | + NL (bimodal)   | Is PL-only training better than bimodal NL+PL training?   | `ablation/include_nl.yaml`       |
 
 ### What changes per ablation
 
-| #   | `mlm_weight` | `alpha` | `contra_mode` | `self_contrast` | run_name                           |
-| --- | :----------: | :-----: | ------------- | :-------------: | ---------------------------------- |
-| 1a  |     1.0      |  **0**  | supcon        |      true       | `InvCodeBERT-ablation-mlm-only`    |
-| 1b  |    **0**     |   1.0   | supcon        |      true       | `InvCodeBERT-ablation-contra-only` |
-| 1c  |     1.0      |   1.0   | supcon        |      true       | `InvCodeBERT-supcon`               |
-| 2   |     1.0      |   1.0   | supcon        |    **false**    | `InvCodeBERT-ablation-no-selfcon`  |
-| 3   |     1.0      |   1.0   | **info_nce**  |      true       | `InvCodeBERT-ablation-infonce`     |
+| #   | `mlm_weight` | `alpha` | `contra_mode` | `self_contrast` | `include_nl` | run_name                           |
+| --- | :----------: | :-----: | ------------- | :-------------: | :----------: | ---------------------------------- |
+| 1a  |     1.0      |  **0**  | supcon        |      true       |    false     | `InvCodeBERT-ablation-mlm-only`    |
+| 1b  |    **0**     |   1.0   | supcon        |      true       |    false     | `InvCodeBERT-ablation-contra-only` |
+| 1c  |     1.0      |   1.0   | supcon        |      true       |    false     | `InvCodeBERT-supcon`               |
+| 2   |     1.0      |   1.0   | supcon        |    **false**    |    false     | `InvCodeBERT-ablation-no-selfcon`  |
+| 3   |     1.0      |   1.0   | **info_nce**  |      true       |    false     | `InvCodeBERT-ablation-infonce`     |
+| 4   |     1.0      |   1.0   | supcon        |      true       |   **true**   | `InvCodeBERT-ablation-include-nl`  |
 
 ## Ablation Details
 
@@ -95,11 +97,62 @@ augmentations of the same function within a batch are treated as positives.
 improves learning by avoiding false negatives (same-function augmentations pushed
 apart). See `doc/supervised_contrastive_mask.md` for a detailed comparison.
 
+### 4 — Include NL (`include_nl=true`)
+
+Re-introduces natural language docstrings into the pre-training input, restoring
+the bimodal NL+PL setup used by CodeBERT, GraphCodeBERT, and ContraBERT. When
+`include_nl=true`, each code input is formatted as `[CLS] <docstring> [SEP]
+<code> [EOS]` instead of the default `[CLS] <code> [EOS]`. The same
+prepending applies to the invariant-transformed code.
+
+This ablation directly tests InvPT's core hypothesis: that PL-only pre-training
+is sufficient (and preferable) for learning robust code representations. Prior
+work universally relies on NL-PL paired training, and the ICSE'26 submission
+showed that adding NL back actually *degraded* performance while consuming more
+memory — likely due to overfitting on NL descriptions rather than learning
+program semantics.
+
+**Expected outcome.** The PL-only control should outperform this NL-inclusive
+variant, especially on robustness, confirming that docstrings are not needed and
+can even be harmful for invariant pre-training.
+
+**Code change required.** Add an `include_nl: bool = False` parameter to
+`PretrainConfig`. In `tokenize_grouped`, when `include_nl=true`, prepend the
+docstring to the code before tokenization (for both anchor and augmented
+inputs). The docstring field is already carried through the data pipeline but
+currently unused during tokenization.
+
+| File                   | Change                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| `modeling/config.py`   | Add `include_nl: bool = False` to `PretrainConfig`                  |
+| `modeling/pretrain.py` | `tokenize_grouped` prepends docstring to code when `include_nl` set |
+
+## Tier 2 — MoCo (optional, if time and space allow)
+
+MoCo (Momentum Contrast) uses a separate momentum-updated encoder for the
+augmented view, decoupling gradient updates between the original and augmented
+branches. ContraBERT adopted MoCo to stabilize contrastive learning for code.
+
+InvPT hypothesizes that MoCo is unnecessary in our setting: unlike CV
+augmentations (cropping, color jitter) that produce merely *similar* images, our
+invariant code transformations produce *genuinely* semantically equivalent
+programs. A single shared encoder should therefore be stable enough without
+momentum decoupling. Our ICSE'26 results supported this — adding MoCo to InvBERT
+slightly improved robustness but degraded normal performance, while adding
+significant architectural and computational overhead.
+
+If we have compute budget and paper space remaining, we can add a MoCo ablation
+to empirically confirm this for the COLM submission. This would require
+implementing a momentum encoder wrapper and a `use_moco: bool` config flag.
+Lower priority than the Tier 1 ablations above.
+
 ## Code Changes
 
-Only ablation 1b required modifying source code. The other ablations were
+Ablations 1b and 4 required modifying source code. The other ablations were
 already expressible through existing config parameters (`alpha`,
 `self_contrast`, `contra_mode`).
+
+### Ablation 1b — `mlm_weight`
 
 | File                   | Change                                                                                                                          |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,6 +163,15 @@ already expressible through existing config parameters (`alpha`,
 
 The default `mlm_weight=1.0` preserves existing behavior for all current
 experiments.
+
+### Ablation 4 — `include_nl`
+
+| File                   | Change                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| `modeling/config.py`   | Add `include_nl: bool = False` to `PretrainConfig`                  |
+| `modeling/pretrain.py` | `tokenize_grouped` prepends docstring to code when `include_nl` set |
+
+The default `include_nl=False` preserves existing PL-only behavior.
 
 ## Running
 
@@ -124,6 +186,7 @@ python -m modeling run experiments/ablation/mlm_only.yaml --sample-rate 0.01
 python -m modeling run experiments/ablation/contra_only.yaml --sample-rate 0.01
 python -m modeling run experiments/ablation/no_self_contrast.yaml --sample-rate 0.01
 python -m modeling run experiments/ablation/infonce.yaml --sample-rate 0.01
+python -m modeling run experiments/ablation/include_nl.yaml --sample-rate 0.01
 ```
 
 ### What to verify
@@ -132,3 +195,4 @@ python -m modeling run experiments/ablation/infonce.yaml --sample-rate 0.01
 - **contra_only:** MLM loss contributes 0 to total loss (mlm_weight=0).
 - **no_self_contrast:** Dataset is smaller (filtered rows without augmentation).
 - **infonce:** Loss function dispatches to `info_nce_loss` instead of `supcon_loss`.
+- **include_nl:** Tokenized inputs start with docstring before code (`[CLS] docstring [SEP] code [EOS]`).
