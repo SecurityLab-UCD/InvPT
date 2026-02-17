@@ -9,7 +9,7 @@ for cfg in experiments/ablation/*.yaml; do
     echo "Running: $cfg"
     echo "Started: $(date)"
     echo "=========================================="
-    python -m modeling run "$cfg"
+    uv run modeling/cli.py run "$cfg"
     echo "Finished: $(date)"
     echo ""
 done
