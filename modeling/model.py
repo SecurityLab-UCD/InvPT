@@ -328,6 +328,7 @@ class ContrastiveTrainer(Trainer):
     def __init__(
         self,
         alpha=1.0,
+        mlm_weight=1.0,
         temperature=0.07,
         contra_mode="info_nce",
         pooling="cls",
@@ -336,6 +337,7 @@ class ContrastiveTrainer(Trainer):
     ):
         super().__init__(*args, **kwargs)
         self.alpha = alpha
+        self.mlm_weight = mlm_weight
         self.temperature = temperature
         self.contra_mode = ContraMode(contra_mode)
         self.pooling = pooling
@@ -407,7 +409,7 @@ class ContrastiveTrainer(Trainer):
                 self.temperature,
             )
 
-        total_loss = mlm_loss + self.alpha * contrastive_loss
+        total_loss = self.mlm_weight * mlm_loss + self.alpha * contrastive_loss
 
         return (total_loss, None) if return_outputs else total_loss
 
@@ -451,7 +453,7 @@ class ContrastiveTrainer(Trainer):
             code_embeddings, aug_embeddings, group_sizes, self.temperature
         )
 
-        total_loss = mlm_loss + self.alpha * contrastive_loss
+        total_loss = self.mlm_weight * mlm_loss + self.alpha * contrastive_loss
 
         return (total_loss, None) if return_outputs else total_loss
 

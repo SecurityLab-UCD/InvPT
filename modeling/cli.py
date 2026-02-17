@@ -109,6 +109,7 @@ def pretrain(
         str,
         typer.Option(help="Pooling strategy for contrastive embeddings (cls or mean)."),
     ] = "cls",
+    mlm_weight: Annotated[float, typer.Option(help="Weight for MLM loss.")] = 1.0,
 ) -> None:
     """Run pre-training with all parameters specified as CLI options.
 
@@ -137,6 +138,7 @@ def pretrain(
         self_contrast=self_contrast,
         model_type=model_type,
         pooling=pooling,
+        mlm_weight=mlm_weight,
     )
 
 

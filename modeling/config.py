@@ -25,6 +25,7 @@ class PretrainConfig:
     learning_rate: float = 2e-4
     resume: bool = False
     alpha: float = 1.0
+    mlm_weight: float = 1.0
     temperature: float = 0.07
     max_seq_length: int = 256
     sample_rate: float = 1.0

@@ -226,6 +226,7 @@ def main(
     self_contrast: bool = True,
     model_type: str = "roberta",
     pooling: str = "cls",
+    mlm_weight: float = 1.0,
 ):
     set_seed(seed)
 
@@ -352,6 +353,7 @@ def main(
         data_collator=collator_fn,
         processing_class=tokenizer,
         alpha=alpha,
+        mlm_weight=mlm_weight,
         temperature=temperature,
         contra_mode=contra_mode,
         pooling=pooling,
