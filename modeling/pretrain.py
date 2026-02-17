@@ -32,19 +32,36 @@ def compute_function_id(code: str) -> int:
     return int.from_bytes(digest[:8], "big") & 0x7FFFFFFFFFFFFFFF
 
 
-def tokenize(tokenizer, example, max_seq_length=256):
-    code_inputs = tokenizer(
-        example["code"],
-        truncation=True,
-        max_length=max_seq_length,
-        return_special_tokens_mask=True,
-    )
-    aug_inputs = tokenizer(
-        example["transformed"],
-        truncation=True,
-        max_length=max_seq_length,
-        return_special_tokens_mask=True,
-    )
+def tokenize(tokenizer, example, max_seq_length=256, include_nl=False):
+    if include_nl:
+        # Bimodal: [CLS] docstring [SEP] code [EOS]
+        code_inputs = tokenizer(
+            example["docstring"],
+            example["code"],
+            truncation=True,
+            max_length=max_seq_length,
+            return_special_tokens_mask=True,
+        )
+        aug_inputs = tokenizer(
+            example["docstring"],
+            example["transformed"],
+            truncation=True,
+            max_length=max_seq_length,
+            return_special_tokens_mask=True,
+        )
+    else:
+        code_inputs = tokenizer(
+            example["code"],
+            truncation=True,
+            max_length=max_seq_length,
+            return_special_tokens_mask=True,
+        )
+        aug_inputs = tokenizer(
+            example["transformed"],
+            truncation=True,
+            max_length=max_seq_length,
+            return_special_tokens_mask=True,
+        )
     result = {
         "code_input_ids": code_inputs["input_ids"],
         "code_attention_mask": code_inputs["attention_mask"],
@@ -134,18 +151,31 @@ def regroup_dataset(dataset, max_num_augs: int = 6) -> Dataset:
     return Dataset.from_dict(result)
 
 
-def tokenize_grouped(tokenizer, example, max_seq_length=256, max_num_augs=6):
+def tokenize_grouped(
+    tokenizer, example, max_seq_length=256, max_num_augs=6, include_nl=False
+):
     """Tokenize a grouped example: one anchor + list of augmentations.
 
     Works with both single examples and batched examples (HF ``.map(batched=True)``).
     """
-    code_inputs = tokenizer(
-        example["code"],
-        padding="max_length",
-        truncation=True,
-        max_length=max_seq_length,
-        return_special_tokens_mask=True,
-    )
+    if include_nl:
+        # Bimodal: [CLS] docstring [SEP] code [EOS]
+        code_inputs = tokenizer(
+            example["docstring"],
+            example["code"],
+            padding="max_length",
+            truncation=True,
+            max_length=max_seq_length,
+            return_special_tokens_mask=True,
+        )
+    else:
+        code_inputs = tokenizer(
+            example["code"],
+            padding="max_length",
+            truncation=True,
+            max_length=max_seq_length,
+            return_special_tokens_mask=True,
+        )
     result = {
         "code_input_ids": code_inputs["input_ids"],
         "code_attention_mask": code_inputs["attention_mask"],
@@ -164,13 +194,24 @@ def tokenize_grouped(tokenizer, example, max_seq_length=256, max_num_augs=6):
             # Only tokenize real augmentations (non-empty)
             real_transforms = transforms[:num]
             if real_transforms:
-                aug_inputs = tokenizer(
-                    real_transforms,
-                    padding="max_length",
-                    truncation=True,
-                    max_length=max_seq_length,
-                    return_special_tokens_mask=True,
-                )
+                if include_nl:
+                    docstring_i = example["docstring"][i]
+                    aug_inputs = tokenizer(
+                        [docstring_i] * len(real_transforms),
+                        real_transforms,
+                        padding="max_length",
+                        truncation=True,
+                        max_length=max_seq_length,
+                        return_special_tokens_mask=True,
+                    )
+                else:
+                    aug_inputs = tokenizer(
+                        real_transforms,
+                        padding="max_length",
+                        truncation=True,
+                        max_length=max_seq_length,
+                        return_special_tokens_mask=True,
+                    )
                 all_aug_ids.append(aug_inputs["input_ids"])
                 all_aug_masks.append(aug_inputs["attention_mask"])
                 all_aug_special.append(aug_inputs["special_tokens_mask"])
@@ -186,13 +227,23 @@ def tokenize_grouped(tokenizer, example, max_seq_length=256, max_num_augs=6):
         num = example["num_augs"]
         real_transforms = example["transformed_list"][:num]
         if real_transforms:
-            aug_inputs = tokenizer(
-                real_transforms,
-                padding="max_length",
-                truncation=True,
-                max_length=max_seq_length,
-                return_special_tokens_mask=True,
-            )
+            if include_nl:
+                aug_inputs = tokenizer(
+                    [example["docstring"]] * len(real_transforms),
+                    real_transforms,
+                    padding="max_length",
+                    truncation=True,
+                    max_length=max_seq_length,
+                    return_special_tokens_mask=True,
+                )
+            else:
+                aug_inputs = tokenizer(
+                    real_transforms,
+                    padding="max_length",
+                    truncation=True,
+                    max_length=max_seq_length,
+                    return_special_tokens_mask=True,
+                )
             result["aug_input_ids_list"] = aug_inputs["input_ids"]
             result["aug_attention_mask_list"] = aug_inputs["attention_mask"]
             result["aug_special_tokens_mask_list"] = aug_inputs["special_tokens_mask"]
@@ -227,6 +278,7 @@ def main(
     model_type: str = "roberta",
     pooling: str = "cls",
     mlm_weight: float = 1.0,
+    include_nl: bool = False,
 ):
     set_seed(seed)
 
@@ -303,6 +355,7 @@ def main(
                 tokenizer,
                 max_seq_length=max_seq_length,
                 max_num_augs=max_num_augs,
+                include_nl=include_nl,
             ),
             batched=True,
             num_proc=num_proc,
@@ -312,7 +365,12 @@ def main(
         collator_fn = partial(grouped_contra_data_collator, mlm_collator, max_num_augs)
     else:
         tokenized_datasets = dataset.map(
-            partial(tokenize, tokenizer, max_seq_length=max_seq_length),
+            partial(
+                tokenize,
+                tokenizer,
+                max_seq_length=max_seq_length,
+                include_nl=include_nl,
+            ),
             batched=True,
             num_proc=num_proc,
             remove_columns=dataset.column_names,

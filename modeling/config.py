@@ -36,6 +36,7 @@ class PretrainConfig:
     self_contrast: bool = True
     model_type: ModelType = ModelType.ROBERTA
     pooling: str = "cls"
+    include_nl: bool = False
 
 
 def load_config(path: str | Path) -> PretrainConfig:

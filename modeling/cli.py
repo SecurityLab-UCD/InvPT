@@ -110,6 +110,10 @@ def pretrain(
         typer.Option(help="Pooling strategy for contrastive embeddings (cls or mean)."),
     ] = "cls",
     mlm_weight: Annotated[float, typer.Option(help="Weight for MLM loss.")] = 1.0,
+    include_nl: Annotated[
+        bool,
+        typer.Option(help="Include NL docstrings in input (bimodal NL+PL training)."),
+    ] = False,
 ) -> None:
     """Run pre-training with all parameters specified as CLI options.
 
@@ -139,6 +143,7 @@ def pretrain(
         model_type=model_type,
         pooling=pooling,
         mlm_weight=mlm_weight,
+        include_nl=include_nl,
     )
 
 

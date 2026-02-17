@@ -1,0 +1,21 @@
+# Ablation 4: Include NL (bimodal NL+PL training)
+# Tests whether PL-only training is better than bimodal NL+PL training
+
+dataset_path: "data/csn.jsonl"
+model_name: "microsoft/codebert-base"
+
+batch_size: 256
+num_epochs: 3
+gradient_accumulation_steps: 1
+learning_rate: 2.0e-5
+
+seed: 0
+run_name: "InvCodeBERT-ablation-include-nl"
+
+alpha: 1.0
+temperature: 0.1
+max_seq_length: 512
+
+contra_mode: "supcon"
+self_contrast: true
+include_nl: true
