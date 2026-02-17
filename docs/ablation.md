@@ -20,23 +20,23 @@ Config: `experiments/supcon/codebert.yaml` (run name `InvCodeBERT-supcon`).
 
 ## Ablation Matrix
 
-| # | Ablation | Question answered | Config |
-|---|----------|-------------------|--------|
-| 1a | MLM-only | Does the contrastive loss help at all? | `ablation/mlm_only.yaml` |
-| 1b | Contrastive-only | Does MLM help, or is contrastive alone sufficient? | `ablation/contra_only.yaml` |
-| 1c | Full method | Control — both losses together. | `supcon/codebert.yaml` |
-| 2 | No self-contrast | Is self-contrast (same code, different masks) beneficial? | `ablation/no_self_contrast.yaml` |
-| 3 | InfoNCE | Does SupCon's multi-positive masking outperform InfoNCE? | `ablation/infonce.yaml` |
+| #   | Ablation         | Question answered                                         | Config                           |
+| --- | ---------------- | --------------------------------------------------------- | -------------------------------- |
+| 1a  | MLM-only         | Does the contrastive loss help at all?                    | `ablation/mlm_only.yaml`         |
+| 1b  | Contrastive-only | Does MLM help, or is contrastive alone sufficient?        | `ablation/contra_only.yaml`      |
+| 1c  | Full method      | Control — both losses together.                           | `supcon/codebert.yaml`           |
+| 2   | No self-contrast | Is self-contrast (same code, different masks) beneficial? | `ablation/no_self_contrast.yaml` |
+| 3   | InfoNCE          | Does SupCon's multi-positive masking outperform InfoNCE?  | `ablation/infonce.yaml`          |
 
 ### What changes per ablation
 
-| # | `mlm_weight` | `alpha` | `contra_mode` | `self_contrast` | run_name |
-|---|:---:|:---:|---|:---:|---|
-| 1a | 1.0 | **0** | supcon | true | `InvCodeBERT-ablation-mlm-only` |
-| 1b | **0** | 1.0 | supcon | true | `InvCodeBERT-ablation-contra-only` |
-| 1c | 1.0 | 1.0 | supcon | true | `InvCodeBERT-supcon` |
-| 2 | 1.0 | 1.0 | supcon | **false** | `InvCodeBERT-ablation-no-selfcon` |
-| 3 | 1.0 | 1.0 | **info_nce** | true | `InvCodeBERT-ablation-infonce` |
+| #   | `mlm_weight` | `alpha` | `contra_mode` | `self_contrast` | run_name                           |
+| --- | :----------: | :-----: | ------------- | :-------------: | ---------------------------------- |
+| 1a  |     1.0      |  **0**  | supcon        |      true       | `InvCodeBERT-ablation-mlm-only`    |
+| 1b  |    **0**     |   1.0   | supcon        |      true       | `InvCodeBERT-ablation-contra-only` |
+| 1c  |     1.0      |   1.0   | supcon        |      true       | `InvCodeBERT-supcon`               |
+| 2   |     1.0      |   1.0   | supcon        |    **false**    | `InvCodeBERT-ablation-no-selfcon`  |
+| 3   |     1.0      |   1.0   | **info_nce**  |      true       | `InvCodeBERT-ablation-infonce`     |
 
 ## Ablation Details
 
@@ -101,12 +101,12 @@ Only ablation 1b required modifying source code. The other ablations were
 already expressible through existing config parameters (`alpha`,
 `self_contrast`, `contra_mode`).
 
-| File | Change |
-|------|--------|
-| `modeling/config.py` | Added `mlm_weight: float = 1.0` to `PretrainConfig` |
-| `modeling/model.py` | `ContrastiveTrainer.__init__` accepts `mlm_weight`; `compute_loss` and `_compute_grouped_loss` use `self.mlm_weight * mlm_loss` |
-| `modeling/pretrain.py` | `main()` accepts `mlm_weight` and forwards to `ContrastiveTrainer` |
-| `modeling/cli.py` | Added `--mlm-weight` option to the `pretrain` command |
+| File                   | Change                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `modeling/config.py`   | Added `mlm_weight: float = 1.0` to `PretrainConfig`                                                                             |
+| `modeling/model.py`    | `ContrastiveTrainer.__init__` accepts `mlm_weight`; `compute_loss` and `_compute_grouped_loss` use `self.mlm_weight * mlm_loss` |
+| `modeling/pretrain.py` | `main()` accepts `mlm_weight` and forwards to `ContrastiveTrainer`                                                              |
+| `modeling/cli.py`      | Added `--mlm-weight` option to the `pretrain` command                                                                           |
 
 The default `mlm_weight=1.0` preserves existing behavior for all current
 experiments.
