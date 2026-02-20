@@ -1,14 +1,14 @@
-# InvPT pre-training: SupCon — CodeBERT
-# Effective batch size: 64 * 4 = 256
+# InvPT pre-training: SupCon — CodeBERT (pilot: larger batch + longer training)
+# Effective batch size: 1024 (4x baseline)
 # Usage: python modeling/cli.py run experiments/supcon/codebert.yaml
 
 dataset_path: "data/csn.jsonl"
 model_name: "microsoft/codebert-base"
 
-batch_size: 256
-num_epochs: 3
+batch_size: 1024
+num_epochs: 10
 gradient_accumulation_steps: 1
-learning_rate: 2.0e-5
+learning_rate: 5.0e-6
 
 seed: 0
 run_name: "InvCodeBERT-supcon"
