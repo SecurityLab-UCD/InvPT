@@ -2,7 +2,7 @@
 # Effective batch size: 64 * 4 = 256
 # Usage: python modeling/cli.py run experiments/supcon/modernbert.yaml
 
-dataset_path: "data/aug_csn.jsonl"
+dataset_path: "data/csn.jsonl"
 model_name: "answerdotai/ModernBERT-base"
 model_type: "modernbert"
 pooling: "mean"
