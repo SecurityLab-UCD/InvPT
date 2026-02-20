@@ -47,6 +47,53 @@ def run(
     main(**kwargs)
 
 
+@app.command("run-all")
+def run_all(
+    config_dir: Annotated[
+        Path,
+        typer.Argument(help="Directory containing YAML experiment config files."),
+    ],
+    sample_rate: Annotated[
+        Optional[float],
+        typer.Option("--sample-rate", "-sr", help="Override sample rate from config."),
+    ] = None,
+    self_contrast: Annotated[
+        Optional[bool],
+        typer.Option(
+            help="Override self-contrast setting from config. Use --no-self-contrast to disable.",
+        ),
+    ] = None,
+) -> None:
+    """Run pre-training for every YAML config in a directory, sequentially.
+
+    Example: python -m modeling run-all experiments/supcon/
+    """
+    configs = sorted(config_dir.glob("*.yaml"))
+    if not configs:
+        typer.echo(f"No .yaml files found in {config_dir}")
+        raise typer.Exit(1)
+
+    typer.echo(f"Found {len(configs)} config(s) in {config_dir}:")
+    for c in configs:
+        typer.echo(f"  - {c}")
+    typer.echo("")
+
+    for i, cfg_path in enumerate(configs, 1):
+        typer.echo(f"{'=' * 42}")
+        typer.echo(f"[{i}/{len(configs)}] Running: {cfg_path}")
+        typer.echo(f"{'=' * 42}")
+        cfg = load_config(cfg_path)
+        kwargs = asdict(cfg)
+        if sample_rate is not None:
+            kwargs["sample_rate"] = sample_rate
+        if self_contrast is not None:
+            kwargs["self_contrast"] = self_contrast
+        main(**kwargs)
+        typer.echo("")
+
+    typer.echo("All experiments complete.")
+
+
 @app.command()
 def pretrain(
     dataset_path: Annotated[
