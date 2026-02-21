@@ -4,10 +4,10 @@ from pathlib import Path
 import dacite
 import yaml
 
-from ._types import ContraMode, ModelType
+from ._types import ModelType
 from .common import default_num_proc
 
-_DACITE_CONFIG = dacite.Config(cast=[ContraMode, ModelType])
+_DACITE_CONFIG = dacite.Config(cast=[ModelType])
 
 
 @dataclass
@@ -31,8 +31,6 @@ class PretrainConfig:
     sample_rate: float = 1.0
     checkpoint: str | None = None
     tokenizer_name: str | None = None
-    contra_mode: ContraMode = ContraMode.INFO_NCE
-    max_num_augs: int = 6
     self_contrast: bool = True
     model_type: ModelType = ModelType.ROBERTA
     pooling: str = "cls"

@@ -16,5 +16,4 @@ alpha: 0
 temperature: 0.1
 max_seq_length: 512
 
-contra_mode: "supcon"
 self_contrast: true

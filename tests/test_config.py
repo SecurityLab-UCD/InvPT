@@ -4,7 +4,6 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from modeling._types import ContraMode
 from modeling.cli import app
 from modeling.config import PretrainConfig, load_config
 
@@ -36,12 +35,10 @@ class TestLoadConfig:
                 "temperature": 0.1,
                 "max_seq_length": 128,
                 "sample_rate": 0.5,
-                "contra_mode": "supcon",
             }
         )
         config = load_config(path)
         assert config.batch_size == 32
-        assert config.contra_mode == ContraMode.SUPCON
         assert config.resume is True
         assert config.seed == 42
 
@@ -50,7 +47,6 @@ class TestLoadConfig:
         config = load_config(path)
         assert config.run_name == "minimal"
         assert config.batch_size == 256  # default
-        assert config.contra_mode == ContraMode.INFO_NCE  # default
 
     def test_empty_yaml_uses_all_defaults(self) -> None:
         path = _write_yaml(None)
@@ -60,12 +56,6 @@ class TestLoadConfig:
     def test_file_not_found(self) -> None:
         with pytest.raises(FileNotFoundError):
             load_config("/nonexistent/path.yaml")
-
-    def test_contra_mode_enum_casting(self) -> None:
-        for mode in ["info_nce", "supcon", "grouped"]:
-            path = _write_yaml({"contra_mode": mode})
-            config = load_config(path)
-            assert isinstance(config.contra_mode, ContraMode)
 
 
 class TestCli:
@@ -88,4 +78,3 @@ class TestCli:
         result = runner.invoke(app, ["pretrain", "--help"])
         assert result.exit_code == 0
         assert "--batch-size" in result.output
-        assert "--contra-mode" in result.output

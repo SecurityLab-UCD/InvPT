@@ -3,8 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import Trainer
 
-from ._types import ContraMode
-
 
 class SplitHeadWrapper(nn.Module):
     """Wraps a ``*ForMaskedLM`` model so the LM head is applied per-chunk.
@@ -110,16 +108,6 @@ class SplitHeadWrapper(nn.Module):
         return mlm_loss, last_hidden
 
 
-def info_nce_loss(query, key, temperature=0.07):
-    device = query.device
-    query = F.normalize(query, dim=1)
-    key = F.normalize(key, dim=1)
-    logits = torch.matmul(query, key.transpose(-1, -2)) / temperature
-    labels = torch.arange(query.size(0)).long().to(device)
-    loss = F.cross_entropy(logits, labels)
-    return loss
-
-
 def barlow_twins_loss(query, key, lambda_param=0.005):
     # Normalize representations along batch dimension
     query = (query - query.mean(dim=0)) / query.std(dim=0)
@@ -219,103 +207,6 @@ def supcon_loss(
     return loss
 
 
-def grouped_contrastive_loss(
-    anchor_embeddings: torch.Tensor,
-    aug_embeddings: torch.Tensor,
-    group_sizes: torch.Tensor,
-    temperature: float = 0.07,
-    eps: float = 1e-8,
-) -> torch.Tensor:
-    """Grouped multi-key contrastive loss.
-
-    Each anchor has a variable number of augmentation positives (given by
-    ``group_sizes``).  Negatives are all other anchors and their augmentations.
-
-    Uses per-positive log-prob averaging (SupCon-style) with log-sum-exp
-    stabilization.
-
-    Args:
-        anchor_embeddings: ``[B, D]`` CLS embeddings of anchor codes.
-        aug_embeddings: ``[B * max_K, D]`` CLS embeddings of flattened
-            augmentations (padded groups have zero-vectors).
-        group_sizes: ``[B]`` number of real augmentations per anchor.
-        temperature: contrastive temperature.
-        eps: numerical stability constant.
-
-    Returns:
-        Scalar loss averaged over anchors that have at least one augmentation.
-    """
-    device = anchor_embeddings.device
-    B = anchor_embeddings.size(0)
-    total_augs = aug_embeddings.size(0)
-    max_K = total_augs // B
-
-    # Normalize
-    anchor_embeddings = F.normalize(anchor_embeddings, dim=1)  # [B, D]
-    aug_embeddings = F.normalize(aug_embeddings, dim=1)  # [B*max_K, D]
-
-    # Reshape aug embeddings to [B, max_K, D]
-    aug_reshaped = aug_embeddings.view(B, max_K, -1)
-
-    # Validity mask: [B, max_K] — True for real augmentations
-    arange_K = torch.arange(max_K, device=device).unsqueeze(0)  # [1, max_K]
-    valid_mask = arange_K < group_sizes.unsqueeze(1)  # [B, max_K]
-
-    # --- Similarity matrices ---
-    # anchor-to-anchor: [B, B]
-    sim_a2a = torch.matmul(anchor_embeddings, anchor_embeddings.T) / temperature
-    # anchor-to-all-augs: [B, B*max_K]
-    sim_a2aug = torch.matmul(anchor_embeddings, aug_embeddings.T) / temperature
-
-    # --- Build denominator exclusion mask [B, B + B*max_K] ---
-    # Exclude: self-anchor (diagonal of a2a) + padding aug positions
-    all_logits = torch.cat([sim_a2a, sim_a2aug], dim=1)  # [B, B + B*max_K]
-
-    # Self-anchor exclusion
-    self_anchor_mask = torch.eye(B, dtype=torch.bool, device=device)  # [B, B]
-
-    # Padding aug exclusion: [B, B*max_K]
-    aug_valid_global = valid_mask.reshape(-1)  # [B*max_K]
-    aug_invalid_mask = ~aug_valid_global.unsqueeze(0).expand(B, -1)  # [B, B*max_K]
-
-    denom_exclude = torch.cat([self_anchor_mask, aug_invalid_mask], dim=1)
-
-    # Log-sum-exp stability
-    max_logit = (
-        all_logits.masked_fill(denom_exclude, float("-inf"))
-        .max(dim=1, keepdim=True)
-        .values
-    )
-    max_logit = max_logit.clamp(min=0.0)
-
-    exp_logits = torch.exp(all_logits - max_logit)
-    exp_logits = exp_logits.masked_fill(denom_exclude, 0.0)
-    denom = exp_logits.sum(dim=1, keepdim=True) + eps  # [B, 1]
-
-    # --- Positive logits: anchor i vs its own augmentations ---
-    # sim_a2aug reshaped to [B, B, max_K] — index [i, i, :] = anchor i's augs
-    sim_a2aug_grouped = sim_a2aug.view(B, B, max_K)
-    pos_logits = sim_a2aug_grouped[
-        torch.arange(B, device=device), torch.arange(B, device=device), :
-    ]  # [B, max_K]
-
-    # Per-positive log-prob
-    exp_pos = torch.exp(pos_logits - max_logit)  # [B, max_K]
-    log_prob_pos = torch.log(exp_pos / denom + eps)  # [B, max_K]
-    log_prob_pos = log_prob_pos.masked_fill(~valid_mask, 0.0)
-
-    # Average over valid positives per anchor, then over anchors
-    per_anchor_loss = -log_prob_pos.sum(dim=1) / group_sizes.float().clamp(min=1.0)
-
-    has_augs = group_sizes > 0
-    if has_augs.any():
-        loss = per_anchor_loss[has_augs].mean()
-    else:
-        loss = torch.tensor(0.0, device=device, requires_grad=True)
-
-    return loss
-
-
 class ContrastiveTrainer(Trainer):
     """HF Trainer subclass for contrastive pre-training.
 
@@ -330,7 +221,6 @@ class ContrastiveTrainer(Trainer):
         alpha=1.0,
         mlm_weight=1.0,
         temperature=0.07,
-        contra_mode="info_nce",
         pooling="cls",
         *args,
         **kwargs,
@@ -339,7 +229,6 @@ class ContrastiveTrainer(Trainer):
         self.alpha = alpha
         self.mlm_weight = mlm_weight
         self.temperature = temperature
-        self.contra_mode = ContraMode(contra_mode)
         self.pooling = pooling
 
     def _pool(
@@ -365,9 +254,6 @@ class ContrastiveTrainer(Trainer):
     def compute_loss(
         self, model, inputs, return_outputs=False, num_items_in_batch=None
     ):
-        if self.contra_mode == ContraMode.GROUPED:
-            return self._compute_grouped_loss(model, inputs, return_outputs)
-
         device = model.device
         code_input_ids = inputs["code_input_ids"].to(device)
         code_attention_mask = inputs["code_attention_mask"].to(device)
@@ -394,63 +280,12 @@ class ContrastiveTrainer(Trainer):
         code_embeddings = self._pool(last_hidden[:B], code_attention_mask)
         aug_embeddings = self._pool(last_hidden[B:], aug_attention_mask)
 
-        # Compute contrastive loss between code and its augmentation
-        if self.contra_mode == ContraMode.SUPCON:
-            all_embeddings = torch.cat([code_embeddings, aug_embeddings], dim=0)
-            function_ids = inputs["function_id"].to(device)
-            all_function_ids = torch.cat([function_ids, function_ids], dim=0)
-            contrastive_loss = supcon_loss(
-                all_embeddings, all_function_ids, self.temperature
-            )
-        else:
-            contrastive_loss = info_nce_loss(
-                code_embeddings,
-                aug_embeddings,
-                self.temperature,
-            )
-
-        total_loss = self.mlm_weight * mlm_loss + self.alpha * contrastive_loss
-
-        return (total_loss, None) if return_outputs else total_loss
-
-    def _compute_grouped_loss(self, model, inputs, return_outputs=False):
-        """Compute loss for grouped multi-key contrast mode.
-
-        Inputs contain:
-          - code_input_ids: [B, seq_len]
-          - code_attention_mask, code_labels: same shape
-          - aug_input_ids: [B * max_K, seq_len]
-          - aug_attention_mask, aug_labels: same shape
-          - group_sizes: [B]
-        """
-        device = model.device
-        code_input_ids = inputs["code_input_ids"].to(device)
-        code_attention_mask = inputs["code_attention_mask"].to(device)
-        code_labels = inputs["code_labels"].to(device)
-        aug_input_ids = inputs["aug_input_ids"].to(device)
-        aug_attention_mask = inputs["aug_attention_mask"].to(device)
-        aug_labels = inputs["aug_labels"].to(device)
-        group_sizes = inputs["group_sizes"].to(device)
-
-        B = code_input_ids.size(0)
-
-        all_input_ids = torch.cat([code_input_ids, aug_input_ids], dim=0)
-        all_attention_mask = torch.cat([code_attention_mask, aug_attention_mask], dim=0)
-
-        mlm_loss, last_hidden = model(
-            input_ids=all_input_ids,
-            attention_mask=all_attention_mask,
-            labels_a=code_labels,
-            labels_b=aug_labels,
-            split_at=B,
-        )
-
-        code_embeddings = self._pool(last_hidden[:B], code_attention_mask)
-        aug_embeddings = self._pool(last_hidden[B:], aug_attention_mask)
-
-        # Contrastive loss
-        contrastive_loss = grouped_contrastive_loss(
-            code_embeddings, aug_embeddings, group_sizes, self.temperature
+        # Supervised contrastive loss (SupCon)
+        all_embeddings = torch.cat([code_embeddings, aug_embeddings], dim=0)
+        function_ids = inputs["function_id"].to(device)
+        all_function_ids = torch.cat([function_ids, function_ids], dim=0)
+        contrastive_loss = supcon_loss(
+            all_embeddings, all_function_ids, self.temperature
         )
 
         total_loss = self.mlm_weight * mlm_loss + self.alpha * contrastive_loss

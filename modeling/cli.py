@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from modeling._types import ContraMode, ModelType
+from modeling._types import ModelType
 from modeling.common import default_num_proc
 from modeling.config import load_config
 from modeling.pretrain import main
@@ -137,12 +137,6 @@ def pretrain(
     checkpoint: Annotated[
         Optional[str], typer.Option(help="Path to checkpoint for weight loading.")
     ] = None,
-    contra_mode: Annotated[
-        ContraMode, typer.Option(help="Contrastive loss mode.")
-    ] = ContraMode.INFO_NCE,
-    max_num_augs: Annotated[
-        int, typer.Option(help="Max augmentations per anchor (grouped mode).")
-    ] = 6,
     self_contrast: Annotated[
         bool,
         typer.Option(
@@ -184,8 +178,6 @@ def pretrain(
         num_proc=num_proc,
         resume=resume,
         checkpoint=checkpoint,
-        contra_mode=contra_mode,
-        max_num_augs=max_num_augs,
         self_contrast=self_contrast,
         model_type=model_type,
         pooling=pooling,
