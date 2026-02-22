@@ -16,7 +16,7 @@ def get_tar_name(subset: str) -> str:
 
 def get_url(subset: str) -> str:
     tar_name = get_tar_name(subset)
-    url = f"https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0/{tar_name}"
+    url = f"https://codait-cos-dax.s3.us.cloud-object-storage.appdomain.cloud/dax-project-codenet/1.0.0/{tar_name}"
 
     return url
 
