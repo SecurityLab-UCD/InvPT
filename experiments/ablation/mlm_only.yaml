@@ -1,0 +1,19 @@
+# Ablation 1a: MLM-only (no contrastive loss)
+# L = L_MLM(X) + L_MLM(X_inv), alpha=0
+
+dataset_path: "data/csn.jsonl"
+model_name: "microsoft/codebert-base"
+
+batch_size: 256
+num_epochs: 3
+gradient_accumulation_steps: 1
+learning_rate: 2.0e-5
+
+seed: 0
+run_name: "InvCodeBERT-ablation-mlm-only"
+
+alpha: 0
+temperature: 0.1
+max_seq_length: 512
+
+self_contrast: true

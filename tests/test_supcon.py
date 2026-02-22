@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from modeling.model import build_positive_mask, info_nce_loss, supcon_loss
+from modeling.model import build_positive_mask, supcon_loss
 
 
 class TestBuildPositiveMask:
@@ -80,20 +80,3 @@ class TestSupConLoss:
         loss = supcon_loss(embeddings, ids, temperature=0.1)
         assert torch.isfinite(loss)
         assert loss.item() > 0.0
-
-    def test_supcon_similar_to_infonce_single_positive(self):
-        """With exactly 1 positive per anchor (code/aug pairs), SupCon and
-        InfoNCE should produce comparable losses."""
-        torch.manual_seed(42)
-        query = F.normalize(torch.randn(4, 64), dim=1)
-        key = F.normalize(torch.randn(4, 64), dim=1)
-
-        infonce = info_nce_loss(query, key, temperature=0.1)
-
-        # SupCon: concatenate, ids are [0,1,2,3,0,1,2,3]
-        all_emb = torch.cat([query, key], dim=0)
-        ids = torch.cat([torch.arange(4), torch.arange(4)])
-        sc = supcon_loss(all_emb, ids, temperature=0.1)
-
-        # Not exactly equal (different denominator sizes), but same ballpark
-        assert abs(infonce.item() - sc.item()) / max(infonce.item(), 1e-6) < 1.0

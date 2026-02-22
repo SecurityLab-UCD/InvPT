@@ -69,7 +69,7 @@ Two new fields control the behavior:
 - **`pooling`**: Either `"cls"` (default, CLS token) or `"mean"` (mean over non-padding
   tokens). Mean pooling is recommended for ModernBERT (see below).
 
-All other config fields (`alpha`, `temperature`, `contra_mode`, etc.) work identically.
+All other config fields (`alpha`, `temperature`, etc.) work identically.
 
 ### CLI Usage
 
@@ -107,18 +107,6 @@ L = L_MLM(code) + L_MLM(aug) + alpha * L_contrastive(code, aug)
   encoder's last hidden states. Controlled by `alpha` (default 1.0) and `temperature`
   (default 0.07).
 
-### Contrastive Modes
-
-All three contrastive modes work with ModernBERT:
-
-| Mode    | Config value | Description                                                                                   |
-| ------- | ------------ | --------------------------------------------------------------------------------------------- |
-| InfoNCE | `info_nce`   | Diagonal positives — each code paired with its single augmentation                            |
-| SupCon  | `supcon`     | Multi-positive by `function_id` — all augmentations of the same function are mutual positives |
-| Grouped | `grouped`    | Explicit grouped multi-key contrast with up to `max_num_augs` augmentations per anchor        |
-
-Set via the `contra_mode` field in the YAML config.
-
 ### Self-Contrast
 
 Self-contrast (`self_contrast: true`, the default) provides the "easy" curriculum signal.
@@ -135,7 +123,7 @@ This is independent of model type and works identically for ModernBERT. When
 | Aspect                  | RoBERTa                                   | ModernBERT                    |
 | ----------------------- | ----------------------------------------- | ----------------------------- |
 | Loss function           | `L_MLM + alpha * L_contrastive`           | Same                          |
-| Contrastive modes       | info_nce / supcon / grouped               | Same                          |
+| Contrastive loss        | SupCon                                    | Same                          |
 | Self-contrast           | Supported                                 | Same                          |
 | MLM masking             | 15% via `DataCollatorForLanguageModeling` | Same                          |
 | Pooling for contrastive | CLS (default)                             | Mean (recommended)            |

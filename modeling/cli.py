@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from modeling._types import ContraMode, ModelType
+from modeling._types import ModelType
 from modeling.common import default_num_proc
 from modeling.config import load_config
 from modeling.pretrain import main
@@ -45,6 +45,53 @@ def run(
     if self_contrast is not None:
         kwargs["self_contrast"] = self_contrast
     main(**kwargs)
+
+
+@app.command("run-all")
+def run_all(
+    config_dir: Annotated[
+        Path,
+        typer.Argument(help="Directory containing YAML experiment config files."),
+    ],
+    sample_rate: Annotated[
+        Optional[float],
+        typer.Option("--sample-rate", "-sr", help="Override sample rate from config."),
+    ] = None,
+    self_contrast: Annotated[
+        Optional[bool],
+        typer.Option(
+            help="Override self-contrast setting from config. Use --no-self-contrast to disable.",
+        ),
+    ] = None,
+) -> None:
+    """Run pre-training for every YAML config in a directory, sequentially.
+
+    Example: python -m modeling run-all experiments/supcon/
+    """
+    configs = sorted(config_dir.glob("*.yaml"))
+    if not configs:
+        typer.echo(f"No .yaml files found in {config_dir}")
+        raise typer.Exit(1)
+
+    typer.echo(f"Found {len(configs)} config(s) in {config_dir}:")
+    for c in configs:
+        typer.echo(f"  - {c}")
+    typer.echo("")
+
+    for i, cfg_path in enumerate(configs, 1):
+        typer.echo(f"{'=' * 42}")
+        typer.echo(f"[{i}/{len(configs)}] Running: {cfg_path}")
+        typer.echo(f"{'=' * 42}")
+        cfg = load_config(cfg_path)
+        kwargs = asdict(cfg)
+        if sample_rate is not None:
+            kwargs["sample_rate"] = sample_rate
+        if self_contrast is not None:
+            kwargs["self_contrast"] = self_contrast
+        main(**kwargs)
+        typer.echo("")
+
+    typer.echo("All experiments complete.")
 
 
 @app.command()
@@ -90,12 +137,6 @@ def pretrain(
     checkpoint: Annotated[
         Optional[str], typer.Option(help="Path to checkpoint for weight loading.")
     ] = None,
-    contra_mode: Annotated[
-        ContraMode, typer.Option(help="Contrastive loss mode.")
-    ] = ContraMode.INFO_NCE,
-    max_num_augs: Annotated[
-        int, typer.Option(help="Max augmentations per anchor (grouped mode).")
-    ] = 6,
     self_contrast: Annotated[
         bool,
         typer.Option(
@@ -109,6 +150,11 @@ def pretrain(
         str,
         typer.Option(help="Pooling strategy for contrastive embeddings (cls or mean)."),
     ] = "cls",
+    mlm_weight: Annotated[float, typer.Option(help="Weight for MLM loss.")] = 1.0,
+    include_nl: Annotated[
+        bool,
+        typer.Option(help="Include NL docstrings in input (bimodal NL+PL training)."),
+    ] = False,
 ) -> None:
     """Run pre-training with all parameters specified as CLI options.
 
@@ -132,11 +178,11 @@ def pretrain(
         num_proc=num_proc,
         resume=resume,
         checkpoint=checkpoint,
-        contra_mode=contra_mode,
-        max_num_augs=max_num_augs,
         self_contrast=self_contrast,
         model_type=model_type,
         pooling=pooling,
+        mlm_weight=mlm_weight,
+        include_nl=include_nl,
     )
 
 

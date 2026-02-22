@@ -80,6 +80,35 @@ MODELS: dict[tuple[str, str], ModelSpec] = {
     ),
 }
 
+# Ablation models — all based on CodeBERT
+ABLATION_MODELS: dict[str, ModelSpec] = {
+    "contra-only": ModelSpec(
+        "./saved_models/InvCodeBERT-ablation-contra-only/final",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+    "mlm-only": ModelSpec(
+        "./saved_models/InvCodeBERT-ablation-mlm-only/final",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+    "no-self-contrast": ModelSpec(
+        "./saved_models/InvCodeBERT-ablation-no-selfcon/final",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+    "infonce": ModelSpec(
+        "./saved_models/InvCodeBERT-ablation-infonce/final",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+    "include-nl": ModelSpec(
+        "./saved_models/InvCodeBERT-ablation-include-nl/final",
+        "microsoft/codebert-base",
+        "roberta",
+    ),
+}
+
 
 TASKS = [
     ("Clone-detection-POJ104", None),
@@ -193,69 +222,16 @@ def run_task(
     return RunHandle(label=label, process=proc, log_file=log_file)
 
 
-@app.command()
-def main(
-    all_models: bool = typer.Option(
-        False, "--all", help="Run all models in the registry."
-    ),
-    loss: str = typer.Option(
-        None, "--loss", help="Training loss identifier (e.g., supcon)."
-    ),
-    model: str = typer.Option(
-        None,
-        "--model",
-        help="Pretrained model key(s), comma-separated (e.g., inv-codebert,inv-graphcodebert).",
-    ),
-    gpus: str = typer.Option(
-        "0,1,2,3,4,5,6,7",
-        "--gpus",
-        help="Comma-separated GPU ids to use.",
-    ),
-    results_root: str = typer.Option(
-        "results", "--results-root", help="Base output directory for results."
-    ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Print commands without executing them."
-    ),
+def _run_jobs(
+    jobs: list[tuple[str, ModelSpec, str, str | None]],
+    gpu_ids: list[str],
+    results_root_path: Path,
+    dry_run: bool,
+    desc: str = "Downstream",
 ) -> None:
+    """Execute *jobs* across *gpu_ids* with a work-stealing thread pool."""
     root = Path(__file__).resolve().parents[1]
-
-    # Resolve which models to run
-    if all_models:
-        if model is not None:
-            raise typer.BadParameter("Cannot use --model with --all")
-        entries = list(MODELS.items())
-        if loss is not None:
-            loss_key = loss.strip()
-            entries = [((m, lk), s) for (m, lk), s in entries if lk == loss_key]
-        if not entries:
-            raise typer.BadParameter(f"No models found for loss={loss}")
-    else:
-        if model is None or loss is None:
-            raise typer.BadParameter(
-                "Either --all or both --model and --loss are required"
-            )
-        loss_key = loss.strip()
-        model_keys = [m.strip() for m in model.split(",") if m.strip()]
-        if not model_keys:
-            raise typer.BadParameter("No model keys provided")
-        entries = []
-        for model_key in model_keys:
-            spec = resolve_model(model_key, loss_key)
-            entries.append(((model_key, loss_key), spec))
-
-    gpu_ids = [gpu.strip() for gpu in gpus.split(",") if gpu.strip()]
-    if not gpu_ids:
-        raise typer.BadParameter("No GPU ids provided")
-
-    # Build all jobs: (model_key, spec, task_dir, subset)
-    jobs: list[tuple[str, ModelSpec, str, str | None]] = []
-    for (mk, _lk), sp in entries:
-        for task_dir, subset in TASKS:
-            jobs.append((mk, sp, task_dir, subset))
-
     total = len(jobs)
-    results_root_path = Path(results_root).resolve()
 
     if dry_run:
         for i, (mk, sp, task_dir, subset) in enumerate(jobs):
@@ -264,7 +240,6 @@ def main(
         print(f"\n[dry-run] {total} total jobs across {len(gpu_ids)} GPUs")
         raise typer.Exit(0)
 
-    # GPU work-stealing pool
     gpu_pool: queue.Queue[str] = queue.Queue()
     for gid in gpu_ids:
         gpu_pool.put(gid)
@@ -273,7 +248,7 @@ def main(
     failed = 0
     lock = threading.Lock()
     failures: list[str] = []
-    pbar = tqdm(total=total, desc="Downstream", unit="task")
+    pbar = tqdm(total=total, desc=desc, unit="task")
 
     def run_job(mk: str, sp: ModelSpec, task_dir: str, subset: str | None) -> None:
         nonlocal running, failed
@@ -317,7 +292,127 @@ def main(
             print(f"  - {failure}")
         raise typer.Exit(1)
 
-    print(f"\n[done] All {total} downstream tasks completed successfully.")
+    print(f"\n[done] All {total} tasks completed successfully.")
+
+
+def _parse_gpus(gpus: str) -> list[str]:
+    gpu_ids = [gpu.strip() for gpu in gpus.split(",") if gpu.strip()]
+    if not gpu_ids:
+        raise typer.BadParameter("No GPU ids provided")
+    return gpu_ids
+
+
+@app.command()
+def run(
+    all_models: bool = typer.Option(
+        False, "--all", help="Run all models in the registry."
+    ),
+    loss: str = typer.Option(
+        None, "--loss", help="Training loss identifier (e.g., supcon)."
+    ),
+    model: str = typer.Option(
+        None,
+        "--model",
+        help="Pretrained model key(s), comma-separated (e.g., inv-codebert,inv-graphcodebert).",
+    ),
+    gpus: str = typer.Option(
+        "0,1,2,3,4,5,6,7",
+        "--gpus",
+        help="Comma-separated GPU ids to use.",
+    ),
+    results_root: str = typer.Option(
+        "results", "--results-root", help="Base output directory for results."
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print commands without executing them."
+    ),
+) -> None:
+    """Run downstream evaluation for pretrained / baseline models."""
+    # Resolve which models to run
+    if all_models:
+        if model is not None:
+            raise typer.BadParameter("Cannot use --model with --all")
+        entries = list(MODELS.items())
+        if loss is not None:
+            loss_key = loss.strip()
+            entries = [((m, lk), s) for (m, lk), s in entries if lk == loss_key]
+        if not entries:
+            raise typer.BadParameter(f"No models found for loss={loss}")
+    else:
+        if model is None or loss is None:
+            raise typer.BadParameter(
+                "Either --all or both --model and --loss are required"
+            )
+        loss_key = loss.strip()
+        model_keys = [m.strip() for m in model.split(",") if m.strip()]
+        if not model_keys:
+            raise typer.BadParameter("No model keys provided")
+        entries = []
+        for model_key in model_keys:
+            spec = resolve_model(model_key, loss_key)
+            entries.append(((model_key, loss_key), spec))
+
+    gpu_ids = _parse_gpus(gpus)
+
+    jobs: list[tuple[str, ModelSpec, str, str | None]] = []
+    for (mk, _lk), sp in entries:
+        for task_dir, subset in TASKS:
+            jobs.append((mk, sp, task_dir, subset))
+
+    _run_jobs(jobs, gpu_ids, Path(results_root).resolve(), dry_run)
+
+
+@app.command()
+def ablation(
+    all_models: bool = typer.Option(False, "--all", help="Run all ablation models."),
+    model: str = typer.Option(
+        None,
+        "--model",
+        help=(
+            "Ablation model key(s), comma-separated. "
+            f"Available: {', '.join(sorted(ABLATION_MODELS))}."
+        ),
+    ),
+    gpus: str = typer.Option(
+        "0,1,2,3,4,5,6,7",
+        "--gpus",
+        help="Comma-separated GPU ids to use.",
+    ),
+    results_root: str = typer.Option(
+        "results", "--results-root", help="Base output directory for results."
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print commands without executing them."
+    ),
+) -> None:
+    """Run downstream evaluation for ablation models."""
+    if all_models:
+        if model is not None:
+            raise typer.BadParameter("Cannot use --model with --all")
+        selected = list(ABLATION_MODELS.items())
+    else:
+        if model is None:
+            raise typer.BadParameter("Either --all or --model is required")
+        keys = [k.strip() for k in model.split(",") if k.strip()]
+        if not keys:
+            raise typer.BadParameter("No model keys provided")
+        selected = []
+        for k in keys:
+            if k not in ABLATION_MODELS:
+                available = ", ".join(sorted(ABLATION_MODELS))
+                raise typer.BadParameter(
+                    f"Unknown ablation model: {k}. Available: {available}"
+                )
+            selected.append((k, ABLATION_MODELS[k]))
+
+    gpu_ids = _parse_gpus(gpus)
+
+    jobs: list[tuple[str, ModelSpec, str, str | None]] = []
+    for mk, sp in selected:
+        for task_dir, subset in TASKS:
+            jobs.append((mk, sp, task_dir, subset))
+
+    _run_jobs(jobs, gpu_ids, Path(results_root).resolve(), dry_run, desc="Ablation")
 
 
 if __name__ == "__main__":
