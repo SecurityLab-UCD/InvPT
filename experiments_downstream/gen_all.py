@@ -28,6 +28,12 @@ models = [
         "microsoft/graphcodebert-base",
         "roberta",
     ),
+    (
+        "modernbert",
+        "answerdotai/ModernBERT-base",
+        "answerdotai/ModernBERT-base",
+        "modernbert",
+    ),
     # Our trained models
     (
         "inv-codebert",
