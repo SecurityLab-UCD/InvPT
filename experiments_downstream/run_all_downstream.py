@@ -52,6 +52,11 @@ MODELS: dict[tuple[str, str], ModelSpec] = {
         "microsoft/graphcodebert-base",
         "roberta",
     ),
+    ("codesage", "supcon"): ModelSpec(
+        "codesage/codesage-small",
+        "codesage/codesage-small",
+        "codesage",
+    ),
     # --- InvPT models ---
     ("inv-codebert", "supcon"): ModelSpec(
         "./saved_models/InvCodeBERT-supcon/final",

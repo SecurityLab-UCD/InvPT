@@ -81,7 +81,11 @@ MODEL_CLASSES = {
     "roberta": (RobertaConfig, RobertaModel, RobertaTokenizer),
     "distilbert": (DistilBertConfig, DistilBertModel, DistilBertTokenizer),
     "modernbert": (AutoConfig, AutoModel, AutoTokenizer),
+    "codesage": (AutoConfig, AutoModel, AutoTokenizer),
 }
+
+# Model types that use custom code hosted on HuggingFace Hub.
+_TRUST_REMOTE_CODE_TYPES = {"codesage"}
 
 
 class InputFeatures(object):
@@ -826,16 +830,25 @@ def main():
         )
 
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+    trust_remote = args.model_type in _TRUST_REMOTE_CODE_TYPES
     config = config_class.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
         cache_dir=args.cache_dir if args.cache_dir else None,
+        trust_remote_code=trust_remote,
     )
     config.num_labels = 1
     tokenizer = tokenizer_class.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir if args.cache_dir else None,
+        trust_remote_code=trust_remote,
     )
+    if tokenizer.cls_token is None:
+        tokenizer.cls_token = tokenizer.eos_token
+    if tokenizer.sep_token is None:
+        tokenizer.sep_token = tokenizer.eos_token
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     if args.block_size <= 0:
         args.block_size = (
             tokenizer.max_len_single_sentence
@@ -847,6 +860,7 @@ def main():
             from_tf=bool(".ckpt" in args.model_name_or_path),
             config=config,
             cache_dir=args.cache_dir if args.cache_dir else None,
+            trust_remote_code=trust_remote,
         )
     else:
         model = model_class(config)

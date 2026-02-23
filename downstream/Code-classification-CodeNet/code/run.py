@@ -51,7 +51,11 @@ from transformers import (
 MODEL_CLASSES = {
     "roberta": (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
     "modernbert": (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
+    "codesage": (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
 }
+
+# Model types that use custom code hosted on HuggingFace Hub.
+_TRUST_REMOTE_CODE_TYPES = {"codesage"}
 
 logger = logging.getLogger(__name__)
 
@@ -430,12 +434,24 @@ def main():
     set_seed(args.seed)
 
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    config = config_class.from_pretrained(args.model_name_or_path)
+    trust_remote = args.model_type in _TRUST_REMOTE_CODE_TYPES
+    config = config_class.from_pretrained(
+        args.model_name_or_path, trust_remote_code=trust_remote
+    )
     config.num_labels = 104
     tokenizer = tokenizer_class.from_pretrained(
-        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path
+        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
+        trust_remote_code=trust_remote,
     )
-    model = model_class.from_pretrained(args.model_name_or_path, config=config)
+    if tokenizer.cls_token is None:
+        tokenizer.cls_token = tokenizer.eos_token
+    if tokenizer.sep_token is None:
+        tokenizer.sep_token = tokenizer.eos_token
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    model = model_class.from_pretrained(
+        args.model_name_or_path, config=config, trust_remote_code=trust_remote
+    )
 
     model = Model(model, config, tokenizer, args)
 
