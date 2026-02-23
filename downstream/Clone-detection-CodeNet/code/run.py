@@ -22,6 +22,12 @@ using a masked language modeling (MLM) loss.
 
 from __future__ import absolute_import, division, print_function
 
+# Compat: Conv1D moved from modeling_utils to pytorch_utils in transformers >=4.45
+import transformers.modeling_utils as _mu
+if not hasattr(_mu, "Conv1D"):
+    from transformers.pytorch_utils import Conv1D as _Conv1D
+    _mu.Conv1D = _Conv1D
+
 import argparse
 import json
 import logging
