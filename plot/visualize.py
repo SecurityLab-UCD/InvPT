@@ -1,21 +1,25 @@
 import json
 
-import typer
 import matplotlib.lines
 import matplotlib.pyplot as plt
 import torch
+import typer
+from sklearn.manifold import TSNE
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
-from sklearn.manifold import TSNE
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Default models to compare; override via --models flag
-DEFAULT_MODELS = {
+# Row 1: CodeBERT-based models; Row 2: GraphCodeBERT-based models
+ROW1_MODELS = {
+    "CodeBERT": "microsoft/codebert-base",
+    "ContraBERT_C": "../saved_models/ContraBERT_C",
+    "InvCodeBERT": "../saved_models/InvCodeBERT-supcon/final",
+}
+ROW2_MODELS = {
     "GraphCodeBERT": "microsoft/graphcodebert-base",
     "ContraBERT_G": "../saved_models/ContraBERT_G",
-    "InvBERT": "../saved_models/InvCodeBERT-supcon/final",
-    "InvContraBERT": "../saved_models/InvGraphCodeBERT-supcon/final",
+    "InvGraphCodeBERT": "../saved_models/InvGraphCodeBERT-supcon/final",
 }
 
 
@@ -54,7 +58,9 @@ def main(
     pids: str | None = "82,85,91,95,100",
     legend: bool = True,
 ):
-    models = DEFAULT_MODELS
+    rows = [ROW1_MODELS, ROW2_MODELS]
+    ncols = max(len(r) for r in rows)
+
     with open(input_test_file) as f:
         data = [json.loads(line) for line in f]
 
@@ -74,17 +80,28 @@ def main(
     print(f"Labels found in data: {actual_labels}")
     print(f"Missing labels: {set(target_labels) - set(actual_labels)}")
 
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/graphcodebert-base")
+    # Separate tokenizers for each model family
+    codebert_tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
+    graphcodebert_tokenizer = AutoTokenizer.from_pretrained(
+        "microsoft/graphcodebert-base"
+    )
+    tokenizers = {0: codebert_tokenizer, 1: graphcodebert_tokenizer}
+
+    # Load all encoders
+    all_models = {}
+    for row_models in rows:
+        all_models.update(row_models)
     encoders = {
-        n: AutoModel.from_pretrained(p).to(DEVICE).eval() for n, p in models.items()
+        n: AutoModel.from_pretrained(p).to(DEVICE).eval() for n, p in all_models.items()
     }
 
-    embeddings = {}  # model name → [N, H]
-
-    for name in models:
-        embeddings[name] = embed_batch(encoders[name], tokenizer, programs)
-
-    coords = {n: to_2d(v) for n, v in embeddings.items()}
+    # Compute embeddings per row (using corresponding tokenizer)
+    coords = {}
+    for row_idx, row_models in enumerate(rows):
+        tok = tokenizers[row_idx]
+        for name in row_models:
+            emb = embed_batch(encoders[name], tok, programs)
+            coords[name] = to_2d(emb)
 
     # Use the number of target labels for consistent coloring
     NUM_CLASSES = len(target_labels)
@@ -94,18 +111,22 @@ def main(
     label_to_color_idx = {label: i for i, label in enumerate(target_labels)}
 
     fig, axes = plt.subplots(
-        1, len(models), figsize=(4.2 * len(models), 4.2), sharex=False, sharey=False
+        2, ncols, figsize=(4.2 * ncols, 4.2 * 2), sharex=False, sharey=False
     )
 
-    for ax, (name, xy) in zip(axes, coords.items()):
-        # Map labels to color indices
-        colors = [label_to_color_idx[label] for label in labels]
-        sc = ax.scatter(xy[:, 0], xy[:, 1], c=colors, cmap=cmap, s=8, alpha=0.9)
-        # ax.set_title(name, fontsize=14)
-        ax.set_xlabel(name, fontsize=14)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_frame_on(False)
+    for row_idx, row_models in enumerate(rows):
+        for col_idx, (name, _) in enumerate(row_models.items()):
+            ax = axes[row_idx, col_idx]
+            xy = coords[name]
+            colors = [label_to_color_idx[label] for label in labels]
+            ax.scatter(xy[:, 0], xy[:, 1], c=colors, cmap=cmap, s=8, alpha=0.9)
+            ax.set_xlabel(name, fontsize=14)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_frame_on(False)
+        # Hide unused axes in this row
+        for col_idx in range(len(row_models), ncols):
+            axes[row_idx, col_idx].set_visible(False)
 
     # Create legend for all target labels (including missing ones)
     if legend:
