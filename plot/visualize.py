@@ -14,8 +14,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DEFAULT_MODELS = {
     "GraphCodeBERT": "microsoft/graphcodebert-base",
     "ContraBERT_G": "../saved_models/ContraBERT_G",
-    "InvBERT": "../saved_models/InvBERT",
-    "InvContraBERT": "../saved_models/InvContraBERT",
+    "InvBERT": "../saved_models/InvCodeBERT-supcon/final",
+    "InvContraBERT": "../saved_models/InvGraphCodeBERT-supcon/final",
 }
 
 
