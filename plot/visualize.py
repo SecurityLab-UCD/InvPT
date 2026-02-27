@@ -146,7 +146,7 @@ def main(
             handles=handles, loc="lower center", ncol=NUM_CLASSES, title="Problem ID"
         )
 
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0.05, 1, 1] if legend else None)
     plt.savefig(output_file, dpi=500, bbox_inches="tight")
 
 
