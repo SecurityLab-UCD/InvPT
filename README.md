@@ -270,19 +270,36 @@ CodeNet) in parallel on 8 GPUs, use the helper script in `experiments_downstream
 Each subtask writes to its own output directory (e.g., `results/<model>/<task>/<subset>/`):
 
 ```sh
-python experiments_downstream/run_all_downstream.py --loss supcon --model inv-codebert
+python experiments_downstream/run_all_downstream.py run --loss supcon --model inv-codebert
 ```
 
 Override GPU ids with `--gpus` (comma-separated, must be 8):
 
 ```sh
-python experiments_downstream/run_all_downstream.py --loss supcon --model inv-codebert --gpus 0,1,2,3,4,5,6,7
+python experiments_downstream/run_all_downstream.py run --loss supcon --model inv-codebert --gpus 0,1,2,3,4,5,6,7
 ```
 
 To evaluate robustness, use the augmented test scripts:
 
 ```sh
 ./run_aug_test.sh <pretrained_model_path> <output_dir>
+```
+
+Per-operator robustness requires single-operator augmented test files named
+`aug_test_<operator_key>.jsonl` (for example, `aug_test_localvarrenaming.jsonl`).
+Each dataset augmenter now supports an optional `--operator-key` argument:
+
+```sh
+python downstream/Clone-detection-POJ104/dataset/augment_Cpp.py \
+  downstream/Clone-detection-POJ104/dataset/test.jsonl \
+  downstream/Clone-detection-POJ104/dataset/aug_test_localvarrenaming.jsonl \
+  --operator-key localvarrenaming
+```
+
+Run per-operator evaluations across all downstream tasks:
+
+```sh
+python experiments_downstream/run_all_downstream.py per-operator --loss supcon --model inv-codebert --gpus 0,1,2,3,4,5,6,7
 ```
 
 ### Visualization
@@ -299,6 +316,12 @@ Parse downstream evaluation outputs into a regular vs augmented table:
 
 ```sh
 python experiments_downstream/parse_results.py --results-root results --digits 2
+```
+
+Include per-operator breakdown tables:
+
+```sh
+python experiments_downstream/parse_results.py --results-root results --digits 2 --per-operator
 ```
 
 ## Invariant Code Transformations

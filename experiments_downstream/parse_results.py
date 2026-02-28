@@ -74,6 +74,20 @@ CLONE_POJ104 = "Clone-detection-POJ104"
 CLS_CODENET = "Code-classification-CodeNet"
 CLS_POJ104 = "Code-classification-POJ104"
 
+OPERATOR_KEYS = [
+    ("localvarrenaming", "VarRe"),
+    ("for2while", "F2W"),
+    ("while2for", "W2F"),
+    ("pp2addassignment", "PP2AA"),
+    ("addassignment2equalassignment", "AA2EA"),
+    ("reverseifelse", "RevIf"),
+]
+PYTHON_ONLY_OPS = {
+    "localvarrenaming",
+    "addassignment2equalassignment",
+    "reverseifelse",
+}
+
 
 # ---------------------------------------------------------------------------
 # Result collection
@@ -124,6 +138,55 @@ def _collect_cls_row(model_dir: Path, digits: int) -> dict[str, str]:
     return row
 
 
+def _collect_per_op_clone_row(
+    model_dir: Path, subset: str, digits: int
+) -> dict[str, str]:
+    row: dict[str, str] = {}
+    if subset == "POJ104":
+        task_dir = model_dir / CLONE_POJ104
+    else:
+        task_dir = model_dir / CLONE_CODENET / subset
+
+    row["Original"] = _fmt(parse_clone_score(task_dir / "test.log"), digits)
+    row["All (cum.)"] = _fmt(parse_clone_score(task_dir / "aug_test.log"), digits)
+    is_python = subset == "Python800"
+    for op_key, short_name in OPERATOR_KEYS:
+        if is_python and op_key not in PYTHON_ONLY_OPS:
+            row[short_name] = "n/a"
+            continue
+        row[short_name] = _fmt(
+            parse_clone_score(task_dir / f"aug_test_{op_key}.log"), digits
+        )
+    return row
+
+
+def _collect_per_op_cls_row(
+    model_dir: Path, subset: str, digits: int
+) -> dict[str, str]:
+    row: dict[str, str] = {}
+    if subset == "POJ104":
+        task_dir = model_dir / CLS_POJ104
+    else:
+        task_dir = model_dir / CLS_CODENET / subset
+
+    row["Original"] = _fmt(
+        parse_classification_score(task_dir / "test_train.log"), digits
+    )
+    row["All (cum.)"] = _fmt(
+        parse_classification_score(task_dir / "aug_test.log"), digits
+    )
+    is_python = subset == "Python800"
+    for op_key, short_name in OPERATOR_KEYS:
+        if is_python and op_key not in PYTHON_ONLY_OPS:
+            row[short_name] = "n/a"
+            continue
+        row[short_name] = _fmt(
+            parse_classification_score(task_dir / f"aug_test_{op_key}.log"),
+            digits,
+        )
+    return row
+
+
 def build_table(
     results_root: Path,
     collector,
@@ -152,6 +215,41 @@ def build_table(
     return df
 
 
+def build_per_operator_table(
+    results_root: Path,
+    subset: str,
+    collector,
+    digits: int,
+) -> pd.DataFrame:
+    columns = ["Original", "All (cum.)"] + [short for _, short in OPERATOR_KEYS]
+    rows: list[dict[str, str]] = []
+    if not results_root.exists():
+        return pd.DataFrame(columns=["Model"] + columns)
+
+    for model_dir in sorted(results_root.iterdir()):
+        if not model_dir.is_dir():
+            continue
+        row = collector(model_dir, subset, digits)
+        row["Model"] = model_dir.name
+        rows.append(row)
+
+    if not rows:
+        return pd.DataFrame(columns=["Model"] + columns)
+
+    df = pd.DataFrame(rows)
+    df = df[["Model"] + columns]
+    return df
+
+
+def _has_scored_cells(df: pd.DataFrame) -> bool:
+    if df.empty:
+        return False
+    for value in df.drop(columns=["Model"]).to_numpy().ravel():
+        if value not in {"-", "n/a"}:
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -171,6 +269,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=2,
         help="Decimal places for percentage scores.",
+    )
+    parser.add_argument(
+        "--per-operator",
+        action="store_true",
+        help="Print per-operator robustness breakdown tables.",
     )
     return parser.parse_args()
 
@@ -194,6 +297,32 @@ def main() -> None:
         print("# Code Classification (Acc)\n")
         print(cls_df.to_markdown(index=False))
         print()
+
+    if args.per_operator:
+        for subset in SUBSETS:
+            clone_per_op_df = build_per_operator_table(
+                results_root,
+                subset,
+                _collect_per_op_clone_row,
+                args.digits,
+            )
+            if _has_scored_cells(clone_per_op_df):
+                found = True
+                print(f"# Per-Operator Clone Detection — {subset} (MAP@R)\n")
+                print(clone_per_op_df.to_markdown(index=False))
+                print()
+
+            cls_per_op_df = build_per_operator_table(
+                results_root,
+                subset,
+                _collect_per_op_cls_row,
+                args.digits,
+            )
+            if _has_scored_cells(cls_per_op_df):
+                found = True
+                print(f"# Per-Operator Code Classification — {subset} (Acc)\n")
+                print(cls_per_op_df.to_markdown(index=False))
+                print()
 
     if not found:
         print(f"No results found under {results_root}")

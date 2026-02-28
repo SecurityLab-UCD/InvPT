@@ -4,6 +4,7 @@ save_path=$2
 subset=$3
 model_type=${4:-roberta}
 tokenizer_name=${5:-microsoft/codebert-base}
+operator_key=${6:-}
 
 base_name=$(basename "$save_path")
 if [ "$base_name" = "$subset" ]; then
@@ -13,7 +14,19 @@ else
 fi
 
 mkdir -p $output_dir
-touch $output_dir/test_train.log
+
+if [ -n "$operator_key" ]; then
+    test_file=./dataset/$subset/aug_test_${operator_key}.jsonl
+    aug_log=$output_dir/aug_test_${operator_key}.log
+else
+    test_file=./dataset/$subset/aug_test.jsonl
+    aug_log=$output_dir/aug_test.log
+fi
+
+if [ ! -f "$test_file" ]; then
+    echo "ERROR: test file not found: $test_file"
+    exit 1
+fi
 
 python ./code/run.py \
     --output_dir=$output_dir \
@@ -23,11 +36,11 @@ python ./code/run.py \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
     --eval_data_file=./dataset/$subset/valid.jsonl \
-    --test_data_file=./dataset/$subset/aug_test.jsonl \
+    --test_data_file=$test_file \
     --num_train_epochs 5 \
     --block_size 256 \
     --train_batch_size 8 \
     --eval_batch_size 64 \
     --learning_rate 2e-5 \
     --max_grad_norm 1.0 \
-    --seed 123456  2>&1 | tee $output_dir/aug_test.log
+    --seed 123456  2>&1 | tee $aug_log

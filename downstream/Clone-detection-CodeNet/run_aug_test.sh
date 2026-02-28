@@ -4,6 +4,7 @@ save_path=$2
 subset=$3
 model_type=${4:-roberta}
 tokenizer_name=${5:-roberta-base}
+operator_key=${6:-}
 
 base_name=$(basename "$save_path")
 if [ "$base_name" = "$subset" ]; then
@@ -13,7 +14,25 @@ else
 fi
 
 mkdir -p $output_dir
-touch $output_dir/aug_train.log
+
+if [ -n "$operator_key" ]; then
+    test_file=./dataset/$subset/aug_test_${operator_key}.jsonl
+    prediction_file=aug_predictions_${operator_key}.jsonl
+    train_log=$output_dir/aug_train_${operator_key}.log
+    eval_log=$output_dir/aug_test_${operator_key}.log
+else
+    test_file=./dataset/$subset/aug_test.jsonl
+    prediction_file=aug_predictions.jsonl
+    train_log=$output_dir/aug_train.log
+    eval_log=$output_dir/aug_test.log
+fi
+
+if [ ! -f "$test_file" ]; then
+    echo "ERROR: test file not found: $test_file"
+    exit 1
+fi
+
+touch $train_log
 
 python ./code/run.py \
     --output_dir=$output_dir \
@@ -23,14 +42,14 @@ python ./code/run.py \
     --do_test \
     --train_data_file=./dataset/$subset/train.jsonl \
     --eval_data_file=./dataset/$subset/valid.jsonl \
-    --test_data_file=./dataset/$subset/aug_test.jsonl \
-    --test_predictions_file=aug_predictions.jsonl \
+    --test_data_file=$test_file \
+    --test_predictions_file=$prediction_file \
     --epoch 2 \
     --block_size 400 \
     --eval_batch_size 64 \
     --learning_rate 2e-5 \
     --max_grad_norm 1.0 \
-    --seed 123456 2>&1| tee $output_dir/aug_train.log
+    --seed 123456 2>&1| tee $train_log
 
 echo "Extracting answers..."
 python evaluator/extract_answers.py \
@@ -41,6 +60,6 @@ python evaluator/extract_answers.py \
 echo "Evaluating test predictions..."
 python evaluator/evaluator.py \
     -a $output_dir/answer.jsonl \
-    -p $output_dir/aug_predictions.jsonl > $output_dir/aug_test.log
+    -p $output_dir/$prediction_file > $eval_log
 
 echo "Done"
