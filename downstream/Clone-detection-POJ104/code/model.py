@@ -24,7 +24,7 @@ class Model(nn.Module):
         attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
 
         encoder_outputs = self.encoder(input_ids, attention_mask=attention_mask)
-        if hasattr(self.args, "model_type") and self.args.model_type == "modernbert":
+        if hasattr(self.args, "model_type") and self.args.model_type in ("modernbert", "codesage"):
             outputs = self._pool(encoder_outputs[0], attention_mask)
         elif len(encoder_outputs) > 1:
             outputs = encoder_outputs[1]

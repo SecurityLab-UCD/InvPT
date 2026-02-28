@@ -21,7 +21,7 @@ def process(subset: str):
             case "Python800":
                 augment_Python800(
                     input_file_path=test_file_path,
-                    ouput_file_path=aug_file_path,
+                    output_file_path=aug_file_path,
                 )
             case "Java250":
                 augment_Java250(
