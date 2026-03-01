@@ -763,7 +763,6 @@ def ablation(
 
 @app.command("generate-aug")
 def generate_aug(
-    workers: int = typer.Option(4, "--workers", help="Max concurrent augmentation jobs."),
     force: bool = typer.Option(False, "--force", help="Overwrite existing output files."),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print commands without executing."
@@ -811,24 +810,17 @@ def generate_aug(
             print(f"[cmd] {job.label}")
             print(f"      cwd: {job.dataset_dir}")
             print(f"      {' '.join(cmd)}")
-        print(f"\n[dry-run] {total} total jobs (workers={workers})")
+        print(f"\n[dry-run] {total} total jobs")
         return
 
-    running = 0
     failed = 0
-    lock = threading.Lock()
     failures: list[str] = []
     pbar = tqdm(total=total, desc="Augmentation", unit="job")
 
-    def run_aug_job(job: AugJob) -> None:
-        nonlocal running, failed
+    for job in jobs:
         cmd = [sys.executable, job.script, str(job.input_path), str(job.output_path)]
         if job.operator_key:
             cmd.extend(["--operator-key", job.operator_key])
-
-        with lock:
-            running += 1
-            pbar.set_postfix(running=running, failed=failed, refresh=True)
         try:
             proc = subprocess.run(
                 cmd,
@@ -837,31 +829,20 @@ def generate_aug(
                 capture_output=True,
                 text=True,
             )
-            with lock:
-                running -= 1
-                if proc.returncode != 0:
-                    failed += 1
-                    failures.append(f"{job.label} (exit {proc.returncode})")
-                    tqdm.write(f"[FAIL] {job.label} (exit {proc.returncode})")
-                    if proc.stderr:
-                        tqdm.write(f"       {proc.stderr.strip()[:200]}")
-                else:
-                    tqdm.write(f"[done] {job.label}")
-                pbar.set_postfix(running=running, failed=failed, refresh=False)
-                pbar.update(1)
-        except Exception as exc:
-            with lock:
-                running -= 1
+            if proc.returncode != 0:
                 failed += 1
-                failures.append(f"{job.label} ({exc})")
-                tqdm.write(f"[FAIL] {job.label} ({exc})")
-                pbar.set_postfix(running=running, failed=failed, refresh=False)
-                pbar.update(1)
-
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(run_aug_job, job) for job in jobs]
-        for f in futures:
-            f.result()
+                failures.append(f"{job.label} (exit {proc.returncode})")
+                tqdm.write(f"[FAIL] {job.label} (exit {proc.returncode})")
+                if proc.stderr:
+                    tqdm.write(f"       {proc.stderr.strip()[:200]}")
+            else:
+                tqdm.write(f"[done] {job.label}")
+        except Exception as exc:
+            failed += 1
+            failures.append(f"{job.label} ({exc})")
+            tqdm.write(f"[FAIL] {job.label} ({exc})")
+        pbar.set_postfix(failed=failed, refresh=True)
+        pbar.update(1)
     pbar.close()
 
     if failures:
