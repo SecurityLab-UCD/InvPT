@@ -10,6 +10,11 @@
   `per-operator` subcommand that runs `run_aug_test.sh` per operator.
 - `experiments_downstream/parse_results.py` now supports
   `--per-operator` for operator breakdown tables.
+- `experiments_downstream/run_all_downstream.py` now includes a
+  `generate-aug` subcommand that concurrently generates all augmented
+  test datasets (`aug_test.jsonl` and `aug_test_<op>.jsonl`) across
+  tasks and operators. Supports `--workers`, `--force`, `--dry-run`,
+  and `--cumulative/--no-cumulative`.
 
 ## Operator Keys
 
