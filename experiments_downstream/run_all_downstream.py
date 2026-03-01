@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import queue
 import subprocess
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -155,6 +156,75 @@ OPS_FOR_LANG: dict[str, list[str]] = {
         "reverseifelse",
     ],
 }
+
+# (task_dir, augment_script, input_relative, output_subdir)
+AUG_SPECS: list[tuple[str, str, str, str]] = [
+    ("Clone-detection-POJ104", "augment_Cpp.py", "test.jsonl", ""),
+    ("Clone-detection-CodeNet", "augment_Java250.py", "Java250/test.jsonl", "Java250"),
+    ("Clone-detection-CodeNet", "augment_Python800.py", "Python800/test.jsonl", "Python800"),
+    ("Clone-detection-CodeNet", "augment_Cpp.py", "C++1400/test.jsonl", "C++1400"),
+    ("Code-classification-POJ104", "augment_Cpp.py", "test.jsonl", ""),
+    ("Code-classification-CodeNet", "augment_Java250.py", "Java250/test.jsonl", "Java250"),
+    ("Code-classification-CodeNet", "augment_Python800.py", "Python800/test.jsonl", "Python800"),
+    ("Code-classification-CodeNet", "augment_Cpp.py", "C++1400/test.jsonl", "C++1400"),
+]
+
+
+@dataclass(frozen=True)
+class AugJob:
+    label: str
+    task_dir: str
+    script: str
+    input_path: Path
+    output_path: Path
+    dataset_dir: Path
+    operator_key: str | None  # None = cumulative
+
+
+def _build_aug_jobs(root: Path, cumulative: bool = True) -> list[AugJob]:
+    """Expand *AUG_SPECS* into concrete augmentation jobs."""
+    jobs: list[AugJob] = []
+    for task_dir, script, input_rel, output_subdir in AUG_SPECS:
+        dataset_dir = root / "downstream" / task_dir / "dataset"
+        input_path = dataset_dir / input_rel
+        subset = output_subdir or None
+        lang = LANG_FOR_TASK[(task_dir, subset)]
+        out_dir = dataset_dir / output_subdir if output_subdir else dataset_dir
+
+        if cumulative:
+            label_parts = [task_dir]
+            if output_subdir:
+                label_parts.append(output_subdir)
+            label_parts.append("cumulative")
+            jobs.append(
+                AugJob(
+                    label="/".join(label_parts),
+                    task_dir=task_dir,
+                    script=script,
+                    input_path=input_path,
+                    output_path=out_dir / "aug_test.jsonl",
+                    dataset_dir=dataset_dir,
+                    operator_key=None,
+                )
+            )
+
+        for op in OPS_FOR_LANG[lang]:
+            label_parts = [task_dir]
+            if output_subdir:
+                label_parts.append(output_subdir)
+            label_parts.append(op)
+            jobs.append(
+                AugJob(
+                    label="/".join(label_parts),
+                    task_dir=task_dir,
+                    script=script,
+                    input_path=input_path,
+                    output_path=out_dir / f"aug_test_{op}.jsonl",
+                    dataset_dir=dataset_dir,
+                    operator_key=op,
+                )
+            )
+    return jobs
 
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -689,6 +759,118 @@ def ablation(
             jobs.append((mk, sp, task_dir, subset))
 
     _run_jobs(jobs, gpu_ids, Path(results_root).resolve(), dry_run, desc="Ablation")
+
+
+@app.command("generate-aug")
+def generate_aug(
+    workers: int = typer.Option(4, "--workers", help="Max concurrent augmentation jobs."),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing output files."),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print commands without executing."
+    ),
+    cumulative: bool = typer.Option(
+        True,
+        "--cumulative/--no-cumulative",
+        help="Generate cumulative aug_test.jsonl (default: true).",
+    ),
+) -> None:
+    """Generate augmented test datasets for all downstream tasks."""
+    root = Path(__file__).resolve().parents[1]
+    jobs = _build_aug_jobs(root, cumulative=cumulative)
+
+    if not force:
+        skipped: list[AugJob] = []
+        remaining: list[AugJob] = []
+        for job in jobs:
+            if job.output_path.exists():
+                skipped.append(job)
+            else:
+                remaining.append(job)
+        if skipped:
+            print(
+                f"[skip] {len(skipped)} output files already exist "
+                "(use --force to overwrite):"
+            )
+            for j in skipped:
+                print(f"  {j.output_path}")
+        jobs = remaining
+
+    if not jobs:
+        print("[done] Nothing to generate.")
+        return
+
+    total = len(jobs)
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(root) + os.pathsep + env.get("PYTHONPATH", "")
+
+    if dry_run:
+        for job in jobs:
+            cmd = [sys.executable, job.script, str(job.input_path), str(job.output_path)]
+            if job.operator_key:
+                cmd.extend(["--operator-key", job.operator_key])
+            print(f"[cmd] {job.label}")
+            print(f"      cwd: {job.dataset_dir}")
+            print(f"      {' '.join(cmd)}")
+        print(f"\n[dry-run] {total} total jobs (workers={workers})")
+        return
+
+    running = 0
+    failed = 0
+    lock = threading.Lock()
+    failures: list[str] = []
+    pbar = tqdm(total=total, desc="Augmentation", unit="job")
+
+    def run_aug_job(job: AugJob) -> None:
+        nonlocal running, failed
+        cmd = [sys.executable, job.script, str(job.input_path), str(job.output_path)]
+        if job.operator_key:
+            cmd.extend(["--operator-key", job.operator_key])
+
+        with lock:
+            running += 1
+            pbar.set_postfix(running=running, failed=failed, refresh=True)
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=str(job.dataset_dir),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            with lock:
+                running -= 1
+                if proc.returncode != 0:
+                    failed += 1
+                    failures.append(f"{job.label} (exit {proc.returncode})")
+                    tqdm.write(f"[FAIL] {job.label} (exit {proc.returncode})")
+                    if proc.stderr:
+                        tqdm.write(f"       {proc.stderr.strip()[:200]}")
+                else:
+                    tqdm.write(f"[done] {job.label}")
+                pbar.set_postfix(running=running, failed=failed, refresh=False)
+                pbar.update(1)
+        except Exception as exc:
+            with lock:
+                running -= 1
+                failed += 1
+                failures.append(f"{job.label} ({exc})")
+                tqdm.write(f"[FAIL] {job.label} ({exc})")
+                pbar.set_postfix(running=running, failed=failed, refresh=False)
+                pbar.update(1)
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(run_aug_job, job) for job in jobs]
+        for f in futures:
+            f.result()
+    pbar.close()
+
+    if failures:
+        print(f"\n[error] {len(failures)}/{total} jobs failed:")
+        for failure in failures:
+            print(f"  - {failure}")
+        raise typer.Exit(1)
+
+    print(f"\n[done] All {total} augmentation jobs completed successfully.")
 
 
 if __name__ == "__main__":
