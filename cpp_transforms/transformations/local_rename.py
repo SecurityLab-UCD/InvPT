@@ -9,9 +9,6 @@ from cpp_transforms.transformations.ast_util import (
 )
 from cpp_transforms.transformations.cursor_util import is_var_decl, is_decl_ref_stmt
 
-generated_names: set[str] = set()
-
-
 def map_num_char(i: int) -> str:
     i = i % 53
     if i == 0:
@@ -22,17 +19,16 @@ def map_num_char(i: int) -> str:
         return chr(i + ord("A") - 27)
 
 
-def generate_random_name(seed: int = 2023) -> str:
-    global generated_names
+def generate_random_name(seed: int, used_names: set[str]) -> str:
     generator = random.Random()
     generator.seed(seed)
     length = generator.randint(3, 27)
     random_name = ""
-    while random_name in generated_names or random_name == "":
+    while random_name in used_names or random_name == "":
         random_name = ""
         for _ in range(length):
             random_name += map_num_char(generator.randint(0, 52))
-    generated_names.add(random_name)
+    used_names.add(random_name)
     return random_name
 
 
@@ -43,6 +39,7 @@ def local_renamer(root_node: Cursor, file_code: str) -> str:
 def local_rename(root_node: Cursor, source_file: str, file_code: str) -> str:
     # Collect all nodes that have function names
     i = 0
+    used_names: set[str] = set()
     function_name_changes = {}
     function_actual_name = {}
     change_nodes = []
@@ -58,7 +55,7 @@ def local_rename(root_node: Cursor, source_file: str, file_code: str) -> str:
             if curr_visit.spelling not in function_name_changes:
                 temp_name = generate_hidden_name(curr_visit.spelling)
                 function_name_changes[curr_visit.spelling] = temp_name
-                function_actual_name[temp_name] = generate_random_name(i)
+                function_actual_name[temp_name] = generate_random_name(i, used_names)
                 i += 1
             change_nodes.append(curr_visit)
         if is_decl_ref_stmt(curr_visit):
